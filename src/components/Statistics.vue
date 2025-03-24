@@ -25,18 +25,32 @@
         </div>
 
         <div class="statistics-container">
+            <div class="pie-chart">
+                <p>Pie chart goes here</p>
+            </div>
+        </div>
+
+        <div class="statistics-container">
             <p class="response-text">Singtel typically responds in:</p>
             <h1 class="response-time">{{ response_time }} Days</h1>
-            <p class="response-status">This is considered <span class="fast-text">fast</span></p>
+            <!-- If response is < 7 days = fast 
+                 If response is >= 7 days & < 14 days = medium
+                 If not, slow -->
+            <p class="response-status">This is considered 
+                <span v-if="response_time < 7" class="fast-text">fast</span>
+                <span v-else-if="response_time >= 7 && response_time < 14" class="medium-text">medium</span>
+                <span v-else class="slow-text">slow</span>
+            </p>
         </div>
 
         <div class="statistics-container">
             <div class="response-header">
-                <p>Responses Tracked</p>
+                <p class="response-title">Responses Tracked</p>
+                <div class="divider-vertical"></div>
                 <p class="response-subtext">Singtel usually responds on Thursdays</p>
             </div>
-            <div class="graph-placeholder">
-                <p>Graph goes here</p>
+            <div class="bar-chart">
+                <p>Bar chart goes here</p>
             </div>
         </div>
     </div>
@@ -51,7 +65,7 @@ export default {
             number_interviewed: 98,
             number_offered: 3,
             number_rejected: 67,
-            response_time: 12
+            response_time: 100,
         }
     }
 };
@@ -106,6 +120,12 @@ export default {
     font-weight: bold;
 }
 
+.pie-chart {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+}
+
 .divider {
     width: 1px;
     background-color: #bbb;
@@ -128,24 +148,54 @@ export default {
     color: #666;
 }
 
+.response-speed {
+    font-weight: bold;
+    font-size: 14px;
+}
+
 .fast-text {
-    color: orange;
+    color: #37c559;
+    font-weight: bold;
+}
+
+.medium-text {
+    color: #c24600;
+    font-weight: bold;
+}
+
+.slow-text {
+    color: #ee3f3c;
     font-weight: bold;
 }
 
 .response-header {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    justify-content: flex-start;
     font-size: 14px;
     color: #444;
     font-weight: 500;
 }
 
-.response-subtext {
-    color: #777;
+.response-title {
+    margin-right: 8px;
 }
 
-.graph-placeholder {
+.divider-vertical {
+    width: 1px;
+    background-color: #bbb;
+    height: 15px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.response-subtext {
+    color: #777;
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.bar-chart {
     background-color: white;
     padding: 20px;
     border-radius: 8px;
