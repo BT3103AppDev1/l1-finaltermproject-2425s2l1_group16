@@ -1,30 +1,44 @@
 <script setup>
 import Statistics from '../components/Statistics.vue'
+import { ref } from 'vue';
+
+const showPopup = ref(false);
+
+const togglePopup = () => {
+  showPopup.value = !showPopup.value;
+};
+
+// close popup if clicked outside the box
+const closePopup = (e) => {
+  if (e.target.id == 'popup-overlay') {
+    showPopup.value = false;
+  }
+}
 </script>
 
 <template>
-  <main class="card-container">
-    <div class="box">
-      <section class="application-info">
-        <h2>Application Information</h2>
-        <Statistics />
-      </section>
+  <div class="pop-up-button">
+    <button @click="togglePopup">Open Application Information</button>
+  </div>
 
-      <section class="insights">
-        <h2>Insights & Statistics</h2>
-        <Statistics />
-      </section>
+  <div v-show="showPopup" id="popup-overlay" class="popup-overlay" @click="closePopup">
+      <div class="application-info-pop-up">
+        <div class="box">
+          <section class="application-info">
+            <h2>Application Information</h2>
+            <Statistics />
+          </section>
+
+          <section class="insights">
+            <h2>Insights & Statistics</h2>
+            <Statistics />
+          </section>
+        </div>
     </div>
-  </main>
+  </div>
 </template>
 
 <style scoped>
-.card-container {
-  display: flex;
-  justify-content: center;
-  padding: 20px;
-}
-
 .box {
   display: flex;
   background-color: #f0f0f0;
@@ -36,7 +50,6 @@ import Statistics from '../components/Statistics.vue'
 }
 
 .application-info, .insights {
-  flex: 1;
   padding: 20px;
   background-color: white;
   border-radius: 8px;
@@ -44,7 +57,15 @@ import Statistics from '../components/Statistics.vue'
   margin: 10px; 
 }
 
-.application-info {
-  border-right: 2px solid #ddd;
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>

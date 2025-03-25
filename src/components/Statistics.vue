@@ -2,22 +2,22 @@
     <div class="statistics-page">
         <div class="statistics-container">
             <div class="statistics-line">
-                <div class="stat-item highlighted">
+                <div class="stat-item" :class="{ highlighted: current_stage === 'Applied' }">
                     <h3 class="stat-label">Applied</h3>
                     <h2 class="stat-value">{{ number_applied }}</h2>
                 </div>
                 <div class="divider"></div>
-                <div class="stat-item">
+                <div class="stat-item" :class="{ highlighted: current_stage === 'Interview' }">
                     <h3 class="stat-label">Interviewed</h3>
                     <h2 class="stat-value">{{ number_interviewed }}</h2>
                 </div>
                 <div class="divider"></div>
-                <div class="stat-item">
+                <div class="stat-item" :class="{ highlighted: current_stage === 'Offered' }">
                     <h3 class="stat-label">Offered</h3>
                     <h2 class="stat-value">{{ number_offered }}</h2>
                 </div>
                 <div class="divider"></div>
-                <div class="stat-item">
+                <div class="stat-item" :class="{ highlighted: current_stage === 'Rejected' }">
                     <h3 class="stat-label">Rejected</h3>
                     <h2 class="stat-value">{{ number_rejected }}</h2>
                 </div>
@@ -65,6 +65,7 @@ export default {
             number_interviewed: 98,
             number_offered: 3,
             number_rejected: 67,
+            current_stage: "Interview",
             response_time: 100,
         }
     }
