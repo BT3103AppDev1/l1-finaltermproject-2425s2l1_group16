@@ -38,7 +38,7 @@ const closePopup = (e) => {
             
 
           <section class="insights">
-            <h2>Insights & Statistics</h2>
+            <h2 class="card-header">Insights & Statistics</h2>
             <Statistics />
           </section>
         </div>
