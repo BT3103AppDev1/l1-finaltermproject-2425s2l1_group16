@@ -77,11 +77,14 @@ const closePopup = (e) => {
 
   <div v-show="showPopup" id="popup-overlay" class="popup-overlay" @click="closePopup">
     <div class="application-info-pop-up">
+
+      <!-- place X button at top right of the pop-up -->
+      <button @click="togglePopup" class="close-btn">&times;</button>
+      
       <div class="box">
         <section class="application-info">
           <div class="header-section">
-            <h2>Application Information</h2>
-            <button @click="togglePopup" class="close-btn">&times;</button>
+            <h2 class="card-header">Application Information</h2>
           </div>
           <div class="application-details">
             <div class="detail-item">
@@ -114,7 +117,7 @@ const closePopup = (e) => {
         </section>
 
           <section class="insights">
-            <h2>Insights & Statistics</h2>
+            <h2 class="card-header">Insights & Statistics</h2>
             <Statistics />
           </section>
         </div>
@@ -161,6 +164,13 @@ const closePopup = (e) => {
 </template>
 
 <style scoped>
+.application-info-pop-up {
+  position: relative;
+}
+
+.card-header {
+  font-weight: bold;
+}
 
 .box {
   display: flex;
@@ -196,7 +206,6 @@ const closePopup = (e) => {
   backdrop-filter: blur(2px);
 }
 
-
 .header-section {
   display: flex;
   justify-content: space-between;
@@ -211,6 +220,9 @@ const closePopup = (e) => {
 }
 
 .close-btn {
+  position: absolute;
+  top: 2px;
+  right: 6px;
   background: none;
   border: none;
   font-size: 1.5rem;
