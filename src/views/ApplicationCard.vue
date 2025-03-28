@@ -82,8 +82,8 @@ const closePopup = (e) => {
 
 .close-btn {
   position: absolute;
-  top: 4px;
-  right: 12px;
+  top: 2px;
+  right: 6px;
   background: none;
   border: none;
   font-size: 1.5rem;
