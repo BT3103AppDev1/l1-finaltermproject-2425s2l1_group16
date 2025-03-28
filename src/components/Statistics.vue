@@ -56,20 +56,61 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: 'Statistics',
-    data() {
-        return {
-            number_applied: 127,
-            number_interviewed: 98,
-            number_offered: 3,
-            number_rejected: 67,
-            current_stage: "Interview",
-            response_time: 100,
-        }
-    }
-};
+<script setup>
+import { ref, onMounted } from 'vue';
+import { db } from '@/firebase';
+import { doc, getDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
+
+const number_applied = ref(0);
+const number_interviewed = ref(0);
+const number_offered = ref(0);
+const number_rejected = ref(0);
+const current_stage = ref(0);
+// need to work on this
+const response_time = 100;
+
+onMounted(async () => {
+  // Change this to the actual user
+  const myDocRef = doc(db, "Users", "insights_me", "application_folder", "3JQC4QcVShXVJzX3lPJM");
+  const myDocSnap = await getDoc(myDocRef);
+
+  if (!myDocSnap.exists()) {
+    console.error("No such document!");
+    return;
+  }
+
+  const myData = myDocSnap.data();
+  const company = myData.company;
+  const position = myData.position;
+  current_stage.value = myData.status;
+
+  // Query across all users
+  // Will need to double-check when we have multiple application folders
+  const q = query(
+    collectionGroup(db, "application_folder"),
+    where("company", "==", company),
+    where("position", "==", position)
+  );
+
+  const querySnapshot = await getDocs(q);
+
+  const stats = {
+    Applied: 0,
+    Interview: 0,
+    Offered: 0,
+    Rejected: 0,
+  };
+
+  querySnapshot.forEach(doc => {
+    const status = doc.data().status;
+    if (status in stats) stats[status]++;
+  });
+
+  number_applied.value = stats.Applied;
+  number_interviewed.value = stats.Interview;
+  number_offered.value = stats.Offered;
+  number_rejected.value = stats.Rejected;
+});
 </script>
 
 <style scoped>
