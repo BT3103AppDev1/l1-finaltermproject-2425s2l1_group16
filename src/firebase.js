@@ -1,8 +1,11 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+// import.meta.env;
 
-// Use import.meta.env to access environment variables
+// Use import.meta.env to access environment variables:
+    // Create the .env file in the root folder (intern_tracker, NOT src)
+    // copy + paste the details from Telegram
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,

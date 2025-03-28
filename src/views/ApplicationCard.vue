@@ -19,24 +19,20 @@ const closePopup = (e) => {
 </script>
 
 <template>
+  <!-- To be implemented in the actual Kanban Board (this is removed later)-->
   <div class="pop-up-button">
     <button @click="togglePopup">Open Application Information</button>
   </div>
 
-
-
   <div v-show="showPopup" id="popup-overlay" class="popup-overlay" @click="closePopup">
       <div class="application-info-pop-up">
-         <!-- place X button at top right of the pop-up -->
-   <button @click="togglePopup" class="close-btn">&times;</button>
+        <!-- place X button at top right of the pop-up -->
+        <button @click="togglePopup" class="close-btn">&times;</button>
         <div class="box">
           <section class="application-info">
             <h2>Application Information</h2>
             <ApplicationDetails />
           </section>
-
-            
-
           <section class="insights">
             <h2>Insights & Statistics</h2>
             <Statistics />
@@ -53,16 +49,22 @@ const closePopup = (e) => {
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 1200px;
+  gap: 10px;
+  justify-content: space-between;
 }
 
 .application-info, .insights {
+  flex: 1;
   padding: 20px;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   margin: 10px; 
+  max-height: 610px;
+}
+
+.application-info {
+  overflow-y: auto; /* ensures it's scrollable */
 }
 
 .popup-overlay {
@@ -76,8 +78,11 @@ const closePopup = (e) => {
   justify-content: center;
   align-items: center;
 }
+
 .application-info-pop-up {
   position: relative;
+  width: 100%;
+  max-width: 1000px;
 }
 
 .close-btn {

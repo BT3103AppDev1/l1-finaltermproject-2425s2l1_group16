@@ -176,6 +176,7 @@ export default {
     font-size: 14px;
     color: #444;
     font-weight: 500;
+    white-space: nowrap; /* Ensures text does not go to the next line if no space */
 }
 
 .response-title {
