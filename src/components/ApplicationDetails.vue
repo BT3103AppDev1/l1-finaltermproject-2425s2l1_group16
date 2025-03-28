@@ -1,7 +1,6 @@
 <template>
   <div class="application-details-card">
    
-
     <div class="detail-item">
       <label>Company Name:</label>
       <input type="text" v-model="localApp.company" disabled />
@@ -9,7 +8,7 @@
 
     <div class="detail-item">
       <label>Job Role:</label>
-      <input type="text" v-model="localApp.role" disabled />
+      <input type="text" v-model="localApp.position" disabled />
     </div>
 
     <div class="detail-item">
@@ -57,44 +56,41 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, reactive, watch } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/firebase'
+
 const showPassword = ref(false);
 
-const props = defineProps({ //place holder - - replace with firebase in future
-  application: {
-    type: Object,
-    default: () => ({
-      company: 'Singtel',
-      role: 'Software Engineer Intern',
-      status: 'Applied',
-      statusDate: '2025-03-25',
-      deadline: '2025-04-01',
-      username: 'johndoe@example.com',
-      password: 'password123',
-      description: 'Exciting opportunity to work on backend systems.',
-      notes: 'Prepare for behavioral and technical rounds.'
-    })
+const localApp = reactive({
+  company: '',
+  position: '',
+  status: '',
+  statusDate: '2025-03-25',
+  deadline: '2025-04-01',
+  username: 'johndoe@example.com',
+  password: 'password123',
+  description: 'Exciting opportunity to work on backend systems.',
+  notes: 'Prepare for behavioral and technical rounds.'
+});
+
+// Getting the doc.. please edit this when we have the actual user HAHAH
+// i edited the code a little, but kept some stuff to make it work with the firestore
+onMounted(async () => {
+  const docRef = doc(db, "Users", "insights_me", "application_folder", "3JQC4QcVShXVJzX3lPJM");
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    Object.assign(localApp, data);
+  } else {
+    console.error("No such document!");
   }
 });
 
-
-
-const emit = defineEmits(['updateApplication']);
 const statusOptions = [
   'Applied', 'Assessment', 'Interview', 'Accepted', 'Rejected', 'Turned Down'
 ];
-
-const localApp = reactive({ ...props.application });
-
-const emitUpdate = () => {
-  emit('updateApplication', { ...localApp });
-};
-
-watch(() => props.application, (newVal) => {
-  Object.assign(localApp, newVal);
-});
-
-
 </script>
 
 <style scoped>
