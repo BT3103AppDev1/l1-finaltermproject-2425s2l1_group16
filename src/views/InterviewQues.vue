@@ -4,7 +4,7 @@
 </template>
 
 <script>
-import firebaseApp from "@/firebase";
+import firebaseApp from "../firebase.js";
 import { getFirestore } from "firebase/firestore";
 import {
   doc,
@@ -27,10 +27,10 @@ export default {
       // this will be within each interview ques in the db
       // mite need to change the code to get rl time data
       let allUpvotes = await getDocs(collection(db, "Upvotes"));
-      this.upvote_counter = allUpvotes.data().count();
+      this.upvote_counter = allUpvotes.size;
 
       let allReports = await getDocs(collection(db, "Reports"));
-      this.report_counter = allReports.data().count();
+      this.report_counter = allReports.size;
       // need to check if report is more than 9
       if (this.report_counter >= 9) {
         //update status to remove question from user view
@@ -44,7 +44,6 @@ export default {
         let documentData = docs.data();
         //verify the same name is used in firebase
         let username = documentData.username;
-
         //check if current user is in the list
         if (username == "user") {
           //delete or remove from list
@@ -60,6 +59,7 @@ export default {
             console.error("Error adding document: ", error);
           }
         }
+         
         // need to check if value will be updated
         display();
       });

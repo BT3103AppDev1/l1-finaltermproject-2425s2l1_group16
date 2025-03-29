@@ -19,6 +19,11 @@ const router = createRouter({
       name: 'appication_card',
       component: () => import('../views/ApplicationCard.vue'),
     },
+    {
+      path: '/InterviewQues',
+      name: 'InterviewQues',
+      component: () => import('../views/InterviewQues.vue'),
+    },
   ],
 })
 
