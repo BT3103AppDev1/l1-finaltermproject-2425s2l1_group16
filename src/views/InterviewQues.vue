@@ -28,6 +28,7 @@ export default {
   },
   mounted() {
     this.display();
+    this.quality_check();
   },
   methods: {
     async display() {
@@ -110,6 +111,13 @@ export default {
             const questionRef = doc(db, "Interview_Questions", docs.id);
             updateDoc(questionRef, {
               status: "Checked",
+            });
+          }
+          else {
+            // delete the question ? remove ? 
+            const questionRef = doc(db, "Interview_Questions", docs.id);
+            updateDoc(questionRef, {
+              status: "Removed",
             });
           }
         }
