@@ -30,7 +30,10 @@
                     @dragover.prevent
                     @drop="drop(status)"
                 >
-                    <strong>{{ app.company }}</strong> - {{ app.position }}
+                    <div class="task-content">
+                        <strong>{{ app.company }}</strong> - {{ app.position }}
+                        <CompleteInterview v-if="status === 'Interview'" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -42,9 +45,13 @@ import { ref, onMounted } from "vue";
 import { db } from "@/firebase";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
+import CompleteInterview from "@/components/CompleteInterview.vue";
 
 export default {
-    components: { AddApplicationForm },
+    components: { 
+        AddApplicationForm,
+        CompleteInterview 
+    },
 
     setup() {
         const jobApplications = ref({
@@ -258,13 +265,20 @@ button:hover {
     margin-top: 0;
 }
 
+.task-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
 .task {
-    background-color: #f0f0f0; /* Light background for tasks */
+    background-color: white;
     padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-    cursor: pointer;
+    margin: 8px 0;
+    border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: grab;
 }
 
 .task:hover {
