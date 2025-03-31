@@ -166,11 +166,32 @@ export default {
     background-color: white;
     border-radius: 8px;
     padding: 20px;
-    width: 400px; /* Adjust width as needed */
+    width: 400px;
+    max-height: 80vh; /* Limit height to 80% of viewport height */
+    overflow-y: auto; /* Add vertical scrollbar when content overflows */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     position: relative;
     color: black;
     font-family: Arial, sans-serif;
+}
+
+/* Optional: Style the scrollbar for webkit browsers */
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 .modal-title {
