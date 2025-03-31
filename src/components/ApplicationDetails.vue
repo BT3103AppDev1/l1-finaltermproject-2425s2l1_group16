@@ -52,6 +52,15 @@
       <label>Personal Notes:</label>
       <textarea rows="3" v-model="localApp.notes" disabled></textarea>
     </div>
+
+    <div class="interview-questions-section">
+      <button 
+        @click="toggleInterviewQuestions"
+        class="interview-questions-btn"
+      >
+        View Interview Questions
+      </button>
+    </div>
   </div>
 </template>
 
@@ -61,6 +70,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase'
 
 const showPassword = ref(false);
+const showInterviewQuestions = ref(false);
 
 const localApp = reactive({
   company: '',
@@ -91,6 +101,11 @@ onMounted(async () => {
 const statusOptions = [
   'Applied', 'Assessment', 'Interview', 'Accepted', 'Rejected', 'Turned Down'
 ];
+
+const toggleInterviewQuestions = () => {
+  showInterviewQuestions.value = !showInterviewQuestions.value;
+  console.log('Viewing interview questions');
+};
 </script>
 
 <style scoped>
@@ -140,5 +155,27 @@ const statusOptions = [
 
 .toggle-btn:hover {
   color: #1d4ed8;
+}
+
+.interview-questions-section {
+  margin-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 16px;
+}
+
+.interview-questions-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.interview-questions-btn:hover {
+  background-color: #45a049;
 }
 </style>
