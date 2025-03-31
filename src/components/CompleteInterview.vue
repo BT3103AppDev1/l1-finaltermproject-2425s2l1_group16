@@ -10,7 +10,8 @@
                 <label for="questionType">Question Type*</label>
                 <select v-model="questionType" id="questionType">
                     <option value="Technical">Technical</option>
-                    <option value="Behavioral">Behavioral</option>
+                    <option value="Current Affairs">Current Affairs</option>
+                    <option value="General">General</option>
                     <!-- Add more options as needed -->
                 </select>
                 <label for="question">Question*</label>
@@ -45,9 +46,8 @@ export default {
             this.isModalOpen = false;
         },
         handleSubmit() {
-            // Handle submission logic here
             alert(`Question: ${this.question}\nDescription: ${this.description}`);
-            this.closeModal(); // Close the modal after submission
+            this.closeModal(); 
         }
     }
 };
