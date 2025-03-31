@@ -60,6 +60,27 @@
       >
         View Interview Questions
       </button>
+
+      <div v-if="showInterviewQuestions" class="questions-list">
+        <h3>Interview Questions for Singtel - Data Analyst Intern</h3>
+        <div class="question-items">
+          <div class="question-item">
+            <div class="question-type">Technical</div>
+            <div class="question-text">Explain merge sort</div>
+            <div class="question-description">Asked for time complexity also</div>
+            <div class="question-actions">
+              <button class="action-btn upvote-btn">
+                <span>👍 Upvote</span>
+                <span class="count">0</span>
+              </button>
+              <button class="action-btn report-btn">
+                <span>⚠️ Report</span>
+                <span class="count">0</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -177,5 +198,96 @@ const toggleInterviewQuestions = () => {
 
 .interview-questions-btn:hover {
   background-color: #45a049;
+}
+
+.questions-list {
+  margin-top: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.questions-list h3 {
+  margin-bottom: 16px;
+  color: #334155;
+  font-size: 1.1rem;
+}
+
+.question-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.question-item {
+  padding: 16px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.question-type {
+  font-size: 0.875rem;
+  color: #4CAF50;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.question-text {
+  font-size: 1rem;
+  color: #334155;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.question-description {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.question-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.upvote-btn {
+  color: #4CAF50;
+}
+
+.upvote-btn:hover {
+  background-color: #e8f5e9;
+  border-color: #4CAF50;
+}
+
+.report-btn {
+  color: #f44336;
+}
+
+.report-btn:hover {
+  background-color: #ffebee;
+  border-color: #f44336;
+}
+
+.count {
+  background-color: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
 }
 </style>
