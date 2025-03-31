@@ -32,7 +32,11 @@
                 >
                     <div class="task-content">
                         <strong>{{ app.company }}</strong> - {{ app.position }}
-                        <CompleteInterview v-if="status === 'Interview'" />
+                        <CompleteInterview 
+                            v-if="status === 'Interview'" 
+                            :company="app.company"
+                            :role="app.position"
+                        />
                     </div>
                 </div>
             </div>
@@ -78,7 +82,7 @@ export default {
         const showForm = ref(false);
 
         const loadApplications = async () => {
-            const userId = "Cu8w7qKqftnyhdddVufn"; // Replace with dynamic user ID if necessary
+            const userId = "Cu8w7qKqftnyhdddVufn";
             const applicationsRef = collection(
                 db,
                 "Users",
@@ -124,7 +128,7 @@ export default {
             if (!draggedApplication.value || sourceStatus.value == newStatus)
                 return;
 
-            const userId = "Cu8w7qKqftnyhdddVufn"; // Replace with dynamic user ID
+            const userId = "Cu8w7qKqftnyhdddVufn"; 
             const sourceDocRef = doc(
                 db,
                 "Users",
@@ -134,22 +138,18 @@ export default {
             );
 
             try {
-                // Update Firestore
                 await updateDoc(sourceDocRef, { status: newStatus });
 
-                // Remove the application from the old column
                 jobApplications.value[sourceStatus.value] =
                     jobApplications.value[sourceStatus.value] =
                         jobApplications.value[sourceStatus.value].filter(
                             (app) => app.id !== draggedApplication.value.id
                         );
 
-                // Ensure the new column is an array (fixes empty column issue)
                 if (!jobApplications.value[newStatus]) {
                     jobApplications.value[newStatus] = [];
                 }
 
-                // Add the application to the new column (force reactivity)
                 jobApplications.value[newStatus] = [
                     ...jobApplications.value[newStatus],
                     {
@@ -158,7 +158,6 @@ export default {
                     },
                 ];
 
-                // Reset draggedApplication
                 draggedApplication.value = null;
                 sourceStatus.value = null;
             } catch (error) {
@@ -168,7 +167,7 @@ export default {
 
         const handleApplicationAdded = (newApp) => {
             jobApplications.value.Applied.push(newApp);
-            showForm.value = false; // Hide form after submission
+            showForm.value = false; 
         };
 
         return {
