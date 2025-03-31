@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-// import.meta.env;
+import.meta.env;
 
 // Use import.meta.env to access environment variables:
     // Create the .env file in the root folder (intern_tracker, NOT src)
