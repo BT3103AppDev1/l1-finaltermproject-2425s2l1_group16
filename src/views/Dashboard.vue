@@ -30,11 +30,24 @@
                     @dragover.prevent
                     @drop="drop(status)"
                 >
-                    <strong>{{ app.company }}</strong> - {{ app.position }}
+                <strong>{{ app.company }}</strong> - {{ app.position }}
+                <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
                 </div>
             </div>
         </div>
     </div>
+    <teleport to="body">
+        <div v-if="showDeleteModal" class="modal-overlay">
+            <div class="modal-content">
+                 <h3>Are you sure you want to delete this application?</h3>
+                 <p>This action cannot be undone.</p>
+            <div class="modal-actions">
+        <button @click="performDelete">Confirm</button>
+        <button @click="showDeleteModal = false">Cancel</button>
+      </div>
+    </div>
+  </div>
+</teleport>
 </template>
 
 <script>
@@ -42,6 +55,10 @@ import { ref, onMounted } from "vue";
 import { db } from "@/firebase";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
+import { deleteDoc } from "firebase/firestore";
+
+
+
 
 export default {
     components: { AddApplicationForm },
@@ -69,6 +86,37 @@ export default {
         const sourceStatus = ref(null);
         const sourceIndex = ref(null);
         const showForm = ref(false);
+        const showDeleteModal = ref(false);
+        const appToDelete = ref(null);
+        const appStatusToDelete = ref(null);
+
+        const confirmDelete = (app, status) => {
+  appToDelete.value = app;
+  appStatusToDelete.value = status;
+  showDeleteModal.value = true;
+        };
+
+        const performDelete = async () => {
+            if (!appToDelete.value || !appStatusToDelete.value) return;
+
+            try {
+                const userId = "Cu8w7qKqftnyhdddVufn";
+                const appRef = doc(db, "Users", userId, "application_folder", appToDelete.value.id);
+
+                await deleteDoc(appRef);
+
+    jobApplications.value[appStatusToDelete.value] =
+      jobApplications.value[appStatusToDelete.value].filter(
+        (item) => item.id !== appToDelete.value.id
+      );
+
+        showDeleteModal.value = false;
+    appToDelete.value = null;
+    appStatusToDelete.value = null;
+  } catch (err) {
+    console.error("Failed to delete:", err);
+  }
+};
 
         const loadApplications = async () => {
             const userId = "Cu8w7qKqftnyhdddVufn"; // Replace with dynamic user ID if necessary
@@ -171,6 +219,9 @@ export default {
             drop,
             showForm,
             handleApplicationAdded,
+            confirmDelete,
+            performDelete,
+            showDeleteModal
         };
     },
 };
@@ -270,4 +321,51 @@ button:hover {
 .task:hover {
     background-color: #e2e2e2; /* Slightly darker on hover */
 }
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: red;
+  font-size: 1rem;
+  float: right;
+  cursor: pointer;
+  margin-left: auto;
+  padding: 4px;
+}
+
+.delete-btn:hover {
+  color: darkred;
+}
+
+.modal-content h3 {
+  margin: 0 0 10px;
+}
+
+.modal-content p {
+  margin-bottom: 20px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modal-actions button {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.modal-actions button:first-child {
+  background-color: red;
+  color: white;
+}
+
+.modal-actions button:last-child {
+  background-color: #e2e8f0;
+  color: #334155;
+}
+
 </style>
