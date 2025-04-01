@@ -92,7 +92,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { defineProps, defineEmits, ref, reactive, onMounted } from 'vue';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 
@@ -103,7 +103,6 @@ const newSubStage = ref('');
 const editedStageName = ref('');
 const editingIndex = ref(null);
 const newSubStageDate = ref('');
-
 
 const subStages = ref([]);
 
@@ -126,12 +125,16 @@ const statusOptions = [
 
 const docPath = doc(db, "Users", "insights_me", "application_folder", "3JQC4QcVShXVJzX3lPJM");
 
+const emit = defineEmits();
+
 onMounted(async () => {
   const docSnap = await getDoc(docPath);
   if (docSnap.exists()) {
     const data = docSnap.data();
     Object.assign(localApp, data);
     subStages.value = data.subStages || [];
+    // emit company name to Parent (ApplicationCard.vue)
+    emit('passCompany', localApp.company);
   } else {
     console.error("No such document!");
   }

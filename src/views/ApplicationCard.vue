@@ -16,6 +16,12 @@ const closePopup = (e) => {
     showPopup.value = false;
   }
 }
+
+const receivedCompany = ref('');
+
+const handleCompanyUpdate = (companyName) => {
+  receivedCompany.value = companyName;
+};
 </script>
 
 <template>
@@ -28,10 +34,20 @@ const closePopup = (e) => {
       <div class="application-info-pop-up">
         <!-- place X button at top right of the pop-up -->
         <button @click="togglePopup" class="close-btn">&times;</button>
+        <div class="popup-header">
+          <h1 class="company-name">{{ receivedCompany }}</h1>
+          <div class="action-links">
+            <a href="#" class="link-btn">Application Details</a><span class="separator"> | </span>
+            <a href="#" class="link-btn">Edit Application</a><span class="separator"> | </span>
+            <a href="#" class="link-btn">Delete Application</a><span class="separator"> | </span>
+            <a href="#" class="link-btn">Insights & Statistics</a><span class="separator"> | </span>
+            <a href="#" class="link-btn">Interview Questions</a>
+          </div>
+        </div>
         <div class="box">
           <section class="application-info">
-            <h2>Application Information</h2>
-            <ApplicationDetails />
+            <h2>Application Details</h2>
+            <ApplicationDetails @passCompany="handleCompanyUpdate" />
           </section>
           <section class="insights">
             <h2>Insights & Statistics</h2>
@@ -43,13 +59,48 @@ const closePopup = (e) => {
 </template>
 
 <style scoped>
+.popup-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  margin-bottom: -30px;
+}
+
+.company-name {
+  margin-left: 10px;
+}
+
+.action-links {
+  display: flex;
+  margin-left: 15px;
+  margin-top: 5px;
+}
+
+.action-links a {
+  color: #d67b35;
+  font-size: 14px;
+}
+
+.action-links a:hover {
+  text-decoration: underline;
+}
+
+.separator {
+  color: #d67b35;
+  font-size: 16px;
+  margin: 0 5px;
+}
+
 .box {
   display: flex;
   background-color: #f0f0f0;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  gap: 10px;
+  gap: 30px;
   justify-content: space-between;
 }
 
