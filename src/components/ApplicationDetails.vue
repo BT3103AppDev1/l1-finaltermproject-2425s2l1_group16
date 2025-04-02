@@ -92,7 +92,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 
@@ -188,7 +188,7 @@ const cancelEditSubStage = () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 24px;
+  padding: 12px;
   background-color: white;
   border-radius: 12px;
 }
@@ -200,7 +200,7 @@ const cancelEditSubStage = () => {
 
 .detail-item label {
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   color: #334155;
 }
 

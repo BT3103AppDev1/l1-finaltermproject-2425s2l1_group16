@@ -2,7 +2,7 @@
 import Statistics from '../components/Statistics.vue'
 import ApplicationDetails from '../components/ApplicationDetails.vue'
 
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 const showPopup = ref(false);
 
@@ -17,10 +17,27 @@ const closePopup = (e) => {
   }
 }
 
-const receivedCompany = ref('');
+// get the company name from the child (ApplicationDetails.vue)
+const childCompany = ref('');
 
 const handleCompanyUpdate = (companyName) => {
-  receivedCompany.value = companyName;
+  childCompany.value = companyName;
+};
+
+// truncate company name if more than 10 characters
+const truncatedCompany = computed(() => {
+  if (childCompany.value.length > 10) {
+    return childCompany.value.slice(0, 10) + '...';
+  }
+  return childCompany.value;
+});
+
+// Manage the state for the active tab
+// Default is Application Details
+const activeTab = ref('application-details');  
+
+const switchTab = (tabName) => {
+  activeTab.value = tabName;
 };
 </script>
 
@@ -35,22 +52,22 @@ const handleCompanyUpdate = (companyName) => {
         <!-- place X button at top right of the pop-up -->
         <button @click="togglePopup" class="close-btn">&times;</button>
         <div class="popup-header">
-          <h1 class="company-name">{{ receivedCompany }}</h1>
+          <h1 class="company-name">{{ truncatedCompany }}</h1>
           <div class="action-links">
-            <a href="#" class="link-btn">Application Details</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click="switchTab('application-details')" :class="{'active-tab': activeTab === 'application-details'}">Application Details</a><span class="separator"> | </span>
             <a href="#" class="link-btn">Edit Application</a><span class="separator"> | </span>
             <a href="#" class="link-btn">Delete Application</a><span class="separator"> | </span>
-            <a href="#" class="link-btn">Insights & Statistics</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click="switchTab('insights')" :class="{'active-tab': activeTab === 'insights'}">Insights & Statistics</a><span class="separator"> | </span>
             <a href="#" class="link-btn">Interview Questions</a>
           </div>
         </div>
         <div class="box">
-          <section class="application-info">
-            <h2>Application Details</h2>
+          <section v-if="activeTab === 'application-details'" class="application-info">
+            <h2 class="application-details-title">Application Details</h2>
             <ApplicationDetails @passCompany="handleCompanyUpdate" />
           </section>
-          <section class="insights">
-            <h2>Insights & Statistics</h2>
+          <section v-if="activeTab === 'insights'" class="insights">
+            <h2 class="insights-title">Insights & Statistics</h2>
             <Statistics />
           </section>
         </div>
@@ -67,6 +84,16 @@ const handleCompanyUpdate = (companyName) => {
   background-color: #f0f0f0;
   border-radius: 10px;
   margin-bottom: -30px;
+}
+
+.application-details-title {
+  padding: 12px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.insights-title {
+  padding-bottom: 12px;
 }
 
 .company-name {
@@ -86,6 +113,11 @@ const handleCompanyUpdate = (companyName) => {
 
 .action-links a:hover {
   text-decoration: underline;
+  background-color: transparent;
+}
+
+.active-tab {
+  font-weight: bold;
 }
 
 .separator {
@@ -95,13 +127,10 @@ const handleCompanyUpdate = (companyName) => {
 }
 
 .box {
-  display: flex;
   background-color: #f0f0f0;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  gap: 30px;
-  justify-content: space-between;
 }
 
 .application-info, .insights {
@@ -112,9 +141,6 @@ const handleCompanyUpdate = (companyName) => {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   margin: 10px; 
   max-height: 610px;
-}
-
-.application-info {
   overflow-y: auto; /* ensures it's scrollable */
 }
 
@@ -138,8 +164,8 @@ const handleCompanyUpdate = (companyName) => {
 
 .close-btn {
   position: absolute;
-  top: 2px;
-  right: 6px;
+  top: 5px;
+  right: 8px;
   background: none;
   border: none;
   font-size: 1.5rem;
