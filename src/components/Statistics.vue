@@ -143,13 +143,12 @@ onMounted(async () => {
 .stat-label {
     font-size: 14px;
     font-weight: 500;
-    color: #555;
+    color: #444;
 }
 
 .stat-value {
     font-size: 24px;
     font-weight: bold;
-    color: #222;
 }
 
 .highlighted .stat-label {
@@ -162,10 +161,15 @@ onMounted(async () => {
     font-weight: bold;
 }
 
-.pie-chart {
+.pie-chart, .bar-chart{
     background-color: white;
     padding: 20px;
     border-radius: 8px;
+    height: 300px;
+}
+
+.bar-chart {
+    margin-top:12px;
 }
 
 .divider {
@@ -176,18 +180,15 @@ onMounted(async () => {
 
 .response-text {
     font-size: 16px;
-    color: #555;
 }
 
 .response-time {
     font-size: 32px;
     font-weight: bold;
-    color: #222;
 }
 
 .response-status {
     font-size: 14px;
-    color: #666;
 }
 
 .response-speed {
@@ -234,14 +235,6 @@ onMounted(async () => {
 
 .response-subtext {
     color: #777;
-    font-size: 12px;
     margin-left: 8px;
-}
-
-.bar-chart {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    margin-top: 12px;
 }
 </style>
