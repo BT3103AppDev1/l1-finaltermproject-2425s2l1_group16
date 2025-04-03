@@ -31,7 +31,7 @@
         </div>
 
         <div class="statistics-container">
-            <p class="response-text">Singtel typically responds in:</p>
+            <p class="response-text">{{ company }} typically responds in:</p>
             <h1 class="response-time">{{ response_time }} Days</h1>
             <!-- If response is < 7 days = fast 
                  If response is >= 7 days & < 14 days = medium
@@ -47,7 +47,7 @@
             <div class="response-header">
                 <p class="response-title">Responses Tracked</p>
                 <div class="divider-vertical"></div>
-                <p class="response-subtext">Singtel usually responds on Thursdays</p>
+                <p class="response-subtext">{{ company }} usually responds on Thursdays</p>
             </div>
             <div class="bar-chart">
                 <p>Bar chart goes here</p>
@@ -59,13 +59,15 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { db } from '@/firebase';
-import { doc, getDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collectionGroup, query, where, getDocs, updateDoc } from 'firebase/firestore';
 
 const number_applied = ref(0);
 const number_interviewed = ref(0);
 const number_offered = ref(0);
 const number_rejected = ref(0);
 const current_stage = ref(0);
+const company = ref('');
+
 // need to work on this
 const response_time = 100;
 
@@ -80,15 +82,15 @@ onMounted(async () => {
   }
 
   const myData = myDocSnap.data();
-  const company = myData.company;
   const position = myData.position;
   current_stage.value = myData.status;
+  company.value = myData.company;
 
   // Query across all users
   // Will need to double-check when we have multiple application folders
   const q = query(
     collectionGroup(db, "application_folder"),
-    where("company", "==", company),
+    where("company", "==", company.value),
     where("position", "==", position)
   );
 

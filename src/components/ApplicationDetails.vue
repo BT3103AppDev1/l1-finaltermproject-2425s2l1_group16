@@ -76,18 +76,18 @@
     </div>
 
     <teleport to="body">
-  <div v-if="showSubStageModal" class="modal-overlay">
-    <div class="modal-content">
-      <h3>Add Sub-Stage</h3>
-      <input type="text" v-model="newSubStage" placeholder="e.g. Technical Round" />
-      <input type="date" v-model="newSubStageDate" />
-      <div class="modal-actions">
-        <button @click="addSubStage">Add</button>
-        <button @click="showSubStageModal = false">Cancel</button>
+      <div v-if="showSubStageModal" class="modal-overlay">
+        <div class="modal-content">
+          <h3>Add Sub-Stage</h3>
+          <input type="text" v-model="newSubStage" placeholder="e.g. Technical Round" />
+          <input type="date" v-model="newSubStageDate" />
+          <div class="modal-actions">
+            <button @click="addSubStage">Add</button>
+            <button @click="showSubStageModal = false">Cancel</button>
+          </div>
       </div>
     </div>
-  </div>
-</teleport>
+  </teleport>
   </div>
 </template>
 
