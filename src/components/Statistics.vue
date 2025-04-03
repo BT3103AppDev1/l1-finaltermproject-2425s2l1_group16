@@ -59,7 +59,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { db } from '@/firebase';
-import { doc, getDoc, collectionGroup, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
 
 const number_applied = ref(0);
 const number_interviewed = ref(0);
@@ -71,50 +71,50 @@ const company = ref('');
 // need to work on this
 const response_time = 100;
 
-// Change this to the actual user
 const props = defineProps(['appId']);
 
 onMounted(async () => {
-  const docPath = doc(db, "Users", "insights_me", "application_folder", props.appId);
+    // Change this to the actual user
+    const docPath = doc(db, "Users", "insights_me", "application_folder", props.appId);
 
-  const myDocSnap = await getDoc(docPath);
+    const myDocSnap = await getDoc(docPath);
 
-  if (!myDocSnap.exists()) {
-    console.error("No such document!");
-    return;
-  }
+    if (!myDocSnap.exists()) {
+        console.error("No such document!");
+        return;
+    }
 
-  const myData = myDocSnap.data();
-  const position = myData.position;
-  current_stage.value = myData.status;
-  company.value = myData.company;
+    const myData = myDocSnap.data();
+    const position = myData.position;
+    current_stage.value = myData.status;
+    company.value = myData.company;
 
-  // Query across all users
-  // Will need to double-check when we have multiple application folders
-  const q = query(
-    collectionGroup(db, "application_folder"),
-    where("company", "==", company.value),
-    where("position", "==", position)
-  );
+    // Query across all users
+    // Will need to double-check when we have multiple application folders
+    const q = query(
+        collectionGroup(db, "application_folder"),
+        where("company", "==", company.value),
+        where("position", "==", position)
+    );
 
-  const querySnapshot = await getDocs(q);
+    const querySnapshot = await getDocs(q);
 
-  const stats = {
-    Applied: 0,
-    Interview: 0,
-    Offered: 0,
-    Rejected: 0,
-  };
+    const stats = {
+        Applied: 0,
+        Interview: 0,
+        Offered: 0,
+        Rejected: 0,
+    };
 
-  querySnapshot.forEach(doc => {
-    const status = doc.data().status;
-    if (status in stats) stats[status]++;
-  });
+    querySnapshot.forEach(doc => {
+        const status = doc.data().status;
+        if (status in stats) stats[status]++;
+    });
 
-  number_applied.value = stats.Applied;
-  number_interviewed.value = stats.Interview;
-  number_offered.value = stats.Offered;
-  number_rejected.value = stats.Rejected;
+    number_applied.value = stats.Applied;
+    number_interviewed.value = stats.Interview;
+    number_offered.value = stats.Offered;
+    number_rejected.value = stats.Rejected;
 });
 </script>
 

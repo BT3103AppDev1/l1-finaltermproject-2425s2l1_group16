@@ -55,19 +55,27 @@ export default {
             const newApplicationRef = doc(
                 collection(db, "Users", userId, "application_folder")
             );
-            const dateApplied = new Date().toISOString();
+
+            const date = new Date();
+            const dateApplied = new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString(); // convert to SGT
 
             const newApplication = {
                 id: newApplicationRef.id,
                 company: company.value,
                 position: position.value,
-                job_type: jobType.value,
-                location: location.value,
-                salary: salary.value || null,
                 date_applied: dateApplied,
                 status: "Applied",
                 notes: notes.value,
                 last_updated: dateApplied,
+                stages: {
+                    applied: {
+                        date: dateApplied,
+                    }
+                },
+                // i think can remove the below
+                job_type: jobType.value,
+                location: location.value,
+                salary: salary.value || null,
             };
 
             await setDoc(newApplicationRef, newApplication);

@@ -38,6 +38,35 @@
             </div>
         </div>
     </div>
+
+    <teleport to="body">
+        <div v-if="showDropConfirmModal" class="modal-overlay">
+            <div class="modal-content">
+            <h3>Confirm Status Change</h3>
+            <p>
+            You are moving <strong>{{ pendingDrop?.app.company }}</strong>
+            to <strong>{{ pendingDrop?.to }}</strong><br />
+            (as at <strong>{{ formattedSGT }}</strong>).
+            </p>
+
+            <!-- only when you are shiftign to interview or assessment statuses -->
+            <div v-if="pendingDrop?.to === 'Interview' || pendingDrop?.to === 'Assessment'">
+                <label for="stageName">Enter Stage Name:</label>
+                <input
+                    type="text"
+                    id="stageName"
+                    v-model="stageName"
+                    placeholder="Enter stage name"
+                />
+            </div>
+            <div class="modal-actions">
+                <button @click="confirmDropStatus">Confirm</button>
+                <button @click="showDropConfirmModal = false">Cancel</button>
+            </div>
+            </div>
+        </div>
+    </teleport>
+
     <teleport to="body">
         <div v-if="showDeleteModal" class="modal-overlay">
             <div class="modal-content">
@@ -62,7 +91,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { db } from "@/firebase";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
@@ -185,49 +214,110 @@ export default {
             sourceIndex.value = index;
         };
 
+        const pendingDrop = ref(null);
+        const showDropConfirmModal = ref(false);
+
+        const statusChangeTime = ref(null);
+
+        const formattedSGT = computed(() => {
+            if (!statusChangeTime.value) return '';
+            return new Date(statusChangeTime.value).toLocaleString('en-SG', {
+                timeZone: 'Asia/Singapore',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        });
+
         const drop = async (newStatus) => {
-            if (!draggedApplication.value || sourceStatus.value == newStatus)
-                return;
+            if (!draggedApplication.value || sourceStatus.value == newStatus) return;
 
-            const userId = "insights_me"; // Replace with dynamic user ID
-            const sourceDocRef = doc(
-                db,
-                "Users",
-                userId,
-                "application_folder",
-                draggedApplication.value.id
-            );
+            const statusUpdateDate = new Date().toISOString();
+            statusChangeTime.value = statusUpdateDate;
 
+            pendingDrop.value = {
+                app: draggedApplication.value,
+                from: sourceStatus.value,
+                to: newStatus
+            };
+
+            showDropConfirmModal.value = true;
+
+            // Clear drag state
+            draggedApplication.value = null;
+            sourceStatus.value = null;
+        };
+
+        const confirmDropStatus = async () => {
+            if (!pendingDrop.value) return;
+
+            const { app, from, to } = pendingDrop.value;
+            const userId = "insights_me";
+            const sourceDocRef = doc(db, "Users", userId, "application_folder", app.id);
+            
             try {
+                // convert to SGT
+                const dateNow = new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString();
+
+                const updates = {
+                    status: to,
+                    last_updated: dateNow,
+                };
+
+                if (!app.stages) app.stages = {};
+
+                if (to === "Interview" || to === "Assessment") {
+                    // change to "interview" or "assessment"
+                    const type = to.toLowerCase();
+
+                    // initialise stages for that type if not already present
+                    if (!app.stages[type]) {
+                        app.stages[type] = [];
+                    }
+
+                    // find the next available stage number i.e interview_X
+                    const existingStages = app.stages[type];
+                    const nextNum = existingStages.length > 0 ? existingStages.length + 1 : 1;
+
+                    if (stageName.value) {
+                        updates[`stages.${type}.${type}_${nextNum}`] = {
+                            name: stageName.value,
+                            date: dateNow,
+                        };
+
+                        // Save to the app stages array for that type
+                        app.stages[type].push({ [`${type}_${nextNum}`]: { name: stageName, date: dateNow } });
+                    }
+
+                } else {
+                    // For other statuses like "Applied", just set the stage date
+                    updates[`stages.${to.toLowerCase()}`] = {
+                        date: dateNow,
+                    };
+                }
+
                 // Update Firestore
-                await updateDoc(sourceDocRef, { status: newStatus });
+                await updateDoc(sourceDocRef, updates);
 
                 // Remove the application from the old column
-                jobApplications.value[sourceStatus.value] =
-                    jobApplications.value[sourceStatus.value] =
-                        jobApplications.value[sourceStatus.value].filter(
-                            (app) => app.id !== draggedApplication.value.id
-                        );
+                jobApplications.value[from] = jobApplications.value[from].filter(
+                    (item) => item.id !== app.id
+                );
 
                 // Ensure the new column is an array (fixes empty column issue)
-                if (!jobApplications.value[newStatus]) {
-                    jobApplications.value[newStatus] = [];
+                if (!jobApplications.value[to]) {
+                    jobApplications.value[to] = [];
                 }
 
                 // Add the application to the new column (force reactivity)
-                jobApplications.value[newStatus] = [
-                    ...jobApplications.value[newStatus],
-                    {
-                        ...draggedApplication.value,
-                        status: newStatus,
-                    },
-                ];
+                jobApplications.value[to].push({ ...app, status: to });
 
-                // Reset draggedApplication
-                draggedApplication.value = null;
-                sourceStatus.value = null;
-            } catch (error) {
-                console.error("Error updating Firestore:", error);
+                showDropConfirmModal.value = false;
+                pendingDrop.value = null;
+            } catch (err) {
+                console.error("Error confirming status change:", err);
             }
         };
 
@@ -246,12 +336,21 @@ export default {
             confirmDelete,
             performDelete,
             showDeleteModal,
+            // pop-up of the application cards
             openPopup,
             closePopup,
             showPopup,
-            selectedAppId
+            selectedAppId,
+            // drop confirmation functionality
+            drop,
+            confirmDropStatus,
+            pendingDrop,
+            showDropConfirmModal,
+            // show time
+            statusChangeTime,
+            formattedSGT
         };
-    },
+    }
 };
 </script>
 

@@ -46,11 +46,11 @@ const switchTab = (tabName) => {
         <div class="popup-header">
           <h1 class="company-name">{{ truncatedCompany }}</h1>
           <div class="action-links">
-            <a href="#" class="link-btn" @click="switchTab('application-details')" :class="{'active-tab': activeTab === 'application-details'}">Application Details</a><span class="separator"> | </span>
-            <a href="#" class="link-btn">Edit Application</a><span class="separator"> | </span>
-            <a href="#" class="link-btn">Delete Application</a><span class="separator"> | </span>
-            <a href="#" class="link-btn" @click="switchTab('insights')" :class="{'active-tab': activeTab === 'insights'}">Insights & Statistics</a><span class="separator"> | </span>
-            <a href="#" class="link-btn">Interview Questions</a>
+            <a href="#" class="link-btn" @click="switchTab('application-details')" :class="{'active-tab': activeTab === 'application-details'}" @click.prevent>Application Details</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click.prevent>Edit Application</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click.prevent>Delete Application</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click="switchTab('insights')" :class="{'active-tab': activeTab === 'insights'}" @click.prevent>Insights & Statistics</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click.prevent>Interview Questions</a>
           </div>
         </div>
         <div class="box">

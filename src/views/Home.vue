@@ -6,7 +6,6 @@
     <nav>
       <ul>
         <li><router-link to="/dashboard">Dashboard</router-link></li>
-        <li><router-link to="/application_card">Application Card</router-link></li>
         <li><router-link to="/interview-questions">Interview Questions</router-link></li>
         <li><router-link to="/login">Login</router-link></li>
         <li><router-link to="/registration">Registration</router-link></li>
