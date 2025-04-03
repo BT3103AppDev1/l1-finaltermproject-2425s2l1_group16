@@ -71,10 +71,13 @@ const company = ref('');
 // need to work on this
 const response_time = 100;
 
+// Change this to the actual user
+const props = defineProps(['appId']);
+
 onMounted(async () => {
-  // Change this to the actual user
-  const myDocRef = doc(db, "Users", "insights_me", "application_folder", "3JQC4QcVShXVJzX3lPJM");
-  const myDocSnap = await getDoc(myDocRef);
+  const docPath = doc(db, "Users", "insights_me", "application_folder", props.appId);
+
+  const myDocSnap = await getDoc(docPath);
 
   if (!myDocSnap.exists()) {
     console.error("No such document!");

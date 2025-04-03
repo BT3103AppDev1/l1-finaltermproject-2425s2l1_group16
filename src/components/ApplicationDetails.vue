@@ -123,7 +123,8 @@ const statusOptions = [
   'Applied', 'Assessment', 'Interview', 'Accepted', 'Rejected', 'Turned Down'
 ];
 
-const docPath = doc(db, "Users", "insights_me", "application_folder", "3JQC4QcVShXVJzX3lPJM");
+const props = defineProps(['appId']);
+const docPath = doc(db, "Users", "insights_me", "application_folder", props.appId);
 
 const emit = defineEmits();
 

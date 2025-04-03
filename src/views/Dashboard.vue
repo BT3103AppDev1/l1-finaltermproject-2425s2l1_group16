@@ -30,6 +30,7 @@
                     @dragstart="dragStart(app, status, index)"
                     @dragover.prevent
                     @drop="drop(status)"
+                    @click="openPopup(app.id)"
                 >
                 <strong>{{ app.company }}</strong> - {{ app.position }}
                 <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
@@ -49,6 +50,15 @@
             </div>
         </div>
     </teleport>
+
+    <teleport to="body">
+        <ApplicationCard 
+            v-if="showPopup" 
+            :show="showPopup"
+            :appId="selectedAppId" 
+            @close="closePopup" 
+        />
+    </teleport>
 </template>
 
 <script>
@@ -57,11 +67,25 @@ import { db } from "@/firebase";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
 import { deleteDoc } from "firebase/firestore";
+import ApplicationCard from '@/components/ApplicationCard.vue';
 
 export default {
-    components: { AddApplicationForm },
+    components: { AddApplicationForm, ApplicationCard },
 
     setup() {
+        const selectedAppId = ref(null);
+        const showPopup = ref(false);
+
+        const openPopup = (appId) => {
+            selectedAppId.value = appId;
+            showPopup.value = true;
+        };
+
+        const closePopup = () => {
+            showPopup.value = false;
+            selectedAppId.value = null;
+        };
+
         const jobApplications = ref({
             Applied: [],
             Assessment: [],
@@ -221,7 +245,11 @@ export default {
             handleApplicationAdded,
             confirmDelete,
             performDelete,
-            showDeleteModal
+            showDeleteModal,
+            openPopup,
+            closePopup,
+            showPopup,
+            selectedAppId
         };
     },
 };
@@ -367,5 +395,4 @@ button:hover {
   background-color: #e2e8f0;
   color: #334155;
 }
-
 </style>
