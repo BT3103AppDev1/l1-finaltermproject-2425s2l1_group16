@@ -51,8 +51,11 @@ export default {
       try {
         const docSnap = await getDoc(userRef);
         if (docSnap.exists()) {
+          const pointsRef = doc(db, "Users", "insights_me");
+          await updateDoc(pointsRef, {
+            contribution_pts: increment(-1),
+          });
           await deleteDoc(userRef);
-          //delete points if they un upvote ?
         } else {
           const docRef = await setDoc(doc(db, "Upvotes", current), {
             username: current,
@@ -62,6 +65,7 @@ export default {
           await updateDoc(pointsRef, {
             contribution_pts: increment(1),
           });
+          
         }
       } catch (error) {
         console.error("Error adding document", error);
@@ -100,10 +104,9 @@ export default {
         } else {
           const filter = new Filter();
           if (!filter.isProfane(documentData.question)) {
-            
             //getting user info & adding points
             // get documentData.name instead but using placeholder for now
-            const uploader = "insights_me"
+            const uploader = "insights_me";
             const pointsRef = doc(db, "Users", uploader);
             const updatePointsDoc = await updateDoc(pointsRef, {
               contribution_pts: increment(5),
@@ -112,9 +115,8 @@ export default {
             updateDoc(questionRef, {
               status: "Checked",
             });
-          }
-          else {
-            // delete the question ? remove ? 
+          } else {
+            // delete the question ? remove ?
             const questionRef = doc(db, "Interview_Questions", docs.id);
             updateDoc(questionRef, {
               status: "Removed",
