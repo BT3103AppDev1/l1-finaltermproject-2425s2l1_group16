@@ -48,6 +48,17 @@
             to <strong>{{ pendingDrop?.to }}</strong><br />
             (as at <strong>{{ formattedSGT }}</strong>).
             </p>
+
+            <!-- only when you are shiftign to interview or assessment statuses -->
+            <div v-if="pendingDrop?.to === 'Interview' || pendingDrop?.to === 'Assessment'">
+                <label for="stageName">Enter Stage Name:</label>
+                <input
+                    type="text"
+                    id="stageName"
+                    v-model="stageName"
+                    placeholder="Enter stage name"
+                />
+            </div>
             <div class="modal-actions">
                 <button @click="confirmDropStatus">Confirm</button>
                 <button @click="showDropConfirmModal = false">Cancel</button>
@@ -223,7 +234,6 @@ export default {
         const drop = async (newStatus) => {
             if (!draggedApplication.value || sourceStatus.value == newStatus) return;
 
-            const date = new Date();
             const statusUpdateDate = new Date().toISOString();
             statusChangeTime.value = statusUpdateDate;
 
@@ -246,10 +256,50 @@ export default {
             const { app, from, to } = pendingDrop.value;
             const userId = "insights_me";
             const sourceDocRef = doc(db, "Users", userId, "application_folder", app.id);
-
+            
             try {
+                // convert to SGT
+                const dateNow = new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString();
+
+                const updates = {
+                    status: to,
+                    last_updated: dateNow,
+                };
+
+                if (!app.stages) app.stages = {};
+
+                if (to === "Interview" || to === "Assessment") {
+                    // change to "interview" or "assessment"
+                    const type = to.toLowerCase();
+
+                    // initialise stages for that type if not already present
+                    if (!app.stages[type]) {
+                        app.stages[type] = [];
+                    }
+
+                    // find the next available stage number i.e interview_X
+                    const existingStages = app.stages[type];
+                    const nextNum = existingStages.length > 0 ? existingStages.length + 1 : 1;
+
+                    if (stageName.value) {
+                        updates[`stages.${type}.${type}_${nextNum}`] = {
+                            name: stageName.value,
+                            date: dateNow,
+                        };
+
+                        // Save to the app stages array for that type
+                        app.stages[type].push({ [`${type}_${nextNum}`]: { name: stageName, date: dateNow } });
+                    }
+
+                } else {
+                    // For other statuses like "Applied", just set the stage date
+                    updates[`stages.${to.toLowerCase()}`] = {
+                        date: dateNow,
+                    };
+                }
+
                 // Update Firestore
-                await updateDoc(sourceDocRef, { status: to });
+                await updateDoc(sourceDocRef, updates);
 
                 // Remove the application from the old column
                 jobApplications.value[from] = jobApplications.value[from].filter(
