@@ -59,7 +59,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { db } from '@/firebase';
-import { doc, getDoc, collectionGroup, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
 
 const number_applied = ref(0);
 const number_interviewed = ref(0);

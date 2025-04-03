@@ -38,6 +38,20 @@
             </div>
         </div>
     </div>
+
+    <teleport to="body">
+        <div v-if="showDropConfirmModal" class="modal-overlay">
+            <div class="modal-content">
+            <h3>Confirm Status Change</h3>
+            <p>Move <strong>{{ pendingDrop?.app.company }}</strong> to <strong>{{ pendingDrop?.to }}</strong>?</p>
+            <div class="modal-actions">
+                <button @click="confirmDropStatus">Confirm</button>
+                <button @click="showDropConfirmModal = false">Cancel</button>
+            </div>
+            </div>
+        </div>
+    </teleport>
+
     <teleport to="body">
         <div v-if="showDeleteModal" class="modal-overlay">
             <div class="modal-content">
@@ -185,49 +199,53 @@ export default {
             sourceIndex.value = index;
         };
 
-        const drop = async (newStatus) => {
-            if (!draggedApplication.value || sourceStatus.value == newStatus)
-                return;
+        const pendingDrop = ref(null);
+        const showDropConfirmModal = ref(false);
 
-            const userId = "insights_me"; // Replace with dynamic user ID
-            const sourceDocRef = doc(
-                db,
-                "Users",
-                userId,
-                "application_folder",
-                draggedApplication.value.id
-            );
+        const drop = async (newStatus) => {
+            if (!draggedApplication.value || sourceStatus.value == newStatus) return;
+
+            pendingDrop.value = {
+                app: draggedApplication.value,
+                from: sourceStatus.value,
+                to: newStatus
+            };
+
+            showDropConfirmModal.value = true;
+
+            // Clear drag state
+            draggedApplication.value = null;
+            sourceStatus.value = null;
+        };
+
+        const confirmDropStatus = async () => {
+            if (!pendingDrop.value) return;
+
+            const { app, from, to } = pendingDrop.value;
+            const userId = "insights_me";
+            const sourceDocRef = doc(db, "Users", userId, "application_folder", app.id);
 
             try {
                 // Update Firestore
-                await updateDoc(sourceDocRef, { status: newStatus });
+                await updateDoc(sourceDocRef, { status: to });
 
                 // Remove the application from the old column
-                jobApplications.value[sourceStatus.value] =
-                    jobApplications.value[sourceStatus.value] =
-                        jobApplications.value[sourceStatus.value].filter(
-                            (app) => app.id !== draggedApplication.value.id
-                        );
+                jobApplications.value[from] = jobApplications.value[from].filter(
+                    (item) => item.id !== app.id
+                );
 
                 // Ensure the new column is an array (fixes empty column issue)
-                if (!jobApplications.value[newStatus]) {
-                    jobApplications.value[newStatus] = [];
+                if (!jobApplications.value[to]) {
+                    jobApplications.value[to] = [];
                 }
 
                 // Add the application to the new column (force reactivity)
-                jobApplications.value[newStatus] = [
-                    ...jobApplications.value[newStatus],
-                    {
-                        ...draggedApplication.value,
-                        status: newStatus,
-                    },
-                ];
+                jobApplications.value[to].push({ ...app, status: to });
 
-                // Reset draggedApplication
-                draggedApplication.value = null;
-                sourceStatus.value = null;
-            } catch (error) {
-                console.error("Error updating Firestore:", error);
+                showDropConfirmModal.value = false;
+                pendingDrop.value = null;
+            } catch (err) {
+                console.error("Error confirming status change:", err);
             }
         };
 
@@ -246,10 +264,16 @@ export default {
             confirmDelete,
             performDelete,
             showDeleteModal,
+            // pop-up of the application cards
             openPopup,
             closePopup,
             showPopup,
-            selectedAppId
+            selectedAppId,
+            // drop confirmation functionality
+            drop,
+            confirmDropStatus,
+            pendingDrop,
+            showDropConfirmModal,
         };
     },
 };
