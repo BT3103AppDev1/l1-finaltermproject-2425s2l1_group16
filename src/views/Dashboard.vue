@@ -43,7 +43,11 @@
         <div v-if="showDropConfirmModal" class="modal-overlay">
             <div class="modal-content">
             <h3>Confirm Status Change</h3>
-            <p>Move <strong>{{ pendingDrop?.app.company }}</strong> to <strong>{{ pendingDrop?.to }}</strong>?</p>
+            <p>
+            You are moving <strong>{{ pendingDrop?.app.company }}</strong>
+            to <strong>{{ pendingDrop?.to }}</strong><br />
+            (as at <strong>{{ formattedSGT }}</strong>).
+            </p>
             <div class="modal-actions">
                 <button @click="confirmDropStatus">Confirm</button>
                 <button @click="showDropConfirmModal = false">Cancel</button>
@@ -76,7 +80,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { db } from "@/firebase";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
@@ -202,8 +206,26 @@ export default {
         const pendingDrop = ref(null);
         const showDropConfirmModal = ref(false);
 
+        const statusChangeTime = ref(null);
+
+        const formattedSGT = computed(() => {
+            if (!statusChangeTime.value) return '';
+            return new Date(statusChangeTime.value).toLocaleString('en-SG', {
+                timeZone: 'Asia/Singapore',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        });
+
         const drop = async (newStatus) => {
             if (!draggedApplication.value || sourceStatus.value == newStatus) return;
+
+            const date = new Date();
+            const statusUpdateDate = new Date().toISOString();
+            statusChangeTime.value = statusUpdateDate;
 
             pendingDrop.value = {
                 app: draggedApplication.value,
@@ -274,8 +296,11 @@ export default {
             confirmDropStatus,
             pendingDrop,
             showDropConfirmModal,
+            // show time
+            statusChangeTime,
+            formattedSGT
         };
-    },
+    }
 };
 </script>
 
