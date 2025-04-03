@@ -1,21 +1,18 @@
 <script setup>
-import Statistics from '../components/Statistics.vue'
-import ApplicationDetails from '../components/ApplicationDetails.vue'
-
+import Statistics from '@/components/Statistics.vue'
+import ApplicationDetails from '@/components/ApplicationDetails.vue'
 import { ref, computed } from 'vue';
 
-const showPopup = ref(false);
+defineProps({
+  show: Boolean,
+  appId: String
+});
 
-const togglePopup = () => {
-  showPopup.value = !showPopup.value;
+// to close pop-up when clicked outside of the pop-up
+const emit = defineEmits(['close']);
+const handleOverlayClick = (e) => {
+  emit('close');
 };
-
-// close popup if clicked outside the box
-const closePopup = (e) => {
-  if (e.target.id == 'popup-overlay') {
-    showPopup.value = false;
-  }
-}
 
 // get the company name from the child (ApplicationDetails.vue)
 const childCompany = ref('');
@@ -42,15 +39,10 @@ const switchTab = (tabName) => {
 </script>
 
 <template>
-  <!-- To be implemented in the actual Kanban Board (this is removed later)-->
-  <div class="pop-up-button">
-    <button @click="togglePopup">Open Application Information</button>
-  </div>
-
-  <div v-show="showPopup" id="popup-overlay" class="popup-overlay" @click="closePopup">
-      <div class="application-info-pop-up">
+  <div v-show="show" id="popup-overlay" class="popup-overlay" @click="handleOverlayClick">
+      <div class="application-info-pop-up" @click.stop>
         <!-- place X button at top right of the pop-up -->
-        <button @click="togglePopup" class="close-btn">&times;</button>
+        <button @click="$emit('close')" class="close-btn">&times;</button>
         <div class="popup-header">
           <h1 class="company-name">{{ truncatedCompany }}</h1>
           <div class="action-links">
@@ -64,11 +56,11 @@ const switchTab = (tabName) => {
         <div class="box">
           <section v-if="activeTab === 'application-details'" class="application-info">
             <h2 class="application-details-title">Application Details</h2>
-            <ApplicationDetails @passCompany="handleCompanyUpdate" />
+            <ApplicationDetails :appId="appId" @passCompany="handleCompanyUpdate" />
           </section>
           <section v-if="activeTab === 'insights'" class="insights">
             <h2 class="insights-title">Insights & Statistics</h2>
-            <Statistics />
+            <Statistics :appId="appId" />
           </section>
         </div>
     </div>

@@ -21,6 +21,7 @@
                 @drop="drop(status)"
             >
                 <h3>{{ statusLabels[status] }}</h3>
+                <!-- the applications here -->
                 <div
                     v-for="(app, index) in applications"
                     :key="app.id"
@@ -29,6 +30,7 @@
                     @dragstart="dragStart(app, status, index)"
                     @dragover.prevent
                     @drop="drop(status)"
+                    @click="openPopup(app.id)"
                 >
                 <strong>{{ app.company }}</strong> - {{ app.position }}
                 <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
@@ -41,13 +43,22 @@
             <div class="modal-content">
                  <h3>Are you sure you want to delete this application?</h3>
                  <p>This action cannot be undone.</p>
-            <div class="modal-actions">
-        <button @click="performDelete">Confirm</button>
-        <button @click="showDeleteModal = false">Cancel</button>
-      </div>
-    </div>
-  </div>
-</teleport>
+                <div class="modal-actions">
+                    <button @click="performDelete">Confirm</button>
+                    <button @click="showDeleteModal = false">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </teleport>
+
+    <teleport to="body">
+        <ApplicationCard 
+            v-if="showPopup" 
+            :show="showPopup"
+            :appId="selectedAppId" 
+            @close="closePopup" 
+        />
+    </teleport>
 </template>
 
 <script>
@@ -56,14 +67,25 @@ import { db } from "@/firebase";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
 import { deleteDoc } from "firebase/firestore";
-
-
-
+import ApplicationCard from '@/components/ApplicationCard.vue';
 
 export default {
-    components: { AddApplicationForm },
+    components: { AddApplicationForm, ApplicationCard },
 
     setup() {
+        const selectedAppId = ref(null);
+        const showPopup = ref(false);
+
+        const openPopup = (appId) => {
+            selectedAppId.value = appId;
+            showPopup.value = true;
+        };
+
+        const closePopup = () => {
+            showPopup.value = false;
+            selectedAppId.value = null;
+        };
+
         const jobApplications = ref({
             Applied: [],
             Assessment: [],
@@ -91,41 +113,43 @@ export default {
         const appStatusToDelete = ref(null);
 
         const confirmDelete = (app, status) => {
-  appToDelete.value = app;
-  appStatusToDelete.value = status;
-  showDeleteModal.value = true;
+            appToDelete.value = app;
+            appStatusToDelete.value = status;
+            showDeleteModal.value = true;
         };
 
         const performDelete = async () => {
             if (!appToDelete.value || !appStatusToDelete.value) return;
 
             try {
-                const userId = "Cu8w7qKqftnyhdddVufn";
+                const userId = "insights_me";
                 const appRef = doc(db, "Users", userId, "application_folder", appToDelete.value.id);
 
                 await deleteDoc(appRef);
 
-    jobApplications.value[appStatusToDelete.value] =
-      jobApplications.value[appStatusToDelete.value].filter(
-        (item) => item.id !== appToDelete.value.id
-      );
+                jobApplications.value[appStatusToDelete.value] =
+                jobApplications.value[appStatusToDelete.value].filter(
+                    (item) => item.id !== appToDelete.value.id
+                );
 
-        showDeleteModal.value = false;
-    appToDelete.value = null;
-    appStatusToDelete.value = null;
-  } catch (err) {
-    console.error("Failed to delete:", err);
-  }
-};
+                showDeleteModal.value = false;
+                appToDelete.value = null;
+                appStatusToDelete.value = null;
+            } catch (err) {
+                console.error("Failed to delete:", err);
+            }
+        };
 
         const loadApplications = async () => {
-            const userId = "Cu8w7qKqftnyhdddVufn"; // Replace with dynamic user ID if necessary
+            // CHANGE THIS TO THE USER_ID
+            const userId = "insights_me";
             const applicationsRef = collection(
                 db,
                 "Users",
                 userId,
                 "application_folder"
             );
+            
             const querySnapshot = await getDocs(applicationsRef);
 
             jobApplications.value = {
@@ -165,7 +189,7 @@ export default {
             if (!draggedApplication.value || sourceStatus.value == newStatus)
                 return;
 
-            const userId = "Cu8w7qKqftnyhdddVufn"; // Replace with dynamic user ID
+            const userId = "insights_me"; // Replace with dynamic user ID
             const sourceDocRef = doc(
                 db,
                 "Users",
@@ -221,7 +245,11 @@ export default {
             handleApplicationAdded,
             confirmDelete,
             performDelete,
-            showDeleteModal
+            showDeleteModal,
+            openPopup,
+            closePopup,
+            showPopup,
+            selectedAppId
         };
     },
 };
@@ -367,5 +395,4 @@ button:hover {
   background-color: #e2e8f0;
   color: #334155;
 }
-
 </style>

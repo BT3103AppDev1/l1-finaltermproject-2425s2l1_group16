@@ -51,7 +51,7 @@ export default {
         const submitApplication = async () => {
             if (!company.value || !position.value || !jobType.value) return;
 
-            const userId = "Cu8w7qKqftnyhdddVufn"; // Replace with dynamic user ID if necessary
+            const userId = "insights_me"; // Replace with dynamic user ID if necessary
             const newApplicationRef = doc(
                 collection(db, "Users", userId, "application_folder")
             );
@@ -96,7 +96,7 @@ export default {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
     align-items: center;
     justify-content: center;
