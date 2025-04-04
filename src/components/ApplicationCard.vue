@@ -5,7 +5,8 @@ import { ref, computed } from 'vue';
 
 defineProps({
   show: Boolean,
-  appId: String
+  appId: String,
+  userId: String,
 });
 
 // to close pop-up when clicked outside of the pop-up
@@ -56,11 +57,11 @@ const switchTab = (tabName) => {
         <div class="box">
           <section v-if="activeTab === 'application-details'" class="application-info">
             <h2 class="application-details-title">Application Details</h2>
-            <ApplicationDetails :appId="appId" @passCompany="handleCompanyUpdate" />
+            <ApplicationDetails :appId="appId" :userId="userId" @passCompany="handleCompanyUpdate" />
           </section>
           <section v-if="activeTab === 'insights'" class="insights">
             <h2 class="insights-title">Insights & Statistics</h2>
-            <Statistics :appId="appId" />
+            <Statistics :appId="appId" :userId="userId" />
           </section>
         </div>
     </div>

@@ -10,6 +10,7 @@
             v-if="showForm"
             @close="showForm = false"
             @application-added="handleApplicationAdded"
+            :userId="userId" 
         />
 
         <div class="kanban">
@@ -35,7 +36,7 @@
                     <div class="task-content">
                         <span class="company">{{ app.company }}</span>
                         <span class="position">{{ app.position }}</span>
-                        <span class="status">{{ app.status }} on {{ app.last_updated }}</span>
+                        <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
                     </div>
                     <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
                 </div>
@@ -100,6 +101,7 @@
             v-if="showPopup" 
             :show="showPopup"
             :appId="selectedAppId" 
+            :userId="userId"
             @close="closePopup" 
         />
     </teleport>
@@ -117,6 +119,9 @@ export default {
     components: { AddApplicationForm, ApplicationCard },
 
     setup() {
+        // CHANGE!!!!
+        const userId = ref('insights_me');
+
         const selectedAppId = ref(null);
         const showPopup = ref(false);
 
@@ -166,8 +171,7 @@ export default {
             if (!appToDelete.value || !appStatusToDelete.value) return;
 
             try {
-                const userId = "insights_me";
-                const appRef = doc(db, "Users", userId, "application_folder", appToDelete.value.id);
+                const appRef = doc(db, "Users", userId.value, "application_folder", appToDelete.value.id);
 
                 await deleteDoc(appRef);
 
@@ -185,12 +189,10 @@ export default {
         };
 
         const loadApplications = async () => {
-            // CHANGE THIS TO THE USER_ID
-            const userId = "insights_me";
             const applicationsRef = collection(
                 db,
                 "Users",
-                userId,
+                userId.value,
                 "application_folder"
             );
             
@@ -208,13 +210,34 @@ export default {
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
                 const status = data.status;
+
+                const stages = data.stages;
+                console.log(stages)
+
+                let latestStatus = null;
+                let latestDate = null;
+
+                for (let [stage, stageDetails] of Object.entries(stages)) {
+                    const stageDate = DateTime.fromISO(stageDetails.date, { zone: 'Asia/Singapore' });
+
+                    if (!latestDate || stageDate > latestDate) {
+                        latestStatus = stage;
+                        latestDate = stageDate;
+                    }
+                }
+
+                const formattedLastStatusDate = latestDate
+                    ? latestDate.toLocaleString(DateTime.DATE_SHORT)
+                    : 'N/A';
+
                 jobApplications.value[status].push({
                     id: doc.id,
                     company: data.company,
                     position: data.position,
                     status: data.status,
-                    last_updated: new Date(data.last_updated).toLocaleDateString('en-GB'),
+                    last_status_date: formattedLastStatusDate,
                     dateApplied: data.date_applied,
+                    // not sure if this is needed
                     notes: data.notes,
                 });
             });
@@ -285,8 +308,7 @@ export default {
             if (!pendingDrop.value) return;
 
             const { app, from, to } = pendingDrop.value;
-            const userId = "insights_me";
-            const sourceDocRef = doc(db, "Users", userId, "application_folder", app.id);
+            const sourceDocRef = doc(db, "Users", userId.value, "application_folder", app.id);
             
             try {
                 const update_date = DateTime.now().setZone('Asia/Singapore').toISO();
@@ -418,7 +440,11 @@ export default {
                 }
 
                 // Add the application to the new column (force reactivity)
-                jobApplications.value[to].push({ ...app, status: to });
+                jobApplications.value[to].push({ 
+                    ...app, 
+                    status: to,
+                    last_status_date: new Date(responseDateAtMidnightString).toLocaleDateString('en-GB'),
+                });
 
                 showDropConfirmModal.value = false;
                 pendingDrop.value = null;
@@ -433,6 +459,7 @@ export default {
         };
 
         return {
+            userId,
             jobApplications,
             statusLabels,
             dragStart,
@@ -552,6 +579,7 @@ button:hover {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     flex-direction: column;
     height: 90px;
+    position: relative;
 }
 
 .task-content {
@@ -573,19 +601,19 @@ button:hover {
 }
 
 .delete-btn {
-  background: none;
-  border: none;
-  color: red;
-  font-size: 16px;
-  float: right;
-  cursor: pointer;
-  margin-left: 111px;
-  padding: 4px;
-  margin-top:-63px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 80%;
+    position: absolute;
+    top: 5px;
+    right: 2px;
 }
 
 .delete-btn:hover {
-  color: darkred;
+    background: lightgrey;
 }
 
 .modal-content h3 {
