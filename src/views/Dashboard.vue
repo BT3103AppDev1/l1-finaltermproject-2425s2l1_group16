@@ -32,8 +32,12 @@
                     @drop="drop(status)"
                     @click="openPopup(app.id)"
                 >
-                <strong>{{ app.company }}</strong> - {{ app.position }}
-                <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
+                    <div class="task-content">
+                        <span class="company">{{ app.company }}</span>
+                        <span class="position">{{ app.position }}</span>
+                        <span class="status">{{ app.status }} on {{ app.last_updated }}</span>
+                    </div>
+                    <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
                 </div>
             </div>
         </div>
@@ -45,11 +49,10 @@
             <h3>Confirm Status Change</h3>
             <p>
             You are moving <strong>{{ pendingDrop?.app.company }}</strong>
-            to <strong>{{ pendingDrop?.to }}</strong><br />
-            (as at <strong>{{ formattedSGT }}</strong>).
+            to <strong>{{ pendingDrop?.to }}</strong><br/>
             </p>
 
-            <!-- only when you are shiftign to interview or assessment statuses -->
+            <!-- only when you are shifting to interview or assessment statuses -->
             <div v-if="pendingDrop?.to === 'Interview' || pendingDrop?.to === 'Assessment'">
                 <label for="stageName">Enter Stage Name:</label>
                 <input
@@ -59,6 +62,18 @@
                     placeholder="Enter stage name"
                 />
             </div>
+
+            <div v-if="pendingDrop?.to !== 'Applied' && pendingDrop?.to !== 'Turned Down'">
+                <label for="responseDate">Select Response Date:</label>
+                <input
+                    type="date"
+                    id="responseDate"
+                    v-model="responseDate"
+                    :max="maxDate"
+                    required
+                />
+            </div>
+
             <div class="modal-actions">
                 <button @click="confirmDropStatus">Confirm</button>
                 <button @click="showDropConfirmModal = false">Cancel</button>
@@ -197,6 +212,7 @@ export default {
                     company: data.company,
                     position: data.position,
                     status: data.status,
+                    last_updated: new Date(data.last_updated).toLocaleDateString('en-GB'),
                     dateApplied: data.date_applied,
                     notes: data.notes,
                 });
@@ -217,18 +233,6 @@ export default {
         const showDropConfirmModal = ref(false);
 
         const statusChangeTime = ref(null);
-
-        const formattedSGT = computed(() => {
-            if (!statusChangeTime.value) return '';
-            return new Date(statusChangeTime.value).toLocaleString('en-SG', {
-                timeZone: 'Asia/Singapore',
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-            });
-        });
 
         const drop = async (newStatus) => {
             if (!draggedApplication.value || sourceStatus.value == newStatus) return;
@@ -271,6 +275,10 @@ export default {
             return workingDays;
         };
 
+        const responseDate = ref("");
+        const stageName = ref("");
+        const maxDate = ref(new Date().toISOString().split("T")[0]);
+
         const confirmDropStatus = async () => {
             if (!pendingDrop.value) return;
 
@@ -280,11 +288,17 @@ export default {
             
             try {
                 // convert to SGT
-                const dateNow = new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString();
+                const update_date = new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString();
+
+                const responseDateAtMidnight = new Date(responseDate.value)
+                responseDateAtMidnight.setHours(0,0,0,0);
+                // add one more day to "convert into SGT"
+                responseDateAtMidnight.setDate(responseDateAtMidnight.getDate() + 1);
+                const responseDateAtMidnightString = responseDateAtMidnight.toISOString();
 
                 const updates = {
                     status: to,
-                    last_updated: dateNow,
+                    last_updated: update_date,
                 };
 
                 // for working days calculation + most frequent day a company responds
@@ -329,16 +343,20 @@ export default {
                     totalWorkingDays += calculateWorkingDays(currentStage.date, nextStage.date) - 1;
                 }
 
-                // "Applied" and "Turned Down" stages are not stages that the compny responds
+                // "Applied" and "Turned Down" stages are not stages that the company responds
                 if (to !== "Applied" && to !== "Turned Down") {
                     // time taken to the new status?
                     const latestDate =  stagesWithDates[stagesWithDates.length - 1].date
-                    totalWorkingDays += calculateWorkingDays(latestDate, dateNow) - 1;
+                    totalWorkingDays += calculateWorkingDays(latestDate, responseDateAtMidnightString) - 1;
 
                     const dayOfWeek = latestDate.getDay();
                     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
                         responseDaysMap[dayOfWeek] = (responseDaysMap[dayOfWeek] || 0) + 1;
                     }
+                }
+
+                if (totalWorkingDays < 0) {
+                    totalWorkingDays = 0;
                 }
 
                 updates["working_days"] = totalWorkingDays;
@@ -351,25 +369,36 @@ export default {
                     // change to "interview" or "assessment"
                     const type = to.toLowerCase();
 
-                    // find the next available stage number i.e interview_X
-                    const existingStages = Object.keys(app.stages).filter(stage => stage.startsWith(type));
-                    const nextNum = existingStages.length > 0 ? existingStages.length + 1 : 1;
+                    const existingStages = Object.keys(stages).filter(stage => stage.startsWith(type));
 
-                    if (stageName.value) {
-                        updates[`stages.${type}_${nextNum}`] = {
-                            name: stageName.value,
-                            date: dateNow,
-                        };
+                    // Extract numbers from the stage names, if they exist (e.g., "interview_1" => 1)
+                    const stageNumbers = existingStages
+                        .map(stage => {
+                            const match = stage.match(new RegExp(`${type}_(\\d+)`)); // Regex to match "interview_1"
+                            return match ? parseInt(match[1], 10) : 0;
+                        })
+                        .filter(num => num > 0);
 
-                        // Save to the app stages array for that type
-                        app.stages[`${type}_${nextNum}`] = { name: stageName, date: dateNow };
-                    }
+                    // If no valid stages exist, default to 1 (for "interview_1"), otherwise take the max number + 1
+                    const nextNum = stageNumbers.length > 0 ? Math.max(...stageNumbers) + 1 : 1;
 
-                } else {
-                    // For other statuses like "Applied", just set the stage date
-                    updates[`stages.${to.toLowerCase()}`] = {
-                        date: dateNow,
+                    // Create the new stage with the next available number (either "interview_1" or the next number)
+                    updates[`stages.${type}_${nextNum}`] = {
+                        name: stageName.value,
+                        date: responseDateAtMidnightString,
                     };
+                } else {
+                    // For other statuses like "Applied", there's no applied_1, applied_2
+                    // Also, it does not make sense to use response date for Applied and Turned Down when response date is for a company
+                    if (to !== "Applied" && to !== "Turned Down") {
+                        updates[`stages.${to.toLowerCase()}`] = {
+                            date: responseDateAtMidnightString,
+                        };
+                    } else {
+                        updates[`stages.${to.toLowerCase()}`] = {
+                            date: update_date
+                        };
+                    }
                 }
 
                 // Update Firestore
@@ -422,9 +451,12 @@ export default {
             showDropConfirmModal,
             // show time
             statusChangeTime,
-            formattedSGT,
             // for working days calculation
             calculateWorkingDays,
+            // for user-input dates and stageName
+            responseDate,
+            maxDate,
+            stageName,
         };
     }
 };
@@ -454,16 +486,10 @@ export default {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
-    background-color: #f0f0f0; /* Light background */
-}
-
 .dashboard {
-    max-width: 1200px;
-    margin: auto;
+    justify-content: center;
+    align-items: center;
+    /* margin-right: 30px; */
 }
 
 .header {
@@ -489,7 +515,7 @@ button:hover {
 .kanban {
     display: flex;
     gap: 20px;
-    overflow-x: auto;
+    justify-content: space-between;
 }
 
 .column {
@@ -497,7 +523,7 @@ button:hover {
     flex-direction: column;
     background-color: #ffffff; /* White column background */
     padding: 15px;
-    width: 200px;
+    width: 250px;
     min-height: 400px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -505,11 +531,13 @@ button:hover {
 
 .column h3 {
     text-align: center;
-    background-color: #f1f1f1; /* Light grey for the column header */
-    color: #333; /* Dark text */
+    background-color: #c24600; /* Light grey for the column header */
+    color: #ffffff; /* Dark text */
     padding: 10px;
     border-radius: 5px;
     margin-top: 0;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 .task {
@@ -519,6 +547,22 @@ button:hover {
     border-radius: 5px;
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    flex-direction: column;
+    height: 90px;
+}
+
+.task-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.company {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.position, .status {
+    font-size: 10px;
 }
 
 .task:hover {
@@ -529,11 +573,12 @@ button:hover {
   background: none;
   border: none;
   color: red;
-  font-size: 1rem;
+  font-size: 16px;
   float: right;
   cursor: pointer;
-  margin-left: auto;
+  margin-left: 111px;
   padding: 4px;
+  margin-top:-63px;
 }
 
 .delete-btn:hover {

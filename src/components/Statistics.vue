@@ -7,6 +7,11 @@
                     <h2 class="stat-value">{{ number_applied }}</h2>
                 </div>
                 <div class="divider"></div>
+                <div class="stat-item" :class="{ highlighted: current_stage === 'Assessment' }">
+                    <h3 class="stat-label">Assessment</h3>
+                    <h2 class="stat-value">{{ number_assessment }}</h2>
+                </div>
+                <div class="divider"></div>
                 <div class="stat-item" :class="{ highlighted: current_stage === 'Interview' }">
                     <h3 class="stat-label">Interviewed</h3>
                     <h2 class="stat-value">{{ number_interviewed }}</h2>
@@ -15,6 +20,11 @@
                 <div class="stat-item" :class="{ highlighted: current_stage === 'Offered' }">
                     <h3 class="stat-label">Offered</h3>
                     <h2 class="stat-value">{{ number_offered }}</h2>
+                </div>
+                <div class="divider"></div>
+                <div class="stat-item" :class="{ highlighted: current_stage === 'Turned Down' }">
+                    <h3 class="stat-label">Turned Down</h3>
+                    <h2 class="stat-value">{{ number_turned_down }}</h2>
                 </div>
                 <div class="divider"></div>
                 <div class="stat-item" :class="{ highlighted: current_stage === 'Rejected' }">
@@ -65,9 +75,11 @@ import { db } from '@/firebase';
 import { doc, getDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
 
 const number_applied = ref(0);
+const number_assessment = ref(0);
 const number_interviewed = ref(0);
 const number_offered = ref(0);
 const number_rejected = ref(0);
+const number_turned_down = ref(0);
 const current_stage = ref(0);
 const company = ref('');
 const response_time = ref(0);
@@ -104,9 +116,11 @@ onMounted(async () => {
 
     const stats = {
         Applied: 0,
+        Assessment: 0,
         Interview: 0,
         Offered: 0,
         Rejected: 0,
+        "Turned Down": 0,
     };
 
     let totalResponseTime = 0;
@@ -138,9 +152,11 @@ onMounted(async () => {
     });
 
     number_applied.value = stats.Applied;
+    number_assessment.value = stats.Assessment;
     number_interviewed.value = stats.Interview;
     number_offered.value = stats.Offered;
     number_rejected.value = stats.Rejected;
+    number_turned_down.value = stats['Turned Down'];
 });
 
 const mostFrequentResponseDay = computed(() => {
