@@ -31,12 +31,15 @@
         </div>
 
         <div class="statistics-container">
-            <p class="response-text">{{ company }} typically responds in:</p>
-            <h1 class="response-time">{{ response_time }} Days</h1>
+            <p v-if="response_timeMessage !== 'Not enough data available to estimate average response time'" class="response-text">{{ company }} typically responds in:</p>
+            <h1 class="response-time" :class="{ 'not-enough-text': response_timeMessage === 'Not enough data available to estimate average response time' }">{{ response_timeMessage }}</h1>
+            
+            <!-- Conditionally show response speed only if enough data is available -->
             <!-- If response is < 7 days = fast 
-                 If response is >= 7 days & < 14 days = medium
-                 If not, slow -->
-            <p class="response-status">This is considered 
+            If response is >= 7 days & < 14 days = medium
+            If not, slow -->
+            <p v-if="response_timeMessage !== 'Not enough data available to estimate average response time'" class="response-status">
+                This is considered 
                 <span v-if="response_time < 7" class="fast-text">fast</span>
                 <span v-else-if="response_time >= 7 && response_time < 14" class="medium-text">medium</span>
                 <span v-else class="slow-text">slow</span>
@@ -47,7 +50,7 @@
             <div class="response-header">
                 <p class="response-title">Responses Tracked</p>
                 <div class="divider-vertical"></div>
-                <p class="response-subtext">{{ company }} usually responds on Thursdays</p>
+                <p class="response-subtext">{{ mostFrequentResponseDay }}</p>
             </div>
             <div class="bar-chart">
                 <p>Bar chart goes here</p>
@@ -57,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { db } from '@/firebase';
 import { doc, getDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
 
@@ -67,9 +70,9 @@ const number_offered = ref(0);
 const number_rejected = ref(0);
 const current_stage = ref(0);
 const company = ref('');
-
-// need to work on this
-const response_time = 100;
+const response_time = ref(0);
+const response_timeMessage = ref('');
+const responseDaysMap = ref({});
 
 const props = defineProps(['appId']);
 
@@ -106,15 +109,49 @@ onMounted(async () => {
         Rejected: 0,
     };
 
+    let totalResponseTime = 0;
+    let totalUsers = 0;
+
     querySnapshot.forEach(doc => {
         const status = doc.data().status;
         if (status in stats) stats[status]++;
+
+        const application = doc.data();
+        if (application.average_working_days) {
+            totalResponseTime += application.average_working_days;
+            totalUsers++;
+        }
+
+        if (totalUsers > 9) {
+            response_time.value = Math.round(totalResponseTime / totalUsers);
+            response_timeMessage.value = `${response_time.value} Days`;
+        } else {
+            response_timeMessage.value = 'Not enough data available to estimate average response time';
+        }
+
+        const daysMap = application.response_days_map;
+        if (daysMap) {
+            for (let day in daysMap) {
+                responseDaysMap.value[day] = (responseDaysMap.value[day] || 0) + daysMap[day];
+            }
+        }
     });
 
     number_applied.value = stats.Applied;
     number_interviewed.value = stats.Interview;
     number_offered.value = stats.Offered;
     number_rejected.value = stats.Rejected;
+});
+
+const mostFrequentResponseDay = computed(() => {
+    const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const entries = Object.entries(responseDaysMap.value);
+    if (entries.length === 0) return 'No data available';
+    // to get the highest counts
+    const sortedEntries = entries.sort((a, b) => b[1] - a[1]);
+    const mostFrequentDay = sortedEntries[0][0];
+    const dayName = weekdayNames[mostFrequentDay];
+    return `${company.value} usually responds on ${dayName}s`;
 });
 </script>
 
@@ -190,6 +227,10 @@ onMounted(async () => {
 .response-time {
     font-size: 32px;
     font-weight: bold;
+}
+
+.not-enough-text {
+    font-size: 16px;
 }
 
 .response-status {

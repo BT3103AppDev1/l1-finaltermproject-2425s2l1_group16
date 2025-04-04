@@ -93,9 +93,8 @@
 <script>
 import { ref, onMounted, computed } from "vue";
 import { db } from "@/firebase";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc } from "firebase/firestore";
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
-import { deleteDoc } from "firebase/firestore";
 import ApplicationCard from '@/components/ApplicationCard.vue';
 
 export default {
@@ -250,6 +249,28 @@ export default {
             sourceStatus.value = null;
         };
 
+        // for number of working days
+        const calculateWorkingDays = (startDate, endDate) => {
+            console.log(`Start Date: ${startDate}, End Date: ${endDate}`);
+            let start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(endDate);
+            end.setHours(0, 0, 0, 0);
+
+            let currentDate = new Date(start);
+            let workingDays = 0;
+
+            while (currentDate <= end) {
+                // check if it's a weekday (not Sunday or Saturday)
+                if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
+                    workingDays++;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            return workingDays;
+        };
+
         const confirmDropStatus = async () => {
             if (!pendingDrop.value) return;
 
@@ -266,29 +287,82 @@ export default {
                     last_updated: dateNow,
                 };
 
-                if (!app.stages) app.stages = {};
+                // for working days calculation + most frequent day a company responds
+                const docSnapshot = await getDoc(sourceDocRef);
+                
+                if (!docSnapshot.exists()) {
+                    console.error("Document not found");
+                    return;
+                }
+
+                const appData = docSnapshot.data();
+                const stages = appData.stages;
+
+                let totalWorkingDays = 0;
+                const stagesWithDates = [];
+
+                const responseDaysMap = {}; 
+
+                for (let [stage, stageDetails] of Object.entries(stages)) {
+                    if (stageDetails && stageDetails.date) {
+                        const stageDate = new Date(stageDetails.date);
+                        stagesWithDates.push({ stage, date: stageDate });
+
+                        // "Applied" and "Turned Down" stages are not stages that the compny responds
+                        if (stage !== "applied" && stage !== "turned down") {
+                            const dayOfWeek = stageDate.getDay();
+                            // only care about work days (Mon to Fri, dayOfWeek 1 to 5)
+                            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                                responseDaysMap[dayOfWeek] = (responseDaysMap[dayOfWeek] || 0) + 1;
+                            }
+                        }
+                    }
+                }
+
+                stagesWithDates.sort((a, b) => a.date - b.date);
+
+                for (let i = 0; i < stagesWithDates.length - 1; i++) {
+                    const currentStage = stagesWithDates[i];
+                    const nextStage = stagesWithDates[i + 1];
+
+                    // minus 1 to exclude the start date itself
+                    totalWorkingDays += calculateWorkingDays(currentStage.date, nextStage.date) - 1;
+                }
+
+                // "Applied" and "Turned Down" stages are not stages that the compny responds
+                if (to !== "Applied" && to !== "Turned Down") {
+                    // time taken to the new status?
+                    const latestDate =  stagesWithDates[stagesWithDates.length - 1].date
+                    totalWorkingDays += calculateWorkingDays(latestDate, dateNow) - 1;
+
+                    const dayOfWeek = latestDate.getDay();
+                    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                        responseDaysMap[dayOfWeek] = (responseDaysMap[dayOfWeek] || 0) + 1;
+                    }
+                }
+
+                updates["working_days"] = totalWorkingDays;
+                updates["average_working_days"] = totalWorkingDays / (stagesWithDates.length);
+
+                updates["response_days_map"] = { ...responseDaysMap };
+                //
 
                 if (to === "Interview" || to === "Assessment") {
                     // change to "interview" or "assessment"
                     const type = to.toLowerCase();
 
-                    // initialise stages for that type if not already present
-                    if (!app.stages[type]) {
-                        app.stages[type] = [];
-                    }
-
                     // find the next available stage number i.e interview_X
-                    const existingStages = app.stages[type];
+                    const existingStages = Object.keys(app.stages).filter(stage => stage.startsWith(type));
                     const nextNum = existingStages.length > 0 ? existingStages.length + 1 : 1;
 
                     if (stageName.value) {
-                        updates[`stages.${type}.${type}_${nextNum}`] = {
+                        updates[`stages.${type}_${nextNum}`] = {
                             name: stageName.value,
                             date: dateNow,
                         };
 
                         // Save to the app stages array for that type
-                        app.stages[type].push({ [`${type}_${nextNum}`]: { name: stageName, date: dateNow } });
+                        app.stages[`${type}_${nextNum}`] = { name: stageName, date: dateNow };
                     }
 
                 } else {
@@ -348,7 +422,9 @@ export default {
             showDropConfirmModal,
             // show time
             statusChangeTime,
-            formattedSGT
+            formattedSGT,
+            // for working days calculation
+            calculateWorkingDays,
         };
     }
 };
