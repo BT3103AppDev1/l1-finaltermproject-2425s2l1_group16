@@ -31,12 +31,15 @@
         </div>
 
         <div class="statistics-container">
-            <p class="response-text">{{ company }} typically responds in:</p>
-            <h1 class="response-time">{{ response_time }} Days</h1>
+            <p v-if="response_timeMessage !== 'Not enough data available to estimate average response time'" class="response-text">{{ company }} typically responds in:</p>
+            <h1 class="response-time" :class="{ 'not-enough-text': response_timeMessage === 'Not enough data available to estimate average response time' }">{{ response_timeMessage }}</h1>
+            
+            <!-- Conditionally show response speed only if enough data is available -->
             <!-- If response is < 7 days = fast 
-                 If response is >= 7 days & < 14 days = medium
-                 If not, slow -->
-            <p class="response-status">This is considered 
+            If response is >= 7 days & < 14 days = medium
+            If not, slow -->
+            <p v-if="response_timeMessage !== 'Not enough data available to estimate average response time'" class="response-status">
+                This is considered 
                 <span v-if="response_time < 7" class="fast-text">fast</span>
                 <span v-else-if="response_time >= 7 && response_time < 14" class="medium-text">medium</span>
                 <span v-else class="slow-text">slow</span>
@@ -67,9 +70,8 @@ const number_offered = ref(0);
 const number_rejected = ref(0);
 const current_stage = ref(0);
 const company = ref('');
-
-// need to work on this
-const response_time = 100;
+const response_time = ref(0);
+const response_timeMessage = ref('');
 
 const props = defineProps(['appId']);
 
@@ -106,9 +108,26 @@ onMounted(async () => {
         Rejected: 0,
     };
 
+    let totalResponseTime = 0;
+    let totalUsers = 0;
+
     querySnapshot.forEach(doc => {
         const status = doc.data().status;
         if (status in stats) stats[status]++;
+
+        const application = doc.data();
+
+        if (application.average_working_days) {
+            totalResponseTime += application.average_working_days;
+            totalUsers++;
+        }
+
+        if (totalUsers > 9) {
+            response_time.value = Math.round(totalResponseTime / totalUsers);
+            response_timeMessage.value = `${response_time.value} Days`;
+        } else {
+            response_timeMessage.value = 'Not enough data available to estimate average response time';
+        }
     });
 
     number_applied.value = stats.Applied;
@@ -190,6 +209,10 @@ onMounted(async () => {
 .response-time {
     font-size: 32px;
     font-weight: bold;
+}
+
+.not-enough-text {
+    font-size: 16px;
 }
 
 .response-status {
