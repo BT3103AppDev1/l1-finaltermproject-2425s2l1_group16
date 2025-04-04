@@ -2,12 +2,14 @@
   <div class="main-buttons">
     <div class="upvote-button">
       <button @click="increment_upvote">
-        <font-awesome-icon :icon="['far', 'thumbs-up']" /> 
+        <font-awesome-icon :icon="['far', 'thumbs-up']" />
         {{ upvote_counter }}
       </button>
     </div>
     <div class="report-button">
-      <button @click="showPopup = true"><font-awesome-icon :icon="['far', 'flag']" /> {{ report_counter }}</button>
+      <button @click="showPopup = true">
+        <font-awesome-icon :icon="['far', 'flag']" /> {{ report_counter }}
+      </button>
     </div>
   </div>
 
@@ -41,7 +43,6 @@
 </template>
 
 <style scoped>
-
 .main-buttons button {
   border: none;
   cursor: pointer;
@@ -54,11 +55,10 @@
   color: rgba(255, 255, 255, 0.401);
 }
 
-
 .main-buttons {
   display: flex;
   justify-content: flex-end;
-  gap: 20px
+  gap: 20px;
 }
 
 .popup-overlay {
@@ -172,6 +172,10 @@ export default {
       // need to check if report is more than 9
       if (this.report_counter >= 9) {
         //update status to remove question from user view
+        const questionRef = doc(db, "InterviewQuestions", currentQuestion);
+        updateDoc(questionRef, {
+          status: "Removed",
+        });
       }
     },
 
