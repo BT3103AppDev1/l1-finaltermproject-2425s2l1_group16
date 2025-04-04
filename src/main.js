@@ -5,6 +5,9 @@ import App from "./App.vue";
 import router from "./router";
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { faThumbsUp, faFlag } from "@fortawesome/free-regular-svg-icons";
 
 const app = createApp(App);
 
@@ -25,5 +28,7 @@ const toastOptions = {
 
 app.use(router);
 app.use(Toast, toastOptions);
+library.add(faThumbsUp,faFlag)
+app.component('font-awesome-icon', FontAwesomeIcon)
 
 app.mount("#app");

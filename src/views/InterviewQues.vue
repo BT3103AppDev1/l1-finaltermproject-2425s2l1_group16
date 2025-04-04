@@ -1,6 +1,16 @@
 <template>
-  <button @click="increment_upvote">Upvotes {{ upvote_counter }}</button>
-  <button @click="showPopup = true">Report {{ report_counter }}</button>
+  <div class="main-buttons">
+    <div class="upvote-button">
+      <button @click="increment_upvote">
+        <font-awesome-icon :icon="['far', 'thumbs-up']" /> 
+        {{ upvote_counter }}
+      </button>
+    </div>
+    <div class="report-button">
+      <button @click="showPopup = true"><font-awesome-icon :icon="['far', 'flag']" /> {{ report_counter }}</button>
+    </div>
+  </div>
+
   <!-- <button @click="increment_report">Report {{ report_counter }}</button> -->
   <div v-if="showPopup" class="popup-overlay">
     <div class="popup-content">
@@ -31,6 +41,26 @@
 </template>
 
 <style scoped>
+
+.main-buttons button {
+  border: none;
+  cursor: pointer;
+  color: white;
+  background: none;
+  font-size: small;
+}
+
+.main-buttons button:hover {
+  color: rgba(255, 255, 255, 0.401);
+}
+
+
+.main-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 20px
+}
+
 .popup-overlay {
   position: fixed;
   top: 0;
@@ -103,7 +133,7 @@ const db = getFirestore(firebaseApp);
 export default {
   setup() {
     const toast = useToast();
-    return { toast }
+    return { toast };
   },
   data() {
     return {
@@ -130,10 +160,14 @@ export default {
       // this will be within each interview ques in the db
       // mite need to change the code to get rl time data
       let currentQuestion = "question_2";
-      const allUpvotes = await getDocs(collection(db, "InterviewQuestions",currentQuestion,"upvote"));
+      const allUpvotes = await getDocs(
+        collection(db, "InterviewQuestions", currentQuestion, "upvote")
+      );
       this.upvote_counter = allUpvotes.size;
 
-      const allReports = await getDocs(collection(db, "InterviewQuestions",currentQuestion,"report"));
+      const allReports = await getDocs(
+        collection(db, "InterviewQuestions", currentQuestion, "report")
+      );
       this.report_counter = allReports.size;
       // need to check if report is more than 9
       if (this.report_counter >= 9) {
@@ -145,9 +179,15 @@ export default {
       // remeber to change to current user
       let currentUser = "insights_me";
       // will put under Interview Questions
-      //get current questions 
+      //get current questions
       let currentQuestions = "question_2";
-      const userRef = doc(db, "InterviewQuestions", currentQuestions, "upvote",currentUser);
+      const userRef = doc(
+        db,
+        "InterviewQuestions",
+        currentQuestions,
+        "upvote",
+        currentUser
+      );
       try {
         const docSnap = await getDoc(userRef);
         if (docSnap.exists()) {
@@ -158,9 +198,18 @@ export default {
           await deleteDoc(userRef);
         } else {
           // in interview questions db
-          const docRef = await setDoc(doc(db, "InterviewQuestions", currentQuestions, "upvote", currentUser), {
-            username: currentUser,
-          });
+          const docRef = await setDoc(
+            doc(
+              db,
+              "InterviewQuestions",
+              currentQuestions,
+              "upvote",
+              currentUser
+            ),
+            {
+              username: currentUser,
+            }
+          );
           //getting user info & adding points
           const pointsRef = doc(db, "Users", "insights_me");
           await updateDoc(pointsRef, {
@@ -179,23 +228,37 @@ export default {
     async increment_report() {
       // remember change user
       let currentUser = "insights_me";
-      let currentQuestions = "question_2"
+      let currentQuestions = "question_2";
 
-      const userRef = doc(db, "InterviewQuestions", currentQuestions, "report",currentUser);
+      const userRef = doc(
+        db,
+        "InterviewQuestions",
+        currentQuestions,
+        "report",
+        currentUser
+      );
       try {
         // const docSnap = await getDoc(userRef);
         // if (docSnap.exists()) {
         //   // await deleteDoc(userRef);
         // } else {
-        
 
-        //allow user to report more than once ? so far they can only report once 
-          const docRef = await setDoc(doc(db, "InterviewQuestions", currentQuestions, "report",currentUser), {
+        //allow user to report more than once ? so far they can only report once
+        const docRef = await setDoc(
+          doc(
+            db,
+            "InterviewQuestions",
+            currentQuestions,
+            "report",
+            currentUser
+          ),
+          {
             username: currentUser,
             reasons: this.selectedReason,
-          });
+          }
+        );
         //}
-        this.showPopup = false
+        this.showPopup = false;
       } catch (error) {
         console.error("Error adding document", error);
       }
@@ -204,14 +267,16 @@ export default {
     },
 
     async quality_check() {
-
       const filter = new Filter();
       const allQuestions = await getDocs(collection(db, "InterviewQuestions"));
       //checking each question
       allQuestions.forEach(async (docs) => {
         let documentData = docs.data();
 
-        if (documentData.status == "Checked" || documentData.status == "Removed") {
+        if (
+          documentData.status == "Checked" ||
+          documentData.status == "Removed"
+        ) {
           return;
         } else {
           const filter = new Filter();
