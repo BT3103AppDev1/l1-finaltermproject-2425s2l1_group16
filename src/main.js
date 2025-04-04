@@ -1,11 +1,29 @@
-import './assets/main.css'
+import "./assets/main.css";
 
-import { createApp } from 'vue'
-import App from './App.vue'
-import router from './router'
+import { createApp } from "vue";
+import App from "./App.vue";
+import router from "./router";
+import Toast from "vue-toastification";
+import "vue-toastification/dist/index.css";
 
-const app = createApp(App)
+const app = createApp(App);
 
-app.use(router)
+const toastOptions = {
+  position: "top-center",
+  timeout: 4500,
+  closeOnClick: true,
+  pauseOnFocusLoss: true,
+  pauseOnHover: true,
+  draggable: true,
+  draggablePercent: 0.6,
+  showCloseButtonOnHover: false,
+  hideProgressBar: false,
+  closeButton: "button",
+  icon: true,
+  rtl: false,
+};
 
-app.mount('#app')
+app.use(router);
+app.use(Toast, toastOptions);
+
+app.mount("#app");
