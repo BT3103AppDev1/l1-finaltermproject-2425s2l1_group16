@@ -104,11 +104,15 @@ const editedStageName = ref('');
 const editingIndex = ref(null);
 const newSubStageDate = ref('');
 
+const props = defineProps({
+  application: Object
+});
+
 const subStages = ref([]);
 
 // firestore data
-const localApp = reactive({
-  company: '',
+const localApp = reactive({ ...props.application });
+  /* company: '',
   position: '',
   status: '',
   statusDate: '',
@@ -117,7 +121,7 @@ const localApp = reactive({
   password: '',
   description: '',
   notes: ''
-});
+}); */
 
 const statusOptions = [
   'Applied', 'Assessment', 'Interview', 'Accepted', 'Rejected', 'Turned Down'

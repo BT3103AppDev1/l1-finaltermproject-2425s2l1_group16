@@ -1,10 +1,32 @@
 <script setup>
 import Statistics from '../components/Statistics.vue'
 import ApplicationDetails from '../components/ApplicationDetails.vue'
+import EditApplicationForm from '../components/EditApplicationForm.vue'
+
 
 import { ref, computed } from 'vue';
 
 const showPopup = ref(false);
+
+const showToast = (message) => {
+  alert(message); 
+};
+
+
+const selectedApplication = ref({
+  id: 'user1ID',
+  company: 'Singtel',
+  position: 'Software Engineer',
+  status: 'Interview',
+  statusDate: '2025-04-01',
+  deadline: '2025-04-10',
+  username: 'johndoe',
+  password: 'secret123',
+  description: 'Exciting role on backend dev team',
+  notes: 'Prepare project walkthrough',
+  subStages: []
+});
+const userId = 'user_1'; 
 
 const togglePopup = () => {
   showPopup.value = !showPopup.value;
@@ -55,7 +77,7 @@ const switchTab = (tabName) => {
           <h1 class="company-name">{{ truncatedCompany }}</h1>
           <div class="action-links">
             <a href="#" class="link-btn" @click="switchTab('application-details')" :class="{'active-tab': activeTab === 'application-details'}">Application Details</a><span class="separator"> | </span>
-            <a href="#" class="link-btn">Edit Application</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click="switchTab('edit-application')" :class="{'active-tab': activeTab === 'edit-application'}">Edit Application</a>            
             <a href="#" class="link-btn">Delete Application</a><span class="separator"> | </span>
             <a href="#" class="link-btn" @click="switchTab('insights')" :class="{'active-tab': activeTab === 'insights'}">Insights & Statistics</a><span class="separator"> | </span>
             <a href="#" class="link-btn">Interview Questions</a>
@@ -64,7 +86,19 @@ const switchTab = (tabName) => {
         <div class="box">
           <section v-if="activeTab === 'application-details'" class="application-info">
             <h2 class="application-details-title">Application Details</h2>
-            <ApplicationDetails @passCompany="handleCompanyUpdate" />
+            <ApplicationDetails 
+            :application="selectedApplication" @passCompany="handleCompanyUpdate"/>
+          </section>
+          <section v-if="activeTab === 'edit-application'" class="application-info">
+            <h2 class="application-details-title">Edit Application</h2>
+            <EditApplicationForm
+            v-if="activeTab === 'edit-application'"
+            :application="selectedApplication"
+            :userId="userId"
+            @confirm-update="showToast('Application Updated (Confirmed)')"
+            @auto-save-update="showToast('Application Updated (Auto-Saved)')"
+            />
+
           </section>
           <section v-if="activeTab === 'insights'" class="insights">
             <h2 class="insights-title">Insights & Statistics</h2>
