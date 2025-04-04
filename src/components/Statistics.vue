@@ -50,7 +50,7 @@
             <div class="response-header">
                 <p class="response-title">Responses Tracked</p>
                 <div class="divider-vertical"></div>
-                <p class="response-subtext">{{ company }} usually responds on Thursdays</p>
+                <p class="response-subtext">{{ mostFrequentResponseDay }}</p>
             </div>
             <div class="bar-chart">
                 <p>Bar chart goes here</p>
@@ -60,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { db } from '@/firebase';
 import { doc, getDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
 
@@ -72,6 +72,7 @@ const current_stage = ref(0);
 const company = ref('');
 const response_time = ref(0);
 const response_timeMessage = ref('');
+const responseDaysMap = ref({});
 
 const props = defineProps(['appId']);
 
@@ -116,7 +117,6 @@ onMounted(async () => {
         if (status in stats) stats[status]++;
 
         const application = doc.data();
-
         if (application.average_working_days) {
             totalResponseTime += application.average_working_days;
             totalUsers++;
@@ -128,12 +128,30 @@ onMounted(async () => {
         } else {
             response_timeMessage.value = 'Not enough data available to estimate average response time';
         }
+
+        const daysMap = application.response_days_map;
+        if (daysMap) {
+            for (let day in daysMap) {
+                responseDaysMap.value[day] = (responseDaysMap.value[day] || 0) + daysMap[day];
+            }
+        }
     });
 
     number_applied.value = stats.Applied;
     number_interviewed.value = stats.Interview;
     number_offered.value = stats.Offered;
     number_rejected.value = stats.Rejected;
+});
+
+const mostFrequentResponseDay = computed(() => {
+    const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const entries = Object.entries(responseDaysMap.value);
+    if (entries.length === 0) return 'No data available';
+    // to get the highest counts
+    const sortedEntries = entries.sort((a, b) => b[1] - a[1]);
+    const mostFrequentDay = sortedEntries[0][0];
+    const dayName = weekdayNames[mostFrequentDay];
+    return `${company.value} usually responds on ${dayName}s`;
 });
 </script>
 
