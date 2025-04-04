@@ -109,6 +109,7 @@
 import { ref, onMounted, computed } from "vue";
 import { db } from "@/firebase";
 import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc } from "firebase/firestore";
+import { DateTime } from 'luxon';
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
 import ApplicationCard from '@/components/ApplicationCard.vue';
 
@@ -237,7 +238,9 @@ export default {
         const drop = async (newStatus) => {
             if (!draggedApplication.value || sourceStatus.value == newStatus) return;
 
-            const statusUpdateDate = new Date().toISOString();
+            const statusUpdateDate = DateTime.now()
+                .setZone('Asia/Singapore')
+                .toISO();
             statusChangeTime.value = statusUpdateDate;
 
             pendingDrop.value = {
@@ -255,21 +258,18 @@ export default {
 
         // for number of working days
         const calculateWorkingDays = (startDate, endDate) => {
-            console.log(`Start Date: ${startDate}, End Date: ${endDate}`);
-            let start = new Date(startDate);
-            start.setHours(0, 0, 0, 0);
-            const end = new Date(endDate);
-            end.setHours(0, 0, 0, 0);
+            const start = DateTime.fromISO(startDate, { zone: 'Asia/Singapore' }).startOf('day');
+            const end = DateTime.fromISO(endDate, { zone: 'Asia/Singapore' }).startOf('day');
 
-            let currentDate = new Date(start);
+            let currentDate = start;
             let workingDays = 0;
 
             while (currentDate <= end) {
                 // check if it's a weekday (not Sunday or Saturday)
-                if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
+                if (currentDate.weekday !== 6 && currentDate.weekday !== 7) {
                     workingDays++;
                 }
-                currentDate.setDate(currentDate.getDate() + 1);
+                currentDate = currentDate.plus({ days: 1 });
             }
 
             return workingDays;
@@ -277,7 +277,9 @@ export default {
 
         const responseDate = ref("");
         const stageName = ref("");
-        const maxDate = ref(new Date().toISOString().split("T")[0]);
+        const maxDate = ref(
+            DateTime.now().setZone('Asia/Singapore').toISODate()
+        );
 
         const confirmDropStatus = async () => {
             if (!pendingDrop.value) return;
@@ -287,14 +289,11 @@ export default {
             const sourceDocRef = doc(db, "Users", userId, "application_folder", app.id);
             
             try {
-                // convert to SGT
-                const update_date = new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString();
+                const update_date = DateTime.now().setZone('Asia/Singapore').toISO();
 
-                const responseDateAtMidnight = new Date(responseDate.value)
-                responseDateAtMidnight.setHours(0,0,0,0);
-                // add one more day to "convert into SGT"
-                responseDateAtMidnight.setDate(responseDateAtMidnight.getDate() + 1);
-                const responseDateAtMidnightString = responseDateAtMidnight.toISOString();
+                const responseDateAtMidnightString = DateTime.fromISO(responseDate.value, { zone: 'Asia/Singapore' })
+                    .startOf('day')
+                    .toISO();
 
                 const updates = {
                     status: to,
@@ -319,7 +318,7 @@ export default {
 
                 for (let [stage, stageDetails] of Object.entries(stages)) {
                     if (stageDetails && stageDetails.date) {
-                        const stageDate = new Date(stageDetails.date);
+                        const stageDate = DateTime.fromISO(stageDetails.date, { zone: 'Asia/Singapore' }).toJSDate();
                         stagesWithDates.push({ stage, date: stageDate });
 
                         // "Applied" and "Turned Down" stages are not stages that the compny responds
@@ -339,17 +338,20 @@ export default {
                     const currentStage = stagesWithDates[i];
                     const nextStage = stagesWithDates[i + 1];
 
-                    // minus 1 to exclude the start date itself
-                    totalWorkingDays += calculateWorkingDays(currentStage.date, nextStage.date) - 1;
+                    totalWorkingDays += calculateWorkingDays(currentStage.date, nextStage.date);
                 }
 
                 // "Applied" and "Turned Down" stages are not stages that the company responds
                 if (to !== "Applied" && to !== "Turned Down") {
                     // time taken to the new status?
                     const latestDate =  stagesWithDates[stagesWithDates.length - 1].date
-                    totalWorkingDays += calculateWorkingDays(latestDate, responseDateAtMidnightString) - 1;
+                    const isoDate = DateTime.fromJSDate(latestDate).setZone('Asia/Singapore').toISO();
+                    console.log(isoDate);
+                    totalWorkingDays += calculateWorkingDays(isoDate, responseDateAtMidnightString);
 
-                    const dayOfWeek = latestDate.getDay();
+                    const responseDate = DateTime.fromISO(responseDateAtMidnightString, { zone: 'Asia/Singapore' });
+                    const dayOfWeek = responseDate.weekday;
+
                     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
                         responseDaysMap[dayOfWeek] = (responseDaysMap[dayOfWeek] || 0) + 1;
                     }
@@ -359,8 +361,9 @@ export default {
                     totalWorkingDays = 0;
                 }
 
-                updates["working_days"] = totalWorkingDays;
-                updates["average_working_days"] = totalWorkingDays / (stagesWithDates.length);
+                // minus to account for the intervals between each stage transition
+                updates["working_days"] = totalWorkingDays - (stagesWithDates.length);
+                updates["average_working_days"] = Math.round((totalWorkingDays - (stagesWithDates.length)) / (stagesWithDates.length));
 
                 updates["response_days_map"] = { ...responseDaysMap };
                 //

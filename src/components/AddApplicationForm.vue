@@ -36,6 +36,7 @@
 import { ref } from "vue";
 import { db } from "@/firebase";
 import { collection, doc, setDoc } from "firebase/firestore";
+import { DateTime } from 'luxon';
 
 export default {
     emits: ["close", "application-added"],
@@ -56,8 +57,8 @@ export default {
                 collection(db, "Users", userId, "application_folder")
             );
 
-            const date = new Date();
-            const dateApplied = new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString(); // convert to SGT
+            // need to change it to user-input too
+            const dateApplied = DateTime.now().setZone('Asia/Singapore').toISO();
 
             const newApplication = {
                 id: newApplicationRef.id,
