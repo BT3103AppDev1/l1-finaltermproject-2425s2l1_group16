@@ -32,8 +32,12 @@
                     @drop="drop(status)"
                     @click="openPopup(app.id)"
                 >
-                <strong>{{ app.company }}</strong> - {{ app.position }}
-                <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
+                    <div class="task-content">
+                        <span class="company">{{ app.company }}</span>
+                        <span class="position">{{ app.position }}</span>
+                        <span class="status">{{ app.status }} on {{ app.last_updated }}</span>
+                    </div>
+                    <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
                 </div>
             </div>
         </div>
@@ -208,6 +212,7 @@ export default {
                     company: data.company,
                     position: data.position,
                     status: data.status,
+                    last_updated: new Date(data.last_updated).toLocaleDateString('en-GB'),
                     dateApplied: data.date_applied,
                     notes: data.notes,
                 });
@@ -481,16 +486,10 @@ export default {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
-    background-color: #f0f0f0; /* Light background */
-}
-
 .dashboard {
-    max-width: 1200px;
-    margin: auto;
+    justify-content: center;
+    align-items: center;
+    /* margin-right: 30px; */
 }
 
 .header {
@@ -516,7 +515,7 @@ button:hover {
 .kanban {
     display: flex;
     gap: 20px;
-    overflow-x: auto;
+    justify-content: space-between;
 }
 
 .column {
@@ -524,7 +523,7 @@ button:hover {
     flex-direction: column;
     background-color: #ffffff; /* White column background */
     padding: 15px;
-    width: 200px;
+    width: 250px;
     min-height: 400px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -532,11 +531,13 @@ button:hover {
 
 .column h3 {
     text-align: center;
-    background-color: #f1f1f1; /* Light grey for the column header */
-    color: #333; /* Dark text */
+    background-color: #c24600; /* Light grey for the column header */
+    color: #ffffff; /* Dark text */
     padding: 10px;
     border-radius: 5px;
     margin-top: 0;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 .task {
@@ -546,6 +547,22 @@ button:hover {
     border-radius: 5px;
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    flex-direction: column;
+    height: 90px;
+}
+
+.task-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.company {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.position, .status {
+    font-size: 10px;
 }
 
 .task:hover {
@@ -556,11 +573,12 @@ button:hover {
   background: none;
   border: none;
   color: red;
-  font-size: 1rem;
+  font-size: 16px;
   float: right;
   cursor: pointer;
-  margin-left: auto;
+  margin-left: 111px;
   padding: 4px;
+  margin-top:-63px;
 }
 
 .delete-btn:hover {
