@@ -14,11 +14,6 @@ const router = createRouter({
       name: 'dashboard',
       component: () => import('../views/Dashboard.vue'),
     },
-    {
-      path: '/application_card',
-      name: 'appication_card',
-      component: () => import('../views/ApplicationCard.vue'),
-    },
   ],
 })
 
