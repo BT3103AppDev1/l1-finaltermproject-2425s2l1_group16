@@ -7,6 +7,11 @@
                     <h2 class="stat-value">{{ number_applied }}</h2>
                 </div>
                 <div class="divider"></div>
+                <div class="stat-item" :class="{ highlighted: current_stage === 'Assessment' }">
+                    <h3 class="stat-label">Assessment</h3>
+                    <h2 class="stat-value">{{ number_assessment }}</h2>
+                </div>
+                <div class="divider"></div>
                 <div class="stat-item" :class="{ highlighted: current_stage === 'Interview' }">
                     <h3 class="stat-label">Interviewed</h3>
                     <h2 class="stat-value">{{ number_interviewed }}</h2>
@@ -15,6 +20,11 @@
                 <div class="stat-item" :class="{ highlighted: current_stage === 'Offered' }">
                     <h3 class="stat-label">Offered</h3>
                     <h2 class="stat-value">{{ number_offered }}</h2>
+                </div>
+                <div class="divider"></div>
+                <div class="stat-item" :class="{ highlighted: current_stage === 'Turned Down' }">
+                    <h3 class="stat-label">Turned Down</h3>
+                    <h2 class="stat-value">{{ number_turned_down }}</h2>
                 </div>
                 <div class="divider"></div>
                 <div class="stat-item" :class="{ highlighted: current_stage === 'Rejected' }">
@@ -31,12 +41,15 @@
         </div>
 
         <div class="statistics-container">
-            <p class="response-text">Singtel typically responds in:</p>
-            <h1 class="response-time">{{ response_time }} Days</h1>
+            <p v-if="response_timeMessage !== 'Not enough data available to estimate average response time'" class="response-text">{{ company }} typically responds in:</p>
+            <h1 class="response-time" :class="{ 'not-enough-text': response_timeMessage === 'Not enough data available to estimate average response time' }">{{ response_timeMessage }}</h1>
+            
+            <!-- Conditionally show response speed only if enough data is available -->
             <!-- If response is < 7 days = fast 
-                 If response is >= 7 days & < 14 days = medium
-                 If not, slow -->
-            <p class="response-status">This is considered 
+            If response is >= 7 days & < 14 days = medium
+            If not, slow -->
+            <p v-if="response_timeMessage !== 'Not enough data available to estimate average response time'" class="response-status">
+                This is considered 
                 <span v-if="response_time < 7" class="fast-text">fast</span>
                 <span v-else-if="response_time >= 7 && response_time < 14" class="medium-text">medium</span>
                 <span v-else class="slow-text">slow</span>
@@ -47,7 +60,7 @@
             <div class="response-header">
                 <p class="response-title">Responses Tracked</p>
                 <div class="divider-vertical"></div>
-                <p class="response-subtext">Singtel usually responds on Thursdays</p>
+                <p class="response-subtext">{{ mostFrequentResponseDay }}</p>
             </div>
             <div class="bar-chart">
                 <p>Bar chart goes here</p>
@@ -56,20 +69,114 @@
     </div>
 </template>
 
-<script>
-export default {
-    name: 'Statistics',
-    data() {
-        return {
-            number_applied: 127,
-            number_interviewed: 98,
-            number_offered: 3,
-            number_rejected: 67,
-            current_stage: "Interview",
-            response_time: 100,
-        }
+<script setup>
+import { ref, onMounted, computed } from 'vue';
+import { db } from '@/firebase';
+import { doc, getDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
+
+const number_applied = ref(0);
+const number_assessment = ref(0);
+const number_interviewed = ref(0);
+const number_offered = ref(0);
+const number_rejected = ref(0);
+const number_turned_down = ref(0);
+const current_stage = ref(0);
+const company = ref('');
+const response_time = ref(0);
+const response_timeMessage = ref('');
+const responseDaysMap = ref({});
+
+const props = defineProps({
+  userId: {
+    type: String,
+    required: true
+  },
+  appId: {
+    type: String,
+    required: true
+  }
+});
+
+onMounted(async () => {
+    const docPath = doc(db, "Users", props.userId, "application_folder", props.appId);
+
+    const myDocSnap = await getDoc(docPath);
+
+    if (!myDocSnap.exists()) {
+        console.error("No such document!");
+        return;
     }
-};
+
+    const myData = myDocSnap.data();
+    const position = myData.position;
+    current_stage.value = myData.status;
+    company.value = myData.company;
+
+    // Query across all users
+    // Will need to double-check when we have multiple application folders
+    const q = query(
+        collectionGroup(db, "application_folder"),
+        where("company", "==", company.value),
+        where("position", "==", position)
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    const stats = {
+        Applied: 0,
+        Assessment: 0,
+        Interview: 0,
+        Offered: 0,
+        Rejected: 0,
+        "Turned Down": 0,
+    };
+
+    let totalResponseTime = 0;
+    let totalUsers = 0;
+
+    querySnapshot.forEach(doc => {
+        const status = doc.data().status;
+        if (status in stats) stats[status]++;
+
+        const application = doc.data();
+        if (application.average_working_days) {
+            totalResponseTime += application.average_working_days;
+            totalUsers++;
+        }
+
+        if (totalUsers > 9) {
+            response_time.value = Math.round(totalResponseTime / totalUsers);
+            response_timeMessage.value = `${response_time.value} Days`;
+        } else {
+            response_timeMessage.value = 'Not enough data available to estimate average response time';
+        }
+
+        const daysMap = application.response_days_map;
+        if (daysMap) {
+            for (let day in daysMap) {
+                responseDaysMap.value[day] = (responseDaysMap.value[day] || 0) + daysMap[day];
+            }
+        }
+    });
+
+    number_applied.value = stats.Applied;
+    number_assessment.value = stats.Assessment;
+    number_interviewed.value = stats.Interview;
+    number_offered.value = stats.Offered;
+    number_rejected.value = stats.Rejected;
+    number_turned_down.value = stats['Turned Down'];
+});
+
+const mostFrequentResponseDay = computed(() => {
+    const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const entries = Object.entries(responseDaysMap.value);
+    if (entries.length === 0) return 'No data available';
+    // to get the highest counts
+    const sortedEntries = entries.sort((a, b) => b[1] - a[1]);
+    const mostFrequentDay = sortedEntries[0][0];
+    const dayName = weekdayNames[mostFrequentDay];
+    return `${company.value} usually responds on ${dayName}s`;
+});
 </script>
 
 <style scoped>
@@ -102,13 +209,12 @@ export default {
 .stat-label {
     font-size: 14px;
     font-weight: 500;
-    color: #555;
+    color: #444;
 }
 
 .stat-value {
     font-size: 24px;
     font-weight: bold;
-    color: #222;
 }
 
 .highlighted .stat-label {
@@ -121,10 +227,15 @@ export default {
     font-weight: bold;
 }
 
-.pie-chart {
+.pie-chart, .bar-chart{
     background-color: white;
     padding: 20px;
     border-radius: 8px;
+    height: 300px;
+}
+
+.bar-chart {
+    margin-top:12px;
 }
 
 .divider {
@@ -135,18 +246,19 @@ export default {
 
 .response-text {
     font-size: 16px;
-    color: #555;
 }
 
 .response-time {
     font-size: 32px;
     font-weight: bold;
-    color: #222;
+}
+
+.not-enough-text {
+    font-size: 16px;
 }
 
 .response-status {
     font-size: 14px;
-    color: #666;
 }
 
 .response-speed {
@@ -176,6 +288,7 @@ export default {
     font-size: 14px;
     color: #444;
     font-weight: 500;
+    white-space: nowrap; /* Ensures text does not go to the next line if no space */
 }
 
 .response-title {
@@ -192,14 +305,6 @@ export default {
 
 .response-subtext {
     color: #777;
-    font-size: 12px;
     margin-left: 8px;
-}
-
-.bar-chart {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    margin-top: 12px;
 }
 </style>
