@@ -1,5 +1,5 @@
 <template>
-    <div class="modal">
+    <div class="modal" @click.self="$emit('close')">
         <div class="modal-content">
             <h3>Add New Application</h3>
             <form @submit.prevent="submitApplication">
@@ -20,6 +20,14 @@
 
                 <label>Notes:</label>
                 <textarea v-model="notes"></textarea>
+
+                <label>Date Applied:</label>
+                <input 
+                    type="date"
+                    v-model="dateApplied"
+                    :max="maxDate"
+                    required
+                />
 
                 <div class="buttons">
                     <button type="button" @click="$emit('close')">
@@ -55,6 +63,8 @@ export default {
         const location = ref("");
         const salary = ref("");
         const notes = ref("");
+        const dateApplied = ref(DateTime.now().setZone('Asia/Singapore').toISODate()); // default to today's date
+        const maxDate = ref(DateTime.now().setZone('Asia/Singapore').toISODate());
 
         const submitApplication = async () => {
             if (!company.value || !position.value || !jobType.value) return;
@@ -63,22 +73,21 @@ export default {
                 collection(db, "Users", props.userId, "application_folder")
             );
 
-            // need to change it to user-input too
-            const dateApplied = DateTime.now().setZone('Asia/Singapore').toISO();
+            const dateAppliedISO = DateTime.fromISO(dateApplied.value).toISO();
 
             const newApplication = {
                 id: newApplicationRef.id,
                 company: company.value,
                 position: position.value,
-                date_applied: dateApplied,
+                date_applied: dateAppliedISO,
                 status: "Applied",
                 notes: notes.value,
-                last_updated: dateApplied,
-                last_status_date: DateTime.fromISO(dateApplied).toLocaleString(DateTime.DATE_SHORT),
+                last_updated: dateAppliedISO,
+                last_status_date: DateTime.fromISO(dateApplied.value).toLocaleString(DateTime.DATE_SHORT),
                 
                 stages: {
                     applied: {
-                        date: dateApplied,
+                        date: dateAppliedISO,
                     }
                 },
                 // i think can remove the below
@@ -100,6 +109,8 @@ export default {
             location,
             salary,
             notes,
+            dateApplied,
+            maxDate,
             submitApplication,
         };
     },
@@ -109,14 +120,14 @@ export default {
 <style scoped>
 .modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1000;
+    overflow: hidden;
 }
 
 .modal-content {
@@ -124,11 +135,10 @@ export default {
     padding: 20px;
     border-radius: 8px;
     width: 400px;
-    max-width: 90%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-input,
-textarea {
+input, textarea {
     width: 100%;
     padding: 8px;
     margin: 5px 0;

@@ -8,14 +8,6 @@
             <p>{{ summaryStats }}</p>
         </div>
 
-        <!-- Show the Add Application Form -->
-        <AddApplicationForm
-            v-if="showForm"
-            @close="showForm = false"
-            @application-added="handleApplicationAdded"
-            :userId="userId" 
-        />
-
         <div class="main-content">
             <div class="application-cycles">
                 <h3>Application Cycles</h3>
@@ -63,9 +55,19 @@
             </div>
         </div>
     </div>
+
+    <!-- Show the Add Application Form -->
+    <teleport to="body">
+        <AddApplicationForm
+            v-if="showForm"
+            @close="showForm = false"
+            @application-added="handleApplicationAdded"
+            :userId="userId"
+        />
+    </teleport>
     
     <teleport to="body">
-        <div v-if="showDropConfirmModal" class="modal-overlay">
+        <div v-if="showDropConfirmModal" class="modal-overlay" @click.self="showDropConfirmModal = false">
             <div class="modal-content">
             <h3>Confirm Status Change</h3>
             <p>
@@ -325,7 +327,7 @@ export default {
             return workingDays;
         };
 
-        const responseDate = ref("");
+        const responseDate = ref(DateTime.now().setZone('Asia/Singapore').toISODate()); // default to today's date
         const stageName = ref("");
         const maxDate = ref(
             DateTime.now().setZone('Asia/Singapore').toISODate()
@@ -345,9 +347,13 @@ export default {
                     .startOf('day')
                     .toISO();
 
+                const formattedLastStatusDate = DateTime.fromISO(responseDateAtMidnightString)
+                    .toLocaleString(DateTime.DATE_SHORT);
+
                 const updates = {
                     status: to,
                     last_updated: update_date,
+                    last_status_date: formattedLastStatusDate,
                 };
 
                 // for working days calculation + most frequent day a company responds
@@ -470,7 +476,7 @@ export default {
                 jobApplications.value[to].push({ 
                     ...app, 
                     status: to,
-                    last_status_date: new Date(responseDateAtMidnightString).toLocaleDateString('en-GB'),
+                    last_status_date: formattedLastStatusDate,
                 });
 
                 showDropConfirmModal.value = false;
@@ -522,21 +528,19 @@ export default {
 </script>
 
 <style scoped>
-/* Modal Overlay */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.5); /* Dark overlay */
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
 }
 
-/* Modal Content */
 .modal-content {
     background: white;
     padding: 20px;
@@ -558,6 +562,7 @@ export default {
     gap: 20px;
     justify-content: space-between;
     width: 100%;
+    min-height: 800px;
 }
 
 .application-cycles {
@@ -566,7 +571,6 @@ export default {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-    min-height: 400px;
     padding: 15px;
     margin-top: 20px;
     flex-shrink: 0;
@@ -622,7 +626,6 @@ button:hover {
     background-color: #ffffff;
     padding: 15px;
     width: 250px;
-    min-height: 400px;
     border-radius: 8px;
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
