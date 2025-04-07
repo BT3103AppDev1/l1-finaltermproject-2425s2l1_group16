@@ -1,69 +1,173 @@
 <template>
     <div class="dashboard">
         <div class="header">
-            <h2>Job Applications</h2>
+            <h1>Summer Intern 2025</h1>
             <button @click="showForm = true">+ Add New Application</button>
         </div>
+        <div class="sub-header">
+            <p>{{ summaryStats }}</p>
+        </div>
 
-        <!-- Show the Add Application Form -->
-        <AddApplicationForm
-            v-if="showForm"
-            @close="showForm = false"
-            @application-added="handleApplicationAdded"
-        />
+        <div class="main-content">
+            <div class="application-cycles">
+                <h3>Application Cycles</h3>
+                <div class="cycle-list">
+                    <!-- <div v-for="(cycle, index) in applicationCycles" :key="index">
+                        <p>{{ cycle.name }}</p>
+                    </div> -->
+                    <div>
+                        <p>Summer Intern 25</p>
+                    </div>
+                    <div>
+                        <p>Winter Intern 25</p>
+                    </div>
+                </div>
+            </div>
 
-        <div class="kanban">
-            <div
-                v-for="(applications, status) in jobApplications"
-                :key="status"
-                class="column"
-                @dragover.prevent
-                @drop="drop(status)"
-            >
-                <h3>{{ statusLabels[status] }}</h3>
+            <div class="kanban">
                 <div
-                    v-for="(app, index) in applications"
-                    :key="app.id"
-                    class="task"
-                    draggable="true"
-                    @dragstart="dragStart(app, status, index)"
+                    v-for="(applications, status) in jobApplications"
+                    :key="status"
+                    class="column"
                     @dragover.prevent
                     @drop="drop(status)"
                 >
-                <strong>{{ app.company }}</strong> - {{ app.position }}
-                <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
+                    
+                    <h3>{{ statusLabels[status] }}</h3>
+                    <!-- the applications here -->
+                    <div
+                        v-for="(app, index) in applications"
+                        :key="app.id"
+                        class="task"
+                        draggable="true"
+                        @dragstart="dragStart(app, status, index)"
+                        @dragover.prevent
+                        @drop="drop(status)"
+                        @click="openPopup(app.id)"
+                    >
+                        <div class="task-content">
+                            <span class="company">{{ app.company }}</span>
+                            <span class="position">{{ app.position }}</span>
+                            <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
+                            <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
+                            <CompleteInterview 
+                                v-if="status === 'Interview'" 
+                                :company="app.company"
+                                :role="app.position"
+                            />       
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Show the Add Application Form -->
+    <teleport to="body">
+        <AddApplicationForm
+            v-if="showForm"
+            @close="showForm = false"
+            @application-added="handleApplicationAdded"
+            :userId="userId"
+        />
+    </teleport>
+    
+    <teleport to="body">
+        <div v-if="showDropConfirmModal" class="modal-overlay" @click.self="showDropConfirmModal = false">
+            <div class="modal-content">
+            <h3>Confirm Status Change</h3>
+            <p>
+            You are moving <strong>{{ pendingDrop?.app.company }}</strong>
+            to <strong>{{ pendingDrop?.to }}</strong><br/>
+            </p>
+
+            <!-- only when you are shifting to interview or assessment statuses -->
+            <div v-if="pendingDrop?.to === 'Interview' || pendingDrop?.to === 'Assessment'">
+                <label for="stageName">Enter Stage Name:</label>
+                <input
+                    type="text"
+                    id="stageName"
+                    v-model="stageName"
+                    placeholder="Enter stage name"
+                />
+            </div>
+
+            <div v-if="pendingDrop?.to !== 'Applied' && pendingDrop?.to !== 'Turned Down'">
+                <label for="responseDate">Select Response Date:</label>
+                <input
+                    type="date"
+                    id="responseDate"
+                    v-model="responseDate"
+                    :max="maxDate"
+                    required
+                />
+            </div>
+
+            <div class="modal-actions">
+                <button @click="confirmDropStatus">Confirm</button>
+                <button @click="showDropConfirmModal = false">Cancel</button>
+            </div>
+            </div>
+        </div>
+    </teleport>
+
     <teleport to="body">
         <div v-if="showDeleteModal" class="modal-overlay">
             <div class="modal-content">
                  <h3>Are you sure you want to delete this application?</h3>
                  <p>This action cannot be undone.</p>
-            <div class="modal-actions">
-        <button @click="performDelete">Confirm</button>
-        <button @click="showDeleteModal = false">Cancel</button>
-      </div>
-    </div>
-  </div>
-</teleport>
+                <div class="modal-actions">
+                    <button @click="performDelete">Confirm</button>
+                    <button @click="showDeleteModal = false">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </teleport>
+
+    <teleport to="body">
+        <ApplicationCard 
+            v-if="showPopup" 
+            :show="showPopup"
+            :appId="selectedAppId" 
+            :userId="userId"
+            @close="closePopup" 
+        />
+    </teleport>
 </template>
 
 <script>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { db } from "@/firebase";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc } from "firebase/firestore";
+import { DateTime } from 'luxon';
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
-import { deleteDoc } from "firebase/firestore";
-
-
-
+import ApplicationCard from '@/components/ApplicationCard.vue';
+import CompleteInterview from "@/components/CompleteInterview.vue";
 
 export default {
-    components: { AddApplicationForm },
+    components: { 
+        AddApplicationForm,
+        CompleteInterview,
+        ApplicationCard
+    },
 
     setup() {
+        // CHANGE!!!!
+        const userId = ref('insights_me');
+
+        const selectedAppId = ref(null);
+        const showPopup = ref(false);
+
+        const openPopup = (appId) => {
+            selectedAppId.value = appId;
+            showPopup.value = true;
+        };
+
+        const closePopup = () => {
+            showPopup.value = false;
+            selectedAppId.value = null;
+        };
+
         const jobApplications = ref({
             Applied: [],
             Assessment: [],
@@ -91,41 +195,40 @@ export default {
         const appStatusToDelete = ref(null);
 
         const confirmDelete = (app, status) => {
-  appToDelete.value = app;
-  appStatusToDelete.value = status;
-  showDeleteModal.value = true;
+            appToDelete.value = app;
+            appStatusToDelete.value = status;
+            showDeleteModal.value = true;
         };
 
         const performDelete = async () => {
             if (!appToDelete.value || !appStatusToDelete.value) return;
 
             try {
-                const userId = "Cu8w7qKqftnyhdddVufn";
-                const appRef = doc(db, "Users", userId, "application_folder", appToDelete.value.id);
+                const appRef = doc(db, "Users", userId.value, "application_folder", appToDelete.value.id);
 
                 await deleteDoc(appRef);
 
-    jobApplications.value[appStatusToDelete.value] =
-      jobApplications.value[appStatusToDelete.value].filter(
-        (item) => item.id !== appToDelete.value.id
-      );
+                jobApplications.value[appStatusToDelete.value] =
+                jobApplications.value[appStatusToDelete.value].filter(
+                    (item) => item.id !== appToDelete.value.id
+                );
 
-        showDeleteModal.value = false;
-    appToDelete.value = null;
-    appStatusToDelete.value = null;
-  } catch (err) {
-    console.error("Failed to delete:", err);
-  }
-};
+                showDeleteModal.value = false;
+                appToDelete.value = null;
+                appStatusToDelete.value = null;
+            } catch (err) {
+                console.error("Failed to delete:", err);
+            }
+        };
 
         const loadApplications = async () => {
-            const userId = "Cu8w7qKqftnyhdddVufn"; // Replace with dynamic user ID if necessary
             const applicationsRef = collection(
                 db,
                 "Users",
-                userId,
+                userId.value,
                 "application_folder"
             );
+            
             const querySnapshot = await getDocs(applicationsRef);
 
             jobApplications.value = {
@@ -140,12 +243,34 @@ export default {
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
                 const status = data.status;
+
+                const stages = data.stages;
+                console.log(stages)
+
+                let latestStatus = null;
+                let latestDate = null;
+
+                for (let [stage, stageDetails] of Object.entries(stages)) {
+                    const stageDate = DateTime.fromISO(stageDetails.date, { zone: 'Asia/Singapore' });
+
+                    if (!latestDate || stageDate > latestDate) {
+                        latestStatus = stage;
+                        latestDate = stageDate;
+                    }
+                }
+
+                const formattedLastStatusDate = latestDate
+                    ? latestDate.toLocaleString(DateTime.DATE_SHORT)
+                    : 'N/A';
+
                 jobApplications.value[status].push({
                     id: doc.id,
                     company: data.company,
                     position: data.position,
                     status: data.status,
+                    last_status_date: formattedLastStatusDate,
                     dateApplied: data.date_applied,
+                    // not sure if this is needed
                     notes: data.notes,
                 });
             });
@@ -155,64 +280,230 @@ export default {
             loadApplications();
         });
 
+        const summaryStats = computed(() => {
+            const statusCounts = Object.keys(jobApplications.value).map(status => {
+                return `${jobApplications.value[status].length} ${statusLabels[status]}`;
+            });
+            return statusCounts.join(" | ");
+        });
+
         const dragStart = (app, status, index) => {
             draggedApplication.value = app;
             sourceStatus.value = status;
             sourceIndex.value = index;
         };
 
+        const pendingDrop = ref(null);
+        const showDropConfirmModal = ref(false);
+
+        const statusChangeTime = ref(null);
+
         const drop = async (newStatus) => {
-            if (!draggedApplication.value || sourceStatus.value == newStatus)
-                return;
+            if (!draggedApplication.value || sourceStatus.value == newStatus) return;
 
-            const userId = "Cu8w7qKqftnyhdddVufn"; // Replace with dynamic user ID
-            const sourceDocRef = doc(
-                db,
-                "Users",
-                userId,
-                "application_folder",
-                draggedApplication.value.id
-            );
+            const statusUpdateDate = DateTime.now()
+                .setZone('Asia/Singapore')
+                .toISO();
+            statusChangeTime.value = statusUpdateDate;
 
+            pendingDrop.value = {
+                app: draggedApplication.value,
+                from: sourceStatus.value,
+                to: newStatus
+            };
+
+            showDropConfirmModal.value = true;
+
+            // Clear drag state
+            draggedApplication.value = null;
+            sourceStatus.value = null;
+        };
+
+        // for number of working days
+        const calculateWorkingDays = (startDate, endDate) => {
+            const start = DateTime.fromISO(startDate, { zone: 'Asia/Singapore' }).startOf('day');
+            const end = DateTime.fromISO(endDate, { zone: 'Asia/Singapore' }).startOf('day');
+
+            let currentDate = start;
+            let workingDays = 0;
+
+            while (currentDate <= end) {
+                // check if it's a weekday (not Sunday or Saturday)
+                if (currentDate.weekday !== 6 && currentDate.weekday !== 7) {
+                    workingDays++;
+                }
+                currentDate = currentDate.plus({ days: 1 });
+            }
+
+            return workingDays;
+        };
+
+        const responseDate = ref(DateTime.now().setZone('Asia/Singapore').toISODate()); // default to today's date
+        const stageName = ref("");
+        const maxDate = ref(
+            DateTime.now().setZone('Asia/Singapore').toISODate()
+        );
+
+        const confirmDropStatus = async () => {
+            if (!pendingDrop.value) return;
+
+            const { app, from, to } = pendingDrop.value;
+            
+            const sourceDocRef = doc(db, "Users", userId.value, "application_folder", app.id);
+            
             try {
+                const update_date = DateTime.now().setZone('Asia/Singapore').toISO();
+
+                const responseDateAtMidnightString = DateTime.fromISO(responseDate.value, { zone: 'Asia/Singapore' })
+                    .startOf('day')
+                    .toISO();
+
+                const formattedLastStatusDate = DateTime.fromISO(responseDateAtMidnightString)
+                    .toLocaleString(DateTime.DATE_SHORT);
+
+                const updates = {
+                    status: to,
+                    last_updated: update_date,
+                    last_status_date: formattedLastStatusDate,
+                };
+
+                // for working days calculation + most frequent day a company responds
+                const docSnapshot = await getDoc(sourceDocRef);
+                
+                if (!docSnapshot.exists()) {
+                    console.error("Document not found");
+                    return;
+                }
+
+                const appData = docSnapshot.data();
+                const stages = appData.stages;
+
+                let totalWorkingDays = 0;
+                const stagesWithDates = [];
+
+                const responseDaysMap = {}; 
+
+                for (let [stage, stageDetails] of Object.entries(stages)) {
+                    if (stageDetails && stageDetails.date) {
+                        const stageDate = DateTime.fromISO(stageDetails.date, { zone: 'Asia/Singapore' }).toJSDate();
+                        stagesWithDates.push({ stage, date: stageDate });
+
+                        // "Applied" and "Turned Down" stages are not stages that the compny responds
+                        if (stage !== "applied" && stage !== "turned down") {
+                            const dayOfWeek = stageDate.getDay();
+                            // only care about work days (Mon to Fri, dayOfWeek 1 to 5)
+                            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                                responseDaysMap[dayOfWeek] = (responseDaysMap[dayOfWeek] || 0) + 1;
+                            }
+                        }
+                    }
+                }
+
+                stagesWithDates.sort((a, b) => a.date - b.date);
+
+                for (let i = 0; i < stagesWithDates.length - 1; i++) {
+                    const currentStage = stagesWithDates[i];
+                    const nextStage = stagesWithDates[i + 1];
+
+                    totalWorkingDays += calculateWorkingDays(currentStage.date, nextStage.date);
+                }
+
+                // "Applied" and "Turned Down" stages are not stages that the company responds
+                if (to !== "Applied" && to !== "Turned Down") {
+                    // time taken to the new status?
+                    const latestDate =  stagesWithDates[stagesWithDates.length - 1].date
+                    const isoDate = DateTime.fromJSDate(latestDate).setZone('Asia/Singapore').toISO();
+                    console.log(isoDate);
+                    totalWorkingDays += calculateWorkingDays(isoDate, responseDateAtMidnightString);
+
+                    const responseDate = DateTime.fromISO(responseDateAtMidnightString, { zone: 'Asia/Singapore' });
+                    const dayOfWeek = responseDate.weekday;
+
+                    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                        responseDaysMap[dayOfWeek] = (responseDaysMap[dayOfWeek] || 0) + 1;
+                    }
+                }
+
+                if (totalWorkingDays < 0) {
+                    totalWorkingDays = 0;
+                }
+
+                // minus to account for the intervals between each stage transition
+                updates["working_days"] = totalWorkingDays - (stagesWithDates.length);
+                updates["average_working_days"] = Math.round((totalWorkingDays - (stagesWithDates.length)) / (stagesWithDates.length));
+                updates["response_days_map"] = { ...responseDaysMap };
+                //
+
+                if (to === "Interview" || to === "Assessment") {
+                    // change to "interview" or "assessment"
+                    const type = to.toLowerCase();
+
+                    const existingStages = Object.keys(stages).filter(stage => stage.startsWith(type));
+
+                    // Extract numbers from the stage names, if they exist (e.g., "interview_1" => 1)
+                    const stageNumbers = existingStages
+                        .map(stage => {
+                            const match = stage.match(new RegExp(`${type}_(\\d+)`)); // Regex to match "interview_1"
+                            return match ? parseInt(match[1], 10) : 0;
+                        })
+                        .filter(num => num > 0);
+
+                    // If no valid stages exist, default to 1 (for "interview_1"), otherwise take the max number + 1
+                    const nextNum = stageNumbers.length > 0 ? Math.max(...stageNumbers) + 1 : 1;
+
+                    // Create the new stage with the next available number (either "interview_1" or the next number)
+                    updates[`stages.${type}_${nextNum}`] = {
+                        name: stageName.value,
+                        date: responseDateAtMidnightString,
+                    };
+                } else {
+                    // For other statuses like "Applied", there's no applied_1, applied_2
+                    // Also, it does not make sense to use response date for Applied and Turned Down when response date is for a company
+                    if (to !== "Applied" && to !== "Turned Down") {
+                        updates[`stages.${to.toLowerCase()}`] = {
+                            date: responseDateAtMidnightString,
+                        };
+                    } else {
+                        updates[`stages.${to.toLowerCase()}`] = {
+                            date: update_date
+                        };
+                    }
+                }
+
                 // Update Firestore
-                await updateDoc(sourceDocRef, { status: newStatus });
+                await updateDoc(sourceDocRef, updates);
 
                 // Remove the application from the old column
-                jobApplications.value[sourceStatus.value] =
-                    jobApplications.value[sourceStatus.value] =
-                        jobApplications.value[sourceStatus.value].filter(
-                            (app) => app.id !== draggedApplication.value.id
-                        );
+                jobApplications.value[from] = jobApplications.value[from].filter(
+                    (item) => item.id !== app.id
+                );
 
                 // Ensure the new column is an array (fixes empty column issue)
-                if (!jobApplications.value[newStatus]) {
-                    jobApplications.value[newStatus] = [];
+                if (!jobApplications.value[to]) {
+                    jobApplications.value[to] = [];
                 }
 
                 // Add the application to the new column (force reactivity)
-                jobApplications.value[newStatus] = [
-                    ...jobApplications.value[newStatus],
-                    {
-                        ...draggedApplication.value,
-                        status: newStatus,
-                    },
-                ];
+                jobApplications.value[to].push({ 
+                    ...app, 
+                    status: to,
+                    last_status_date: formattedLastStatusDate,
+                });
 
-                // Reset draggedApplication
-                draggedApplication.value = null;
-                sourceStatus.value = null;
-            } catch (error) {
-                console.error("Error updating Firestore:", error);
+                showDropConfirmModal.value = false;
+                pendingDrop.value = null;
+            } catch (err) {
+                console.error("Error confirming status change:", err);
             }
         };
 
         const handleApplicationAdded = (newApp) => {
             jobApplications.value.Applied.push(newApp);
-            showForm.value = false; // Hide form after submission
+            showForm.value = false; 
         };
 
         return {
+            userId,
             jobApplications,
             statusLabels,
             dragStart,
@@ -221,28 +512,46 @@ export default {
             handleApplicationAdded,
             confirmDelete,
             performDelete,
-            showDeleteModal
+            showDeleteModal,
+            // pop-up of the application cards
+            openPopup,
+            closePopup,
+            showPopup,
+            selectedAppId,
+            // drop confirmation functionality
+            drop,
+            confirmDropStatus,
+            pendingDrop,
+            showDropConfirmModal,
+            // show time
+            statusChangeTime,
+            // for working days calculation
+            calculateWorkingDays,
+            // for user-input dates and stageName
+            responseDate,
+            maxDate,
+            stageName,
+            // for summary stats
+            summaryStats,
         };
-    },
+    }
 };
 </script>
 
 <style scoped>
-/* Modal Overlay */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.5); /* Dark overlay */
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
 }
 
-/* Modal Content */
 .modal-content {
     background: white;
     padding: 20px;
@@ -251,23 +560,43 @@ export default {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
-    background-color: #f0f0f0; /* Light background */
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
-.dashboard {
-    max-width: 1200px;
-    margin: auto;
+.main-content {
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 800px;
+}
+
+.cycle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px;
+    text-align: center;
+}
+
+.cycle-list p {
+    font-size: 12px;
+    color: black;
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+}
+
+.sub-header {
+    font-size: 16px;
 }
 
 button {
@@ -286,86 +615,131 @@ button:hover {
 .kanban {
     display: flex;
     gap: 20px;
-    overflow-x: auto;
+    justify-content: flex-start;
+    width: 100%;
+    margin-top: 20px; /* Ensure a little space at the top */
+}
+
+.application-cycles {
+    width: 160px;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    margin-top: 20px;
+    flex-shrink: 0;
 }
 
 .column {
     display: flex;
     flex-direction: column;
-    background-color: #ffffff; /* White column background */
+    background-color: #ffffff;
     padding: 15px;
-    width: 200px;
-    min-height: 400px;
+    width: 185px;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
-.column h3 {
+.column h3, .application-cycles h3 {
     text-align: center;
-    background-color: #f1f1f1; /* Light grey for the column header */
-    color: #333; /* Dark text */
+    background-color: #c24600; 
+    color: #ffffff; 
     padding: 10px;
     border-radius: 5px;
     margin-top: 0;
+    font-size: 14px;
+    font-weight: bold;
+    min-width: 100px;
+}
+
+.application-cycles h3 {
+    font-size: 12px;
+}
+
+.task-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
 }
 
 .task {
-    background-color: #f0f0f0; /* Light background for tasks */
+    background-color: #f0f0f0;
     padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-    cursor: pointer;
+    margin: 8px 0;
+    border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    flex-direction: column;
+    height: 90px;
+    position: relative;
+    max-width: 100%;
+}
+
+.task-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.company {
+    font-size: 16px;
+    font-weight: bold;
+    color: black;
+}
+
+.position, .status {
+    font-size: 10px;
+    color: black;
 }
 
 .task:hover {
-    background-color: #e2e2e2; /* Slightly darker on hover */
+    background-color: #e2e2e2; 
 }
 
 .delete-btn {
-  background: none;
-  border: none;
-  color: red;
-  font-size: 1rem;
-  float: right;
-  cursor: pointer;
-  margin-left: auto;
-  padding: 4px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 80%;
+    position: absolute;
+    top: 5px;
+    right: 2px;
 }
 
 .delete-btn:hover {
-  color: darkred;
+    background: lightgrey;
 }
 
 .modal-content h3 {
-  margin: 0 0 10px;
+    margin: 0 0 10px;
 }
 
 .modal-content p {
-  margin-bottom: 20px;
+    margin-bottom: 20px;
 }
 
 .modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
 .modal-actions button {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
 }
 
 .modal-actions button:first-child {
-  background-color: red;
-  color: white;
+    background-color: red;
+    color: white;
 }
 
 .modal-actions button:last-child {
-  background-color: #e2e8f0;
-  color: #334155;
+    background-color: #e2e8f0;
+    color: #334155;
 }
-
 </style>

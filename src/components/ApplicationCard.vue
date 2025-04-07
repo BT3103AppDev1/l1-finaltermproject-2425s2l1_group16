@@ -6,7 +6,11 @@ import EditApplicationForm from '../components/EditApplicationForm.vue'
 
 import { ref, computed } from 'vue';
 
-const showPopup = ref(false);
+defineProps({
+  show: Boolean,
+  appId: String,
+  userId: String,
+});
 
 const showToast = (message) => {
   alert(message); 
@@ -31,13 +35,6 @@ const userId = 'user_1';
 const togglePopup = () => {
   showPopup.value = !showPopup.value;
 };
-
-// close popup if clicked outside the box
-const closePopup = (e) => {
-  if (e.target.id == 'popup-overlay') {
-    showPopup.value = false;
-  }
-}
 
 // get the company name from the child (ApplicationDetails.vue)
 const childCompany = ref('');
@@ -64,15 +61,10 @@ const switchTab = (tabName) => {
 </script>
 
 <template>
-  <!-- To be implemented in the actual Kanban Board (this is removed later)-->
-  <div class="pop-up-button">
-    <button @click="togglePopup">Open Application Information</button>
-  </div>
-
-  <div v-show="showPopup" id="popup-overlay" class="popup-overlay" @click="closePopup">
-      <div class="application-info-pop-up">
+  <div v-show="show" id="popup-overlay" class="popup-overlay" @click="handleOverlayClick">
+      <div class="application-info-pop-up" @click.stop>
         <!-- place X button at top right of the pop-up -->
-        <button @click="togglePopup" class="close-btn">&times;</button>
+        <button @click="$emit('close')" class="close-btn">&times;</button>
         <div class="popup-header">
           <h1 class="company-name">{{ truncatedCompany }}</h1>
           <div class="action-links">
@@ -102,7 +94,7 @@ const switchTab = (tabName) => {
           </section>
           <section v-if="activeTab === 'insights'" class="insights">
             <h2 class="insights-title">Insights & Statistics</h2>
-            <Statistics />
+            <Statistics :appId="appId" :userId="userId" />
           </section>
         </div>
     </div>

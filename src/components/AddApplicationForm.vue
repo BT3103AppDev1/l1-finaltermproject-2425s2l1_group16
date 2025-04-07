@@ -1,5 +1,5 @@
 <template>
-    <div class="modal">
+    <div class="modal" @click.self="$emit('close')">
         <div class="modal-content">
             <h3>Add New Application</h3>
             <form @submit.prevent="submitApplication">
@@ -21,6 +21,14 @@
                 <label>Notes:</label>
                 <textarea v-model="notes"></textarea>
 
+                <label>Date Applied:</label>
+                <input 
+                    type="date"
+                    v-model="dateApplied"
+                    :max="maxDate"
+                    required
+                />
+
                 <div class="buttons">
                     <button type="button" @click="$emit('close')">
                         Cancel
@@ -36,38 +44,56 @@
 import { ref } from "vue";
 import { db } from "@/firebase";
 import { collection, doc, setDoc } from "firebase/firestore";
+import { DateTime } from 'luxon';
 
 export default {
+    props: {
+        userId: { 
+            type: String,
+            required: true
+        }
+    },
+
     emits: ["close", "application-added"],
 
-    setup(_, { emit }) {
+    setup(props, { emit }) {
         const company = ref("");
         const position = ref("");
         const jobType = ref("");
         const location = ref("");
         const salary = ref("");
         const notes = ref("");
+        const dateApplied = ref(DateTime.now().setZone('Asia/Singapore').toISODate()); // default to today's date
+        const maxDate = ref(DateTime.now().setZone('Asia/Singapore').toISODate());
 
         const submitApplication = async () => {
             if (!company.value || !position.value || !jobType.value) return;
 
-            const userId = "Cu8w7qKqftnyhdddVufn"; // Replace with dynamic user ID if necessary
             const newApplicationRef = doc(
-                collection(db, "Users", userId, "application_folder")
+                collection(db, "Users", props.userId, "application_folder")
             );
-            const dateApplied = new Date().toISOString();
+
+            const dateAppliedISO = DateTime.fromISO(dateApplied.value).toISO();
 
             const newApplication = {
                 id: newApplicationRef.id,
                 company: company.value,
                 position: position.value,
+                date_applied: dateAppliedISO,
+                status: "Applied",
+                notes: notes.value,
+                last_updated: dateAppliedISO,
+                last_status_date: DateTime.fromISO(dateApplied.value).toLocaleString(DateTime.DATE_SHORT),
+                
+                stages: {
+                    applied: {
+                        date: dateAppliedISO,
+                    }
+                },
+                // i think can remove the below
                 job_type: jobType.value,
                 location: location.value,
                 salary: salary.value || null,
-                date_applied: dateApplied,
-                status: "Applied",
-                notes: notes.value,
-                last_updated: dateApplied,
             };
 
             await setDoc(newApplicationRef, newApplication);
@@ -83,6 +109,8 @@ export default {
             location,
             salary,
             notes,
+            dateApplied,
+            maxDate,
             submitApplication,
         };
     },
@@ -92,14 +120,14 @@ export default {
 <style scoped>
 .modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1000;
+    overflow: hidden;
 }
 
 .modal-content {
@@ -107,11 +135,10 @@ export default {
     padding: 20px;
     border-radius: 8px;
     width: 400px;
-    max-width: 90%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-input,
-textarea {
+input, textarea {
     width: 100%;
     padding: 8px;
     margin: 5px 0;
