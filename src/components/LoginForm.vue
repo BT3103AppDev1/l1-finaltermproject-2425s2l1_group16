@@ -240,9 +240,7 @@ export default {
 </script>
 
 <style scoped>
-/* Copy relevant styles from Auth.vue / RegisterForm.vue */
 .auth-form-container {
-	/* Consistent class name */
 	text-align: left;
 	max-width: 450px;
 	margin: auto;
@@ -252,7 +250,7 @@ export default {
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 	border: 1px solid #d1e0ff;
 }
-/* ... include the same styles for h2, subtitle, form-group, label, input, errors, button, toggle-link ... */
+
 h2 {
 	font-size: 24px;
 	font-weight: 600;
@@ -330,21 +328,21 @@ input:focus {
 	background-color: #c9302c;
 }
 .signout-btn {
-	background-color: #6c757d; /* Secondary grey color */
+	background-color: #6c757d;
 	color: white;
 	border: none;
-	padding: 10px 15px; /* Slightly smaller padding */
+	padding: 10px 15px;
 	border-radius: 5px;
 	cursor: pointer;
-	font-size: 14px; /* Smaller font size */
+	font-size: 14px;
 	font-weight: 500;
 	width: 100%;
-	margin-top: 15px; /* Space above */
+	margin-top: 15px;
 	margin-bottom: 5px; /* Space below before toggle link */
 	transition: background-color 0.2s ease;
 }
 .signout-btn:hover {
-	background-color: #5a6268; /* Darker grey on hover */
+	background-color: #5a6268;
 }
 .toggle-link {
 	text-align: center;
@@ -364,7 +362,7 @@ input:focus {
 
 .divider {
 	text-align: center;
-	margin: 25px 0 20px 0; /* Adjusted margin */
+	margin: 25px 0 20px 0;
 	font-size: 12px;
 	color: #888;
 	font-weight: 500;
@@ -375,7 +373,7 @@ input:focus {
 .divider::after {
 	content: "";
 	display: inline-block;
-	width: 38%; /* Adjusted width */
+	width: 38%;
 	height: 1px;
 	background-color: #ddd;
 	vertical-align: middle;
@@ -387,16 +385,16 @@ input:focus {
 	margin-left: 10px;
 }
 .google-signin-btn {
-	background-color: #ffffff; /* White background */
-	color: #444; /* Dark grey text */
-	border: 1px solid #ccc; /* Subtle border */
+	background-color: #ffffff;
+	color: #444; 
+	border: 1px solid #ccc; 
 	padding: 10px 15px;
 	border-radius: 5px;
 	cursor: pointer;
 	font-size: 14px;
-	font-weight: 600; /* Slightly bolder */
+	font-weight: 600; 
 	width: 100%;
-	margin: 0 auto 15px auto; /* Center and add margin below */
+	margin: 0 auto 15px auto; 
 	transition: background-color 0.2s ease, box-shadow 0.2s ease;
 	display: flex;
 	align-items: center;
@@ -405,7 +403,7 @@ input:focus {
 }
 
 .google-signin-btn:hover {
-	background-color: #f8f8f8; /* Slight grey on hover */
+	background-color: #f8f8f8;
 	border-color: #bbb;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }

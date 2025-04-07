@@ -1,8 +1,11 @@
 <template>
     <div class="dashboard">
         <div class="header">
-            <h2>Job Applications</h2>
+            <h1>Summer Intern 2025</h1>
             <button @click="showForm = true">+ Add New Application</button>
+        </div>
+        <div class="sub-header">
+            <p>{{ summaryStats }}</p>
         </div>
 
         <!-- Show the Add Application Form -->
@@ -13,37 +16,54 @@
             :userId="userId" 
         />
 
-        <div class="kanban">
-            <div
-                v-for="(applications, status) in jobApplications"
-                :key="status"
-                class="column"
-                @dragover.prevent
-                @drop="drop(status)"
-            >
-                <h3>{{ statusLabels[status] }}</h3>
-                <!-- the applications here -->
+        <div class="main-content">
+            <div class="application-cycles">
+                <h3>Application Cycles</h3>
+                <div class="cycle-list">
+                    <!-- <div v-for="(cycle, index) in applicationCycles" :key="index">
+                        <p>{{ cycle.name }}</p>
+                    </div> -->
+                    <div>
+                        <p>Summer Intern 2025</p>
+                    </div>
+                    <div>
+                        <p>Winter Intern 2025</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="kanban">
                 <div
-                    v-for="(app, index) in applications"
-                    :key="app.id"
-                    class="task"
-                    draggable="true"
-                    @dragstart="dragStart(app, status, index)"
+                    v-for="(applications, status) in jobApplications"
+                    :key="status"
+                    class="column"
                     @dragover.prevent
                     @drop="drop(status)"
-                    @click="openPopup(app.id)"
                 >
-                    <div class="task-content">
-                        <span class="company">{{ app.company }}</span>
-                        <span class="position">{{ app.position }}</span>
-                        <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
+                    <h3>{{ statusLabels[status] }}</h3>
+                    <!-- the applications here -->
+                    <div
+                        v-for="(app, index) in applications"
+                        :key="app.id"
+                        class="task"
+                        draggable="true"
+                        @dragstart="dragStart(app, status, index)"
+                        @dragover.prevent
+                        @drop="drop(status)"
+                        @click="openPopup(app.id)"
+                    >
+                        <div class="task-content">
+                            <span class="company">{{ app.company }}</span>
+                            <span class="position">{{ app.position }}</span>
+                            <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
+                        </div>
+                        <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
                     </div>
-                    <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
                 </div>
             </div>
         </div>
     </div>
-
+    
     <teleport to="body">
         <div v-if="showDropConfirmModal" class="modal-overlay">
             <div class="modal-content">
@@ -245,6 +265,13 @@ export default {
 
         onMounted(() => {
             loadApplications();
+        });
+
+        const summaryStats = computed(() => {
+            const statusCounts = Object.keys(jobApplications.value).map(status => {
+                return `${jobApplications.value[status].length} ${statusLabels[status]}`;
+            });
+            return statusCounts.join(" | ");
         });
 
         const dragStart = (app, status, index) => {
@@ -487,6 +514,8 @@ export default {
             responseDate,
             maxDate,
             stageName,
+            // for summary stats
+            summaryStats,
         };
     }
 };
@@ -517,16 +546,53 @@ export default {
 }
 
 .dashboard {
-    justify-content: center;
-    align-items: center;
-    /* margin-right: 30px; */
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.main-content {
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.application-cycles {
+    width: 200px;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+    min-height: 400px;
+    padding: 15px;
+    margin-top: 20px;
+    flex-shrink: 0;
+}
+
+.cycle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px;
+    text-align: center;
+}
+
+.cycle-list p {
+    font-size: 14px;
+    color: black;
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+}
+
+.sub-header {
+    font-size: 16px;
 }
 
 button {
@@ -545,33 +611,36 @@ button:hover {
 .kanban {
     display: flex;
     gap: 20px;
-    justify-content: space-between;
+    justify-content: flex-start;
+    width: 100%;
+    margin-top: 20px; /* Ensure a little space at the top */
 }
 
 .column {
     display: flex;
     flex-direction: column;
-    background-color: #ffffff; /* White column background */
+    background-color: #ffffff;
     padding: 15px;
     width: 250px;
     min-height: 400px;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
 
-.column h3 {
+.column h3, .application-cycles h3 {
     text-align: center;
-    background-color: #c24600; /* Light grey for the column header */
-    color: #ffffff; /* Dark text */
+    background-color: #c24600; 
+    color: #ffffff; 
     padding: 10px;
     border-radius: 5px;
     margin-top: 0;
     font-size: 14px;
     font-weight: bold;
+    min-width: 100px;
 }
 
 .task {
-    background-color: #f0f0f0; /* Light background for tasks */
+    background-color: #f0f0f0;
     padding: 10px;
     margin: 10px 0;
     border-radius: 5px;
@@ -580,6 +649,7 @@ button:hover {
     flex-direction: column;
     height: 90px;
     position: relative;
+    max-width: 100%;
 }
 
 .task-content {
@@ -588,12 +658,14 @@ button:hover {
 }
 
 .company {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
+    color: black;
 }
 
 .position, .status {
-    font-size: 10px;
+    font-size: 13px;
+    color: black;
 }
 
 .task:hover {
@@ -617,33 +689,33 @@ button:hover {
 }
 
 .modal-content h3 {
-  margin: 0 0 10px;
+    margin: 0 0 10px;
 }
 
 .modal-content p {
-  margin-bottom: 20px;
+    margin-bottom: 20px;
 }
 
 .modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
 .modal-actions button {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
 }
 
 .modal-actions button:first-child {
-  background-color: red;
-  color: white;
+    background-color: red;
+    color: white;
 }
 
 .modal-actions button:last-child {
-  background-color: #e2e8f0;
-  color: #334155;
+    background-color: #e2e8f0;
+    color: #334155;
 }
 </style>
