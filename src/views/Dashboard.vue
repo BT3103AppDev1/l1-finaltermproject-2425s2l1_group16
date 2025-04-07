@@ -37,6 +37,11 @@
                         <span class="company">{{ app.company }}</span>
                         <span class="position">{{ app.position }}</span>
                         <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
+                        <CompleteInterview 
+                            v-if="status === 'Interview'" 
+                            :company="app.company"
+                            :role="app.position"
+                        />       
                     </div>
                     <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
                 </div>
@@ -114,9 +119,14 @@ import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc } from "firebase
 import { DateTime } from 'luxon';
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
 import ApplicationCard from '@/components/ApplicationCard.vue';
+import CompleteInterview from "@/components/CompleteInterview.vue";
 
 export default {
-    components: { AddApplicationForm, ApplicationCard },
+    components: { 
+        AddApplicationForm,
+        CompleteInterview,
+        Application Card
+    },
 
     setup() {
         // CHANGE!!!!
@@ -189,6 +199,9 @@ export default {
         };
 
         const loadApplications = async () => {
+            // double-check
+            const userId = "Cu8w7qKqftnyhdddVufn";
+            
             const applicationsRef = collection(
                 db,
                 "Users",
@@ -260,6 +273,16 @@ export default {
 
         const drop = async (newStatus) => {
             if (!draggedApplication.value || sourceStatus.value == newStatus) return;
+
+            // double-check
+            const userId = "Cu8w7qKqftnyhdddVufn"; 
+            const sourceDocRef = doc(
+                db,
+                "Users",
+                userId,
+                "application_folder",
+                draggedApplication.value.id
+            );
 
             const statusUpdateDate = DateTime.now()
                 .setZone('Asia/Singapore')
@@ -455,7 +478,7 @@ export default {
 
         const handleApplicationAdded = (newApp) => {
             jobApplications.value.Applied.push(newApp);
-            showForm.value = false; // Hide form after submission
+            showForm.value = false; 
         };
 
         return {
@@ -570,12 +593,18 @@ button:hover {
     font-weight: bold;
 }
 
+.task-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
 .task {
-    background-color: #f0f0f0; /* Light background for tasks */
+    background-color: white;
     padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-    cursor: pointer;
+    margin: 8px 0;
+    border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     flex-direction: column;
     height: 90px;
