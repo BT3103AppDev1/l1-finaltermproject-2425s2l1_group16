@@ -157,7 +157,6 @@ import { doc, getDoc, getDocs, updateDoc, deleteDoc, setDoc,collection, incremen
 import { db } from '@/firebase';
 
 const toast = useToast();
-const showPassword = ref(false);
 const showInterviewQuestions = ref(false);
 const showPopup = ref(false);
 const selectedReason = ref(null);
@@ -367,6 +366,7 @@ const quality_check = async () => {
       });
     }
   });
+};
 
 const formatDate = (dateStr) => {
   const d = new Date(dateStr);
@@ -564,7 +564,18 @@ const cancelEditSubStage = () => {
 }
 
 .popup-overlay {
-=======
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
 .add-stage-btn {
   background-color: #3b82f6;
   color: white;
@@ -639,6 +650,7 @@ const cancelEditSubStage = () => {
   background-color: #6c757d;
   cursor: not-allowed;
   opacity: 0.7;
+}
  
 .modal-content {
   background: white;

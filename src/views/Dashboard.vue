@@ -125,7 +125,7 @@ export default {
     components: { 
         AddApplicationForm,
         CompleteInterview,
-        Application Card
+        ApplicationCard
     },
 
     setup() {
@@ -199,9 +199,6 @@ export default {
         };
 
         const loadApplications = async () => {
-            // double-check
-            const userId = "Cu8w7qKqftnyhdddVufn";
-            
             const applicationsRef = collection(
                 db,
                 "Users",
@@ -273,16 +270,6 @@ export default {
 
         const drop = async (newStatus) => {
             if (!draggedApplication.value || sourceStatus.value == newStatus) return;
-
-            // double-check
-            const userId = "Cu8w7qKqftnyhdddVufn"; 
-            const sourceDocRef = doc(
-                db,
-                "Users",
-                userId,
-                "application_folder",
-                draggedApplication.value.id
-            );
 
             const statusUpdateDate = DateTime.now()
                 .setZone('Asia/Singapore')
