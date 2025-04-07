@@ -16,10 +16,10 @@
                         <p>{{ cycle.name }}</p>
                     </div> -->
                     <div>
-                        <p>Summer Intern 2025</p>
+                        <p>Summer Intern 25</p>
                     </div>
                     <div>
-                        <p>Winter Intern 2025</p>
+                        <p>Winter Intern 25</p>
                     </div>
                 </div>
             </div>
@@ -565,17 +565,6 @@ export default {
     min-height: 800px;
 }
 
-.application-cycles {
-    width: 200px;
-    background-color: #ffffff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-    padding: 15px;
-    margin-top: 20px;
-    flex-shrink: 0;
-}
-
 .cycle-list {
     display: flex;
     flex-direction: column;
@@ -585,7 +574,7 @@ export default {
 }
 
 .cycle-list p {
-    font-size: 14px;
+    font-size: 12px;
     color: black;
 }
 
@@ -620,12 +609,23 @@ button:hover {
     margin-top: 20px; /* Ensure a little space at the top */
 }
 
+.application-cycles {
+    width: 160px;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    margin-top: 20px;
+    flex-shrink: 0;
+}
+
 .column {
     display: flex;
     flex-direction: column;
     background-color: #ffffff;
     padding: 15px;
-    width: 250px;
+    width: 185px;
     border-radius: 8px;
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
@@ -640,6 +640,10 @@ button:hover {
     font-size: 14px;
     font-weight: bold;
     min-width: 100px;
+}
+
+.application-cycles h3 {
+    font-size: 12px;
 }
 
 .task {
@@ -661,13 +665,13 @@ button:hover {
 }
 
 .company {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
     color: black;
 }
 
 .position, .status {
-    font-size: 13px;
+    font-size: 10px;
     color: black;
 }
 
