@@ -32,29 +32,31 @@
                     @dragover.prevent
                     @drop="drop(status)"
                 >
-                
-                  <h3>{{ statusLabels[status] }}</h3>
-                  <!-- the applications here -->
-                  <div
-                      v-for="(app, index) in applications"
-                      :key="app.id"
-                      class="task"
-                      draggable="true"
-                      @dragstart="dragStart(app, status, index)"
-                      @dragover.prevent
-                      @drop="drop(status)"
-                      @click="openPopup(app.id)"
-                  >
-                  <div class="task-content">
-                      <span class="company">{{ app.company }}</span>
-                      <span class="position">{{ app.position }}</span>
-                      <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
-                      <CompleteInterview 
-                          v-if="status === 'Interview'" 
-                          :company="app.company"
-                          :role="app.position"
-                      />       
-                  </div>
+                    
+                    <h3>{{ statusLabels[status] }}</h3>
+                    <!-- the applications here -->
+                    <div
+                        v-for="(app, index) in applications"
+                        :key="app.id"
+                        class="task"
+                        draggable="true"
+                        @dragstart="dragStart(app, status, index)"
+                        @dragover.prevent
+                        @drop="drop(status)"
+                        @click="openPopup(app.id)"
+                    >
+                        <div class="task-content">
+                            <span class="company">{{ app.company }}</span>
+                            <span class="position">{{ app.position }}</span>
+                            <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
+                            <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
+                            <CompleteInterview 
+                                v-if="status === 'Interview'" 
+                                :company="app.company"
+                                :role="app.position"
+                            />       
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -658,7 +660,7 @@ button:hover {
 .task-content {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
     width: 100%;
 }
 
@@ -691,7 +693,7 @@ button:hover {
 }
 
 .task:hover {
-    background-color: #e2e2e2; /* Slightly darker on hover */
+    background-color: #e2e2e2; 
 }
 
 .delete-btn {
