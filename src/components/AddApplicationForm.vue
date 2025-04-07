@@ -36,11 +36,19 @@
 import { ref } from "vue";
 import { db } from "@/firebase";
 import { collection, doc, setDoc } from "firebase/firestore";
+import { DateTime } from 'luxon';
 
 export default {
+    props: {
+        userId: { 
+            type: String,
+            required: true
+        }
+    },
+
     emits: ["close", "application-added"],
 
-    setup(_, { emit }) {
+    setup(props, { emit }) {
         const company = ref("");
         const position = ref("");
         const jobType = ref("");
@@ -51,23 +59,32 @@ export default {
         const submitApplication = async () => {
             if (!company.value || !position.value || !jobType.value) return;
 
-            const userId = "Cu8w7qKqftnyhdddVufn"; // Replace with dynamic user ID if necessary
             const newApplicationRef = doc(
-                collection(db, "Users", userId, "application_folder")
+                collection(db, "Users", props.userId, "application_folder")
             );
-            const dateApplied = new Date().toISOString();
+
+            // need to change it to user-input too
+            const dateApplied = DateTime.now().setZone('Asia/Singapore').toISO();
 
             const newApplication = {
                 id: newApplicationRef.id,
                 company: company.value,
                 position: position.value,
-                job_type: jobType.value,
-                location: location.value,
-                salary: salary.value || null,
                 date_applied: dateApplied,
                 status: "Applied",
                 notes: notes.value,
                 last_updated: dateApplied,
+                last_status_date: DateTime.fromISO(dateApplied).toLocaleString(DateTime.DATE_SHORT),
+                
+                stages: {
+                    applied: {
+                        date: dateApplied,
+                    }
+                },
+                // i think can remove the below
+                job_type: jobType.value,
+                location: location.value,
+                salary: salary.value || null,
             };
 
             await setDoc(newApplicationRef, newApplication);
@@ -96,7 +113,7 @@ export default {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
     align-items: center;
     justify-content: center;

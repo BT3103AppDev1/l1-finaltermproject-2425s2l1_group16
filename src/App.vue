@@ -28,7 +28,7 @@ html, body {
   padding-top: 50px;
 }
 
-h2 {
+h1, h2 {
   font-weight: bold;
 }
 </style>
