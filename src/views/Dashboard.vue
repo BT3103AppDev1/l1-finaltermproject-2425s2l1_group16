@@ -308,6 +308,7 @@ export default {
             if (!pendingDrop.value) return;
 
             const { app, from, to } = pendingDrop.value;
+            
             const sourceDocRef = doc(db, "Users", userId.value, "application_folder", app.id);
             
             try {
@@ -386,7 +387,6 @@ export default {
                 // minus to account for the intervals between each stage transition
                 updates["working_days"] = totalWorkingDays - (stagesWithDates.length);
                 updates["average_working_days"] = Math.round((totalWorkingDays - (stagesWithDates.length)) / (stagesWithDates.length));
-
                 updates["response_days_map"] = { ...responseDaysMap };
                 //
 

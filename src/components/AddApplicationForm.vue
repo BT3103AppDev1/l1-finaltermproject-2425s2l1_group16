@@ -75,6 +75,7 @@ export default {
                 notes: notes.value,
                 last_updated: dateApplied,
                 last_status_date: DateTime.fromISO(dateApplied).toLocaleString(DateTime.DATE_SHORT),
+                
                 stages: {
                     applied: {
                         date: dateApplied,
