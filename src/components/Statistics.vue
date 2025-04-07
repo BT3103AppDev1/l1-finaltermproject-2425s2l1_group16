@@ -86,11 +86,19 @@ const response_time = ref(0);
 const response_timeMessage = ref('');
 const responseDaysMap = ref({});
 
-const props = defineProps(['appId']);
+const props = defineProps({
+  userId: {
+    type: String,
+    required: true
+  },
+  appId: {
+    type: String,
+    required: true
+  }
+});
 
 onMounted(async () => {
-    // Change this to the actual user
-    const docPath = doc(db, "Users", "insights_me", "application_folder", props.appId);
+    const docPath = doc(db, "Users", props.userId, "application_folder", props.appId);
 
     const myDocSnap = await getDoc(docPath);
 

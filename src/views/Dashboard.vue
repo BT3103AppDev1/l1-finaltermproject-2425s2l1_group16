@@ -10,6 +10,7 @@
             v-if="showForm"
             @close="showForm = false"
             @application-added="handleApplicationAdded"
+            :userId="userId" 
         />
 
         <div class="kanban">
@@ -35,7 +36,7 @@
                     <div class="task-content">
                         <span class="company">{{ app.company }}</span>
                         <span class="position">{{ app.position }}</span>
-                        <span class="status">{{ app.status }} on {{ app.last_updated }}</span>
+                        <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
                     </div>
                     <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
                 </div>
@@ -100,6 +101,7 @@
             v-if="showPopup" 
             :show="showPopup"
             :appId="selectedAppId" 
+            :userId="userId"
             @close="closePopup" 
         />
     </teleport>
@@ -109,6 +111,7 @@
 import { ref, onMounted, computed } from "vue";
 import { db } from "@/firebase";
 import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc } from "firebase/firestore";
+import { DateTime } from 'luxon';
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
 import ApplicationCard from '@/components/ApplicationCard.vue';
 
@@ -116,6 +119,9 @@ export default {
     components: { AddApplicationForm, ApplicationCard },
 
     setup() {
+        // CHANGE!!!!
+        const userId = ref('insights_me');
+
         const selectedAppId = ref(null);
         const showPopup = ref(false);
 
@@ -165,8 +171,7 @@ export default {
             if (!appToDelete.value || !appStatusToDelete.value) return;
 
             try {
-                const userId = "insights_me";
-                const appRef = doc(db, "Users", userId, "application_folder", appToDelete.value.id);
+                const appRef = doc(db, "Users", userId.value, "application_folder", appToDelete.value.id);
 
                 await deleteDoc(appRef);
 
@@ -184,12 +189,10 @@ export default {
         };
 
         const loadApplications = async () => {
-            // CHANGE THIS TO THE USER_ID
-            const userId = "insights_me";
             const applicationsRef = collection(
                 db,
                 "Users",
-                userId,
+                userId.value,
                 "application_folder"
             );
             
@@ -207,13 +210,34 @@ export default {
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
                 const status = data.status;
+
+                const stages = data.stages;
+                console.log(stages)
+
+                let latestStatus = null;
+                let latestDate = null;
+
+                for (let [stage, stageDetails] of Object.entries(stages)) {
+                    const stageDate = DateTime.fromISO(stageDetails.date, { zone: 'Asia/Singapore' });
+
+                    if (!latestDate || stageDate > latestDate) {
+                        latestStatus = stage;
+                        latestDate = stageDate;
+                    }
+                }
+
+                const formattedLastStatusDate = latestDate
+                    ? latestDate.toLocaleString(DateTime.DATE_SHORT)
+                    : 'N/A';
+
                 jobApplications.value[status].push({
                     id: doc.id,
                     company: data.company,
                     position: data.position,
                     status: data.status,
-                    last_updated: new Date(data.last_updated).toLocaleDateString('en-GB'),
+                    last_status_date: formattedLastStatusDate,
                     dateApplied: data.date_applied,
+                    // not sure if this is needed
                     notes: data.notes,
                 });
             });
@@ -237,7 +261,9 @@ export default {
         const drop = async (newStatus) => {
             if (!draggedApplication.value || sourceStatus.value == newStatus) return;
 
-            const statusUpdateDate = new Date().toISOString();
+            const statusUpdateDate = DateTime.now()
+                .setZone('Asia/Singapore')
+                .toISO();
             statusChangeTime.value = statusUpdateDate;
 
             pendingDrop.value = {
@@ -255,21 +281,18 @@ export default {
 
         // for number of working days
         const calculateWorkingDays = (startDate, endDate) => {
-            console.log(`Start Date: ${startDate}, End Date: ${endDate}`);
-            let start = new Date(startDate);
-            start.setHours(0, 0, 0, 0);
-            const end = new Date(endDate);
-            end.setHours(0, 0, 0, 0);
+            const start = DateTime.fromISO(startDate, { zone: 'Asia/Singapore' }).startOf('day');
+            const end = DateTime.fromISO(endDate, { zone: 'Asia/Singapore' }).startOf('day');
 
-            let currentDate = new Date(start);
+            let currentDate = start;
             let workingDays = 0;
 
             while (currentDate <= end) {
                 // check if it's a weekday (not Sunday or Saturday)
-                if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
+                if (currentDate.weekday !== 6 && currentDate.weekday !== 7) {
                     workingDays++;
                 }
-                currentDate.setDate(currentDate.getDate() + 1);
+                currentDate = currentDate.plus({ days: 1 });
             }
 
             return workingDays;
@@ -277,24 +300,23 @@ export default {
 
         const responseDate = ref("");
         const stageName = ref("");
-        const maxDate = ref(new Date().toISOString().split("T")[0]);
+        const maxDate = ref(
+            DateTime.now().setZone('Asia/Singapore').toISODate()
+        );
 
         const confirmDropStatus = async () => {
             if (!pendingDrop.value) return;
 
             const { app, from, to } = pendingDrop.value;
-            const userId = "insights_me";
-            const sourceDocRef = doc(db, "Users", userId, "application_folder", app.id);
+            
+            const sourceDocRef = doc(db, "Users", userId.value, "application_folder", app.id);
             
             try {
-                // convert to SGT
-                const update_date = new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString();
+                const update_date = DateTime.now().setZone('Asia/Singapore').toISO();
 
-                const responseDateAtMidnight = new Date(responseDate.value)
-                responseDateAtMidnight.setHours(0,0,0,0);
-                // add one more day to "convert into SGT"
-                responseDateAtMidnight.setDate(responseDateAtMidnight.getDate() + 1);
-                const responseDateAtMidnightString = responseDateAtMidnight.toISOString();
+                const responseDateAtMidnightString = DateTime.fromISO(responseDate.value, { zone: 'Asia/Singapore' })
+                    .startOf('day')
+                    .toISO();
 
                 const updates = {
                     status: to,
@@ -319,7 +341,7 @@ export default {
 
                 for (let [stage, stageDetails] of Object.entries(stages)) {
                     if (stageDetails && stageDetails.date) {
-                        const stageDate = new Date(stageDetails.date);
+                        const stageDate = DateTime.fromISO(stageDetails.date, { zone: 'Asia/Singapore' }).toJSDate();
                         stagesWithDates.push({ stage, date: stageDate });
 
                         // "Applied" and "Turned Down" stages are not stages that the compny responds
@@ -339,17 +361,20 @@ export default {
                     const currentStage = stagesWithDates[i];
                     const nextStage = stagesWithDates[i + 1];
 
-                    // minus 1 to exclude the start date itself
-                    totalWorkingDays += calculateWorkingDays(currentStage.date, nextStage.date) - 1;
+                    totalWorkingDays += calculateWorkingDays(currentStage.date, nextStage.date);
                 }
 
                 // "Applied" and "Turned Down" stages are not stages that the company responds
                 if (to !== "Applied" && to !== "Turned Down") {
                     // time taken to the new status?
                     const latestDate =  stagesWithDates[stagesWithDates.length - 1].date
-                    totalWorkingDays += calculateWorkingDays(latestDate, responseDateAtMidnightString) - 1;
+                    const isoDate = DateTime.fromJSDate(latestDate).setZone('Asia/Singapore').toISO();
+                    console.log(isoDate);
+                    totalWorkingDays += calculateWorkingDays(isoDate, responseDateAtMidnightString);
 
-                    const dayOfWeek = latestDate.getDay();
+                    const responseDate = DateTime.fromISO(responseDateAtMidnightString, { zone: 'Asia/Singapore' });
+                    const dayOfWeek = responseDate.weekday;
+
                     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
                         responseDaysMap[dayOfWeek] = (responseDaysMap[dayOfWeek] || 0) + 1;
                     }
@@ -359,9 +384,9 @@ export default {
                     totalWorkingDays = 0;
                 }
 
-                updates["working_days"] = totalWorkingDays;
-                updates["average_working_days"] = totalWorkingDays / (stagesWithDates.length);
-
+                // minus to account for the intervals between each stage transition
+                updates["working_days"] = totalWorkingDays - (stagesWithDates.length);
+                updates["average_working_days"] = Math.round((totalWorkingDays - (stagesWithDates.length)) / (stagesWithDates.length));
                 updates["response_days_map"] = { ...responseDaysMap };
                 //
 
@@ -415,7 +440,11 @@ export default {
                 }
 
                 // Add the application to the new column (force reactivity)
-                jobApplications.value[to].push({ ...app, status: to });
+                jobApplications.value[to].push({ 
+                    ...app, 
+                    status: to,
+                    last_status_date: new Date(responseDateAtMidnightString).toLocaleDateString('en-GB'),
+                });
 
                 showDropConfirmModal.value = false;
                 pendingDrop.value = null;
@@ -430,6 +459,7 @@ export default {
         };
 
         return {
+            userId,
             jobApplications,
             statusLabels,
             dragStart,
@@ -549,6 +579,7 @@ button:hover {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     flex-direction: column;
     height: 90px;
+    position: relative;
 }
 
 .task-content {
@@ -570,19 +601,19 @@ button:hover {
 }
 
 .delete-btn {
-  background: none;
-  border: none;
-  color: red;
-  font-size: 16px;
-  float: right;
-  cursor: pointer;
-  margin-left: 111px;
-  padding: 4px;
-  margin-top:-63px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 80%;
+    position: absolute;
+    top: 5px;
+    right: 2px;
 }
 
 .delete-btn:hover {
-  color: darkred;
+    background: lightgrey;
 }
 
 .modal-content h3 {

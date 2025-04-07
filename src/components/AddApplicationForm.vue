@@ -36,11 +36,19 @@
 import { ref } from "vue";
 import { db } from "@/firebase";
 import { collection, doc, setDoc } from "firebase/firestore";
+import { DateTime } from 'luxon';
 
 export default {
+    props: {
+        userId: { 
+            type: String,
+            required: true
+        }
+    },
+
     emits: ["close", "application-added"],
 
-    setup(_, { emit }) {
+    setup(props, { emit }) {
         const company = ref("");
         const position = ref("");
         const jobType = ref("");
@@ -51,13 +59,12 @@ export default {
         const submitApplication = async () => {
             if (!company.value || !position.value || !jobType.value) return;
 
-            const userId = "insights_me"; // Replace with dynamic user ID if necessary
             const newApplicationRef = doc(
-                collection(db, "Users", userId, "application_folder")
+                collection(db, "Users", props.userId, "application_folder")
             );
 
-            const date = new Date();
-            const dateApplied = new Date(date.getTime() + 8 * 60 * 60 * 1000).toISOString(); // convert to SGT
+            // need to change it to user-input too
+            const dateApplied = DateTime.now().setZone('Asia/Singapore').toISO();
 
             const newApplication = {
                 id: newApplicationRef.id,
@@ -67,6 +74,8 @@ export default {
                 status: "Applied",
                 notes: notes.value,
                 last_updated: dateApplied,
+                last_status_date: DateTime.fromISO(dateApplied).toLocaleString(DateTime.DATE_SHORT),
+                
                 stages: {
                     applied: {
                         date: dateApplied,
