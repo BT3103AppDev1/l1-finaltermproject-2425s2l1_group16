@@ -32,25 +32,29 @@
                     @dragover.prevent
                     @drop="drop(status)"
                 >
-                    <h3>{{ statusLabels[status] }}</h3>
-                    <!-- the applications here -->
-                    <div
-                        v-for="(app, index) in applications"
-                        :key="app.id"
-                        class="task"
-                        draggable="true"
-                        @dragstart="dragStart(app, status, index)"
-                        @dragover.prevent
-                        @drop="drop(status)"
-                        @click="openPopup(app.id)"
-                    >
-                        <div class="task-content">
-                            <span class="company">{{ app.company }}</span>
-                            <span class="position">{{ app.position }}</span>
-                            <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
-                        </div>
-                        <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
-                    </div>
+                
+                  <h3>{{ statusLabels[status] }}</h3>
+                  <!-- the applications here -->
+                  <div
+                      v-for="(app, index) in applications"
+                      :key="app.id"
+                      class="task"
+                      draggable="true"
+                      @dragstart="dragStart(app, status, index)"
+                      @dragover.prevent
+                      @drop="drop(status)"
+                      @click="openPopup(app.id)"
+                  >
+                  <div class="task-content">
+                      <span class="company">{{ app.company }}</span>
+                      <span class="position">{{ app.position }}</span>
+                      <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
+                      <CompleteInterview 
+                          v-if="status === 'Interview'" 
+                          :company="app.company"
+                          :role="app.position"
+                      />       
+                  </div>
                 </div>
             </div>
         </div>
@@ -136,9 +140,14 @@ import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc } from "firebase
 import { DateTime } from 'luxon';
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
 import ApplicationCard from '@/components/ApplicationCard.vue';
+import CompleteInterview from "@/components/CompleteInterview.vue";
 
 export default {
-    components: { AddApplicationForm, ApplicationCard },
+    components: { 
+        AddApplicationForm,
+        CompleteInterview,
+        ApplicationCard
+    },
 
     setup() {
         // CHANGE!!!!
@@ -488,7 +497,7 @@ export default {
 
         const handleApplicationAdded = (newApp) => {
             jobApplications.value.Applied.push(newApp);
-            showForm.value = false; // Hide form after submission
+            showForm.value = false; 
         };
 
         return {
@@ -646,12 +655,18 @@ button:hover {
     font-size: 12px;
 }
 
+.task-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
 .task {
     background-color: #f0f0f0;
     padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-    cursor: pointer;
+    margin: 8px 0;
+    border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     flex-direction: column;
     height: 90px;
