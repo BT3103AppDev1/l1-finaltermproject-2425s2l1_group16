@@ -12,9 +12,12 @@ export default {
 
 <style>
 * {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 }
 
 html, body {
@@ -24,8 +27,7 @@ html, body {
 #app {
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
-  padding-top: 50px;
+  padding-top: 20px;
 }
 
 h1, h2 {
