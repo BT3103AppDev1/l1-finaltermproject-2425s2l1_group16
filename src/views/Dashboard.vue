@@ -1,67 +1,69 @@
 <template>
-    <div class="dashboard">
-        <div class="header">
-            <h1>Summer Intern 2025</h1>
-            <button @click="showForm = true">+ Add New Application</button>
-        </div>
-        <div class="sub-header">
-            <p>{{ summaryStats }}</p>
-        </div>
-
-        <div class="main-content">
-            <div class="application-cycles">
-                <h3>Application Cycles</h3>
-                <div class="cycle-list">
-                    <!-- <div v-for="(cycle, index) in applicationCycles" :key="index">
-                        <p>{{ cycle.name }}</p>
-                    </div> -->
-                    <div>
-                        <p>Summer Intern 25</p>
-                    </div>
-                    <div>
-                        <p>Winter Intern 25</p>
-                    </div>
-                </div>
+    <div class="dashboard-wrapper">
+        <div class="dashboard">
+            <div class="header">
+                <h1>Summer Intern 2025</h1>
+                <button @click="showForm = true">+ Add New Application</button>
+            </div>
+            <div class="sub-header">
+                <p>{{ summaryStats }}</p>
             </div>
 
-            <div class="kanban">
-                <div
-                    v-for="(applications, status) in jobApplications"
-                    :key="status"
-                    class="column"
-                    @dragover.prevent
-                    @drop="drop(status)"
-                >
-                    
-                    <h3>{{ statusLabels[status] }}</h3>
-                    <!-- the applications here -->
+            <div class="main-content">
+                <div class="application-cycles">
+                    <h3>Application Cycles</h3>
+                    <div class="cycle-list">
+                        <!-- <div v-for="(cycle, index) in applicationCycles" :key="index">
+                            <p>{{ cycle.name }}</p>
+                        </div> -->
+                        <div>
+                            <p>Summer Intern 25</p>
+                        </div>
+                        <div>
+                            <p>Winter Intern 25</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div ref="kanban" class="kanban" @dragover="handleAutoScroll">
                     <div
-                        v-for="(app, index) in applications"
-                        :key="app.id"
-                        class="task"
-                        draggable="true"
-                        @dragstart="dragStart(app, status, index)"
+                        v-for="(applications, status) in jobApplications"
+                        :key="status"
+                        class="column"
                         @dragover.prevent
                         @drop="drop(status)"
-                        @click="openPopup(app.id)"
                     >
-                        <div class="task-content">
-                            <span class="company">{{ app.company }}</span>
-                            <span class="position">{{ app.position }}</span>
-                            <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
-                            <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
-                            <CompleteInterview 
-                                v-if="status === 'Interview'" 
-                                :company="app.company"
-                                :role="app.position"
-                            />       
+                        
+                        <h3>{{ statusLabels[status] }}</h3>
+                        <!-- the applications here -->
+                        <div
+                            v-for="(app, index) in applications"
+                            :key="app.id"
+                            class="task"
+                            draggable="true"
+                            @dragstart="dragStart(app, status, index)"
+                            @dragover.prevent
+                            @drop="drop(status)"
+                            @click="openPopup(app.id)"
+                        >
+                            <div class="task-content">
+                                <span class="company">{{ app.company }}</span>
+                                <span class="position">{{ app.position }}</span>
+                                <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
+                                <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
+                                <CompleteInterview 
+                                    v-if="status === 'Interview'" 
+                                    :company="app.company"
+                                    :role="app.position"
+                                />       
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
+    
     <!-- Show the Add Application Form -->
     <teleport to="body">
         <AddApplicationForm
@@ -502,6 +504,25 @@ export default {
             showForm.value = false; 
         };
 
+        const kanban = ref(null);
+
+        const handleAutoScroll = (e) => {
+            const scrollMargin = 100;
+            const scrollSpeed = 10; 
+            const container = kanban.value;
+
+            if (!container) return;
+
+            const { left, right } = container.getBoundingClientRect();
+            const mouseX = e.clientX;
+
+            if (mouseX > right - scrollMargin) {
+                container.scrollLeft += scrollSpeed;
+            } else if (mouseX < left + scrollMargin) {
+                container.scrollLeft -= scrollSpeed;
+            }
+        };
+
         return {
             userId,
             jobApplications,
@@ -533,6 +554,9 @@ export default {
             stageName,
             // for summary stats
             summaryStats,
+            // for scrolling when draggin apps
+            kanban,
+            handleAutoScroll,
         };
     }
 };
@@ -560,12 +584,19 @@ export default {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+.dashboard-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
 .dashboard {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1400px;
 }
 
 .main-content {
@@ -590,9 +621,21 @@ export default {
 }
 
 .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .header {
+    margin-top: 100px;
+  }
+}
+
+@media (min-width: 1500px) {
+  .header {
+    margin-top: 0px;
+  }
 }
 
 .sub-header {
@@ -617,17 +660,22 @@ button:hover {
     gap: 20px;
     justify-content: flex-start;
     width: 100%;
-    margin-top: 20px; /* Ensure a little space at the top */
+    margin-top: 10px;
+    padding:10px;
+    overflow-x: auto;
+    /* hide scrolls */
+    scrollbar-width: none;
+    -ms-overflow-style: none; 
 }
 
 .application-cycles {
     width: 160px;
     background-color: #ffffff;
-    padding: 20px;
     border-radius: 8px;
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
     padding: 15px;
     margin-top: 20px;
+    margin-bottom: 10px;
     flex-shrink: 0;
 }
 
@@ -636,7 +684,7 @@ button:hover {
     flex-direction: column;
     background-color: #ffffff;
     padding: 15px;
-    width: 185px;
+    min-width: 220px;
     border-radius: 8px;
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
@@ -648,7 +696,7 @@ button:hover {
     padding: 10px;
     border-radius: 5px;
     margin-top: 0;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: bold;
     min-width: 100px;
 }
@@ -671,7 +719,7 @@ button:hover {
     border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     flex-direction: column;
-    height: 90px;
+    height: 100px;
     position: relative;
     max-width: 100%;
 }
@@ -682,13 +730,13 @@ button:hover {
 }
 
 .company {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
     color: black;
 }
 
 .position, .status {
-    font-size: 10px;
+    font-size: 12px;
     color: black;
 }
 
