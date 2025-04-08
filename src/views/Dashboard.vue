@@ -17,10 +17,10 @@
                             <p>{{ cycle.name }}</p>
                         </div> -->
                         <div>
-                            <p>Summer Intern 25</p>
+                            <p>Summer Intern 2...</p>
                         </div>
                         <div>
-                            <p>Winter Intern 25</p>
+                            <p>Winter Intern 20...</p>
                         </div>
                     </div>
                 </div>
@@ -666,6 +666,11 @@ button:hover {
     /* hide scrolls */
     scrollbar-width: none;
     -ms-overflow-style: none; 
+}
+
+/* gives the effect of hiding the highlights */
+.kanban::selection {
+    background: #c24600;
 }
 
 .application-cycles {
