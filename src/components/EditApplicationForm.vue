@@ -92,6 +92,7 @@ const confirmUpdate = async () => {
   if (Object.keys(updates).length > 0) {
     await updateDoc(docPath, updates);
     Object.assign(originalApp.value, updates);
+    emit('showToast', 'Application Updated');
     emit('application-updated', 'Application Updated (Confirmed)');
   }
 };

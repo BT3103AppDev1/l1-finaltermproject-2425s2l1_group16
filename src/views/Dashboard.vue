@@ -25,13 +25,16 @@
                     </div>
                 </div>
 
-                <div ref="kanban" class="kanban" @dragover="handleAutoScroll">
+                <div ref="kanban" 
+                    class="kanban" 
+                    @dragover="handleAutoScroll"
+                    @wheel="handleHorizontalScroll">
                     <div
                         v-for="(applications, status) in jobApplications"
                         :key="status"
                         class="column"
                         @dragover.prevent
-                        @drop="drop(status)"
+                        @drop="drop(status, null)"
                     >
                         
                         <h3>{{ statusLabels[status] }}</h3>
@@ -43,7 +46,7 @@
                             draggable="true"
                             @dragstart="dragStart(app, status, index)"
                             @dragover.prevent
-                            @drop="drop(status)"
+                            @drop="drop(status, index)"
                             @click="openPopup(app.id)"
                         >
                             <div class="task-content">
@@ -272,15 +275,30 @@ export default {
                     status: data.status,
                     last_status_date: formattedLastStatusDate,
                     dateApplied: data.date_applied,
+                    rank: data.rank ?? 0,
                     // not sure if this is needed
                     notes: data.notes,
                 });
+            });
+
+            // list cards in each status according to their user-assigned rank
+            Object.keys(jobApplications.value).forEach(status => {
+                jobApplications.value[status].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
             });
         };
 
         onMounted(() => {
             loadApplications();
         });
+
+        const handleHorizontalScroll = (event) => {
+            const container = kanban.value;
+            if (!container) return;
+
+            if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+                container.scrollLeft += event.deltaX;
+            }
+        };
 
         const summaryStats = computed(() => {
             const statusCounts = Object.keys(jobApplications.value).map(status => {
@@ -300,8 +318,36 @@ export default {
 
         const statusChangeTime = ref(null);
 
-        const drop = async (newStatus) => {
-            if (!draggedApplication.value || sourceStatus.value == newStatus) return;
+        const drop = async (newStatus, dropIndex = null) => {
+
+            if (!draggedApplication.value) return;
+
+            if (sourceStatus.value === newStatus) {
+                const columnApps = jobApplications.value[newStatus];
+
+                // shifting to the same place, no shift
+                if (dropIndex === null) {
+                    draggedApplication.value = null;
+                    sourceStatus.value = null;
+                    sourceIndex.value = null;
+                    return;
+                }
+                
+                const movedApp = columnApps.splice(sourceIndex.value, 1)[0];
+
+                columnApps.splice(dropIndex, 0, movedApp);
+
+                for (let i = 0; i < columnApps.length; i++) {
+                    const appRef = doc(db, "Users", userId.value, "application_folder", columnApps[i].id);
+                    await updateDoc(appRef, { rank: i });
+                }
+
+                draggedApplication.value = null;
+                sourceStatus.value = null;
+                sourceIndex.value = null;
+
+                return; 
+            }
 
             const statusUpdateDate = DateTime.now()
                 .setZone('Asia/Singapore')
@@ -557,6 +603,7 @@ export default {
             // for scrolling when draggin apps
             kanban,
             handleAutoScroll,
+            handleHorizontalScroll,
         };
     }
 };
@@ -747,6 +794,7 @@ button:hover {
 
 .task:hover {
     background-color: #e2e2e2; 
+    cursor: grab;
 }
 
 .delete-btn {
