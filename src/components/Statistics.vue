@@ -13,7 +13,7 @@
                 </div>
                 <div class="divider"></div>
                 <div class="stat-item" :class="{ highlighted: current_stage === 'Interview' }">
-                    <h3 class="stat-label">Interviewed</h3>
+                    <h3 class="stat-label">Interview</h3>
                     <h2 class="stat-value">{{ number_interviewed }}</h2>
                 </div>
                 <div class="divider"></div>
@@ -70,7 +70,7 @@
                 </div>
             </template>
                 <template v-else>
-                <p class="not-enough-text">Not enough data available to estimate response trends</p>
+                <p class="not-enough-text-response">Not enough data available to estimate response trends</p>
             </template>
             <div class="bar-chart">
                 <template v-if="hasBarData">
@@ -431,6 +431,15 @@ const hasBarData = computed(() => totalBarUsers.value >= 10);
 
 .not-enough-text {
     font-size: 16px;
+}
+
+.not-enough-text-response {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    color: #444;
+    justify-content: flex-start;
 }
 
 .response-status {
