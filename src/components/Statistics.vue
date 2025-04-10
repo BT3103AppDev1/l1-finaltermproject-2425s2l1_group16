@@ -13,7 +13,7 @@
                 </div>
                 <div class="divider"></div>
                 <div class="stat-item" :class="{ highlighted: current_stage === 'Interview' }">
-                    <h3 class="stat-label">Interviewed</h3>
+                    <h3 class="stat-label">Interview</h3>
                     <h2 class="stat-value">{{ number_interviewed }}</h2>
                 </div>
                 <div class="divider"></div>
@@ -36,7 +36,12 @@
 
         <div class="statistics-container">
             <div class="pie-chart">
-                <p>Pie chart goes here</p>
+                <template v-if="hasPieData">
+                    <VChart class="chart" :option="pieOptions" autoresize />
+                </template>
+                <template v-else>
+                    <p class="not-enough-text">Not enough data available to display pie chart</p>
+                </template>
             </div>
         </div>
 
@@ -57,13 +62,23 @@
         </div>
 
         <div class="statistics-container">
-            <div class="response-header">
-                <p class="response-title">Responses Tracked</p>
-                <div class="divider-vertical"></div>
-                <p class="response-subtext">{{ mostFrequentResponseDay }}</p>
-            </div>
+            <template v-if="hasBarData">
+                <div class="response-header">
+                    <p class="response-title">Responses Tracked</p>
+                    <div class="divider-vertical"></div>
+                    <p class="response-subtext">{{ mostFrequentResponseDay }}</p>
+                </div>
+            </template>
+                <template v-else>
+                <p class="not-enough-text-response">Not enough data available to estimate response trends</p>
+            </template>
             <div class="bar-chart">
-                <p>Bar chart goes here</p>
+                <template v-if="hasBarData">
+                    <VChart class="chart" :option="barOptions" autoresize />
+                </template>
+                <template v-else>
+                    <p class="not-enough-text">Not enough data available to display bar chart</p>
+                </template>
             </div>
         </div>
     </div>
@@ -73,6 +88,22 @@
 import { ref, onMounted, computed } from 'vue';
 import { db } from '@/firebase';
 import { doc, getDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
+import { use } from 'echarts/core';
+import VChart from 'vue-echarts';
+import { CanvasRenderer } from 'echarts/renderers';
+import { PieChart, BarChart } from 'echarts/charts';
+import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components';
+
+// charts stuff
+use([
+  CanvasRenderer,
+  PieChart,
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  BarChart,
+  GridComponent
+]);
 
 const number_applied = ref(0);
 const number_assessment = ref(0);
@@ -82,9 +113,15 @@ const number_rejected = ref(0);
 const number_turned_down = ref(0);
 const current_stage = ref(0);
 const company = ref('');
+const position = ref('');
 const response_time = ref(0);
 const response_timeMessage = ref('');
 const responseDaysMap = ref({});
+
+// count if same company + role
+const totalPieUsers = ref(0);
+// count if same company only
+const totalBarUsers = ref(0);
 
 const props = defineProps({
   userId: {
@@ -108,7 +145,7 @@ onMounted(async () => {
     }
 
     const myData = myDocSnap.data();
-    const position = myData.position;
+    position.value = myData.position;
     current_stage.value = myData.status;
     company.value = myData.company;
 
@@ -117,7 +154,7 @@ onMounted(async () => {
     const q = query(
         collectionGroup(db, "application_folder"),
         where("company", "==", company.value),
-        where("position", "==", position)
+        where("position", "==", position.value)
     );
 
     const querySnapshot = await getDocs(q);
@@ -131,6 +168,7 @@ onMounted(async () => {
         "Turned Down": 0,
     };
 
+    const uniquePieUsers = new Set();
     let totalResponseTime = 0;
     let totalUsers = 0;
 
@@ -139,25 +177,45 @@ onMounted(async () => {
         if (status in stats) stats[status]++;
 
         const application = doc.data();
+        const parentPath = doc.ref.parent.parent?.path;
+        if (parentPath) uniquePieUsers.add(parentPath);
+
         if (application.average_working_days) {
             totalResponseTime += application.average_working_days;
             totalUsers++;
         }
+    });
 
-        if (totalUsers > 9) {
-            response_time.value = Math.round(totalResponseTime / totalUsers);
-            response_timeMessage.value = `${response_time.value} Days`;
-        } else {
-            response_timeMessage.value = 'Not enough data available to estimate average response time';
-        }
+    totalPieUsers.value = uniquePieUsers.size;
 
+    if (totalUsers > 9) {
+        response_time.value = Math.round(totalResponseTime / totalUsers);
+        response_timeMessage.value = `${response_time.value} Days`;
+    } else {
+        response_timeMessage.value = 'Not enough data available to estimate average response time';
+    }
+
+    const barQuery = query(
+        collectionGroup(db, "application_folder"),
+        where("company", "==", company.value)
+    );
+
+    const barQuerySnapshot = await getDocs(barQuery);
+    const uniqueBarUsers = new Set();
+
+    barQuerySnapshot.forEach(doc => {
+        const application = doc.data();
         const daysMap = application.response_days_map;
         if (daysMap) {
             for (let day in daysMap) {
                 responseDaysMap.value[day] = (responseDaysMap.value[day] || 0) + daysMap[day];
             }
+            const parentPath = doc.ref.parent.parent?.path;
+            if (parentPath) uniqueBarUsers.add(parentPath);
         }
     });
+
+    totalBarUsers.value = uniqueBarUsers.size;
 
     number_applied.value = stats.Applied;
     number_assessment.value = stats.Assessment;
@@ -177,6 +235,124 @@ const mostFrequentResponseDay = computed(() => {
     const dayName = weekdayNames[mostFrequentDay];
     return `${company.value} usually responds on ${dayName}s`;
 });
+
+// Pie chart data
+const pieOptions = computed(() => {
+    const themeColor = '#c24600';
+    const translucent = '#c2460033';
+    const borderColor = '#ffffff'; 
+    const borderWidth = 2;
+
+    const stageData = [
+        { name: 'Applied', value: number_applied.value },
+        { name: 'Assessment', value: number_assessment.value },
+        { name: 'Interview', value: number_interviewed.value },
+        { name: 'Offered', value: number_offered.value },
+        { name: 'Turned Down', value: number_turned_down.value },
+        { name: 'Rejected', value: number_rejected.value },
+    ];
+
+    const coloredData = stageData.map((stage) => ({
+        ...stage,
+        itemStyle: {
+        color: stage.name === current_stage.value ? themeColor : translucent,
+        borderColor,
+        borderWidth,
+        },
+    }));
+
+    return {
+        title: {
+            text: `Pooled Application Statistics for ${company.value}'s ${position.value} Role`,
+            left: 'center',
+            textStyle: {
+                fontSize: 18,
+                fontWeight: 'bold',
+            }
+        },
+        tooltip: {
+            trigger: 'item'
+        },
+        series: [
+        {
+            name: 'Applications',
+            type: 'pie',
+            radius: '60%',
+            avoidLabelOverlap: false,
+            label: {
+            show: true,
+            formatter: '{b}'
+            },
+            data: coloredData,
+            emphasis: {
+            itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.3)'
+            }
+            }
+        }
+        ]
+    };
+});
+
+// bar chart data
+const barOptions = computed(() => {
+    const themeColor = '#c24600';
+    const translucent = '#c2460033';
+
+    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    const values = [1, 2, 3, 4, 5].map(day => responseDaysMap.value[day] || 0);
+
+    const max = Math.max(...values);
+    const colors = values.map(v => (v === max && max > 0 ? themeColor : translucent));
+
+    return {
+        title: {
+            text: `${company.value} Responds Rates`,
+            left: 'center',
+            top: 10,
+            textStyle: {
+                fontSize: 18,
+                fontWeight: 'bold',
+        }
+        },
+        xAxis: {
+            type: 'category',
+            data: labels,
+            axisLabel: { fontSize: 12 },
+
+        },
+        yAxis: {
+            type: 'value',
+            axisLabel: { fontSize: 12 },
+            splitLine: { show: false }  
+        },
+        series: [
+        {
+            data: values.map((v, i) => ({
+            value: v,
+            itemStyle: {
+                color: colors[i],
+                borderColor: '#fff',
+                borderWidth: 1
+            }
+            })),
+            type: 'bar',
+            barWidth: '50%',
+        }
+        ],
+        tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+            type: 'shadow'
+        }
+        }
+    };
+});
+
+const hasPieData = computed(() => totalPieUsers.value >= 10);
+const hasBarData = computed(() => totalBarUsers.value >= 10);
 </script>
 
 <style scoped>
@@ -229,7 +405,7 @@ const mostFrequentResponseDay = computed(() => {
 
 .pie-chart, .bar-chart{
     background-color: white;
-    padding: 20px;
+    padding-top: 20px;
     border-radius: 8px;
     height: 300px;
 }
@@ -255,6 +431,15 @@ const mostFrequentResponseDay = computed(() => {
 
 .not-enough-text {
     font-size: 16px;
+}
+
+.not-enough-text-response {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    color: #444;
+    justify-content: flex-start;
 }
 
 .response-status {
@@ -306,5 +491,10 @@ const mostFrequentResponseDay = computed(() => {
 .response-subtext {
     color: #777;
     margin-left: 8px;
+}
+
+.chart {
+  width: 100%;
+  height: 100%;
 }
 </style>
