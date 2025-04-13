@@ -3,10 +3,18 @@
         <div class="dashboard">
             <div class="header">
                 <h1>Summer Intern 2025</h1>
-                <button @click="showForm = true">+ Add New Application</button>
             </div>
             <div class="sub-header">
                 <p>{{ summaryStats }}</p>
+                <div class="sub-header-buttons">
+                    <div class="search-wrapper">
+                    <input type="text" placeholder="Search a company" class="search-input" />
+                    <button class="search-btn">
+                        <i class="fas fa-search"></i> 
+                    </button>
+                    </div>
+                    <button @click="showForm = true">+ Add New Application</button>
+                </div>
             </div>
 
             <div class="main-content">
@@ -122,7 +130,7 @@
                  <h3>Are you sure you want to delete this application?</h3>
                  <p>This action cannot be undone.</p>
                 <div class="modal-actions">
-                    <button @click="performDelete">Confirm</button>
+                    <button @click="performDelete">Delete</button>
                     <button @click="showDeleteModal = false">Cancel</button>
                 </div>
             </div>
@@ -143,7 +151,7 @@
 <script>
 import { ref, onMounted, computed } from "vue";
 import { db } from "@/firebase";
-import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc, query, where } from "firebase/firestore";
 import { DateTime } from 'luxon';
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
 import ApplicationCard from '@/components/ApplicationCard.vue';
@@ -212,6 +220,23 @@ export default {
                 const appRef = doc(db, "Users", userId.value, "application_folder", appToDelete.value.id);
 
                 await deleteDoc(appRef);
+
+                const applicationsRef = collection(db, "Users", userId.value, "application_folder");
+                const querySnapshot = await getDocs(query(applicationsRef, where("status", "==", appStatusToDelete.value)));
+
+                // -1 of the rank of everything after that application
+                const deletedAppIndex = jobApplications.value[appStatusToDelete.value].findIndex(app => app.id === appToDelete.value.id);
+
+                jobApplications.value[appStatusToDelete.value] = jobApplications.value[appStatusToDelete.value].filter(
+                    (item) => item.id !== appToDelete.value.id
+                );
+               
+                // for rank update
+                for (let i = deletedAppIndex; i < jobApplications.value[appStatusToDelete.value].length; i++) {
+                    const app = jobApplications.value[appStatusToDelete.value][i];
+                    const appRef = doc(db, "Users", userId.value, "application_folder", app.id);
+                    await updateDoc(appRef, { rank: i });
+                }
 
                 jobApplications.value[appStatusToDelete.value] =
                 jobApplications.value[appStatusToDelete.value].filter(
@@ -322,6 +347,7 @@ export default {
 
             if (!draggedApplication.value) return;
 
+            // shifting within the same status
             if (sourceStatus.value === newStatus) {
                 const columnApps = jobApplications.value[newStatus];
 
@@ -349,6 +375,7 @@ export default {
                 return; 
             }
 
+            // application is shifted to a new status
             const statusUpdateDate = DateTime.now()
                 .setZone('Asia/Singapore')
                 .toISO();
@@ -361,6 +388,22 @@ export default {
             };
 
             showDropConfirmModal.value = true;
+
+            // edit ranks of new status
+            const targetColumn = jobApplications.value[newStatus];
+            for (let i = 0; i < targetColumn.length; i++) {
+                const app = targetColumn[i];
+                const appRef = doc(db, "Users", userId.value, "application_folder", app.id);
+                await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
+            }
+            const appRef = doc(db, "Users", userId.value, "application_folder", draggedApplication.value.id);
+            await updateDoc(appRef, { rank: 0 });
+            const sourceDocRef = doc(db, "Users", userId.value, "application_folder", draggedApplication.value.id);
+            const updates = {
+                status: newStatus,
+                last_updated: statusUpdateDate,
+            };
+            await updateDoc(sourceDocRef, updates);
 
             // Clear drag state
             draggedApplication.value = null;
@@ -472,12 +515,13 @@ export default {
                     }
                 }
 
+                // makes updates["working_days"] = 0
                 if (totalWorkingDays < 0) {
-                    totalWorkingDays = 0;
-                }
-
+                    updates["working_days"] = 0;
                 // minus to account for the intervals between each stage transition
-                updates["working_days"] = totalWorkingDays - (stagesWithDates.length);
+                } else {
+                    updates["working_days"] = totalWorkingDays - (stagesWithDates.length);
+                }
                 updates["average_working_days"] = Math.round((totalWorkingDays - (stagesWithDates.length)) / (stagesWithDates.length));
                 updates["response_days_map"] = { ...responseDaysMap };
                 //
@@ -526,16 +570,22 @@ export default {
                     (item) => item.id !== app.id
                 );
 
+                jobApplications.value[from].forEach((item, index) => {
+                    const appRef = doc(db, "Users", userId.value, "application_folder", item.id);
+                    updateDoc(appRef, { rank: index });
+                });
+
                 // Ensure the new column is an array (fixes empty column issue)
                 if (!jobApplications.value[to]) {
                     jobApplications.value[to] = [];
                 }
 
                 // Add the application to the new column (force reactivity)
-                jobApplications.value[to].push({ 
+                jobApplications.value[to].unshift({ 
                     ...app, 
                     status: to,
                     last_status_date: formattedLastStatusDate,
+                    rank: 0,
                 });
 
                 showDropConfirmModal.value = false;
@@ -546,7 +596,7 @@ export default {
         };
 
         const handleApplicationAdded = (newApp) => {
-            jobApplications.value.Applied.push(newApp);
+            jobApplications.value.Applied.unshift(newApp);
             showForm.value = false; 
         };
 
@@ -687,6 +737,39 @@ export default {
 
 .sub-header {
     font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sub-header-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+}
+
+.search-wrapper {
+    display: flex;
+    align-items: center;
+    background-color: #c2470064;
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+
+.search-input {
+    border: none;
+    outline: none;
+    background-color: transparent;
+    padding: 8px;
+    width: 170px;
+    height: 30px;
+    border-radius: 20px;
+}
+
+.search-btn {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
 }
 
 button {
