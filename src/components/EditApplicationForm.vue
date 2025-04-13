@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted, defineProps } from 'vue';
+import { ref, reactive, watch, onMounted } from 'vue';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 

@@ -10,10 +10,10 @@
                 <input type="text" v-model="position" required />
 
                 <label>Job Type:</label>
-                <input type="text" v-model="jobType" required />
+                <input type="text" v-model="jobType" />
 
                 <label>Location:</label>
-                <input type="text" v-model="location" required />
+                <input type="text" v-model="location" />
 
                 <label>Salary (Optional):</label>
                 <input type="text" v-model="salary" />
@@ -43,7 +43,7 @@
 <script>
 import { ref } from "vue";
 import { db } from "@/firebase";
-import { collection, doc, setDoc } from "firebase/firestore";
+import { collection, doc, setDoc, getDocs, updateDoc, query, where } from "firebase/firestore";
 import { DateTime } from 'luxon';
 
 export default {
@@ -66,12 +66,35 @@ export default {
         const dateApplied = ref(DateTime.now().setZone('Asia/Singapore').toISODate()); // default to today's date
         const maxDate = ref(DateTime.now().setZone('Asia/Singapore').toISODate());
 
-        const submitApplication = async () => {
-            if (!company.value || !position.value || !jobType.value) return;
+        const jobApplications = ref({
+            Applied: [],
+            Assessment: [],
+            Interview: [],
+            Offered: [],
+            Rejected: [],
+            "Turned Down": []
+        });
 
-            const newApplicationRef = doc(
-                collection(db, "Users", props.userId, "application_folder")
-            );
+        const submitApplication = async () => {
+            if (!company.value || !position.value) return;
+
+            const applicationsRef = collection(db, "Users", props.userId, "application_folder");
+
+            const querySnapshot = await getDocs(query(applicationsRef, where("status", "==", "Applied")));
+            const appliedApplications = querySnapshot.docs.map(doc => doc.data());
+
+            console.log("hi", appliedApplications)
+
+            // ensure that the application will be on the top upon creation
+            const updatePromises = appliedApplications.map((data, index) => {
+                const docRef = querySnapshot.docs[index].ref;
+                const newRank = (data.rank || 0) + 1;
+                return updateDoc(docRef, { rank: newRank });
+            });
+
+            await Promise.all(updatePromises);
+
+            const newApplicationRef = doc(applicationsRef);
 
             const dateAppliedISO = DateTime.fromISO(dateApplied.value).toISO();
 
@@ -84,15 +107,15 @@ export default {
                 notes: notes.value,
                 last_updated: dateAppliedISO,
                 last_status_date: DateTime.fromISO(dateApplied.value).toLocaleString(DateTime.DATE_SHORT),
-                
+                rank: 0,
                 stages: {
                     applied: {
                         date: dateAppliedISO,
                     }
                 },
                 // i think can remove the below
-                job_type: jobType.value,
-                location: location.value,
+                job_type: jobType.value || null,
+                location: location.value || null,
                 salary: salary.value || null,
             };
 
@@ -112,6 +135,7 @@ export default {
             dateApplied,
             maxDate,
             submitApplication,
+            jobApplications,
         };
     },
 };
