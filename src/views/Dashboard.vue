@@ -3,10 +3,18 @@
         <div class="dashboard">
             <div class="header">
                 <h1>Summer Intern 2025</h1>
-                <button @click="showForm = true">+ Add New Application</button>
             </div>
             <div class="sub-header">
                 <p>{{ summaryStats }}</p>
+                <div class="sub-header-buttons">
+                    <div class="search-wrapper">
+                    <input type="text" placeholder="Search a company" class="search-input" />
+                    <button class="search-btn">
+                        <i class="fas fa-search"></i> 
+                    </button>
+                    </div>
+                    <button @click="showForm = true">+ Add New Application</button>
+                </div>
             </div>
 
             <div class="main-content">
@@ -122,7 +130,7 @@
                  <h3>Are you sure you want to delete this application?</h3>
                  <p>This action cannot be undone.</p>
                 <div class="modal-actions">
-                    <button @click="performDelete">Confirm</button>
+                    <button @click="performDelete">Delete</button>
                     <button @click="showDeleteModal = false">Cancel</button>
                 </div>
             </div>
@@ -729,6 +737,39 @@ export default {
 
 .sub-header {
     font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sub-header-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+}
+
+.search-wrapper {
+    display: flex;
+    align-items: center;
+    background-color: #c2470064;
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+
+.search-input {
+    border: none;
+    outline: none;
+    background-color: transparent;
+    padding: 8px;
+    width: 170px;
+    height: 30px;
+    border-radius: 20px;
+}
+
+.search-btn {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
 }
 
 button {
