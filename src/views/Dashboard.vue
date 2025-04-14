@@ -687,6 +687,7 @@ export default {
   width: 100%;
   padding: 20px;
   box-sizing: border-box;
+  height: 100vh;
 }
 
 .dashboard {
@@ -701,7 +702,7 @@ export default {
     gap: 20px;
     justify-content: space-between;
     width: 100%;
-    min-height: 800px;
+    padding-bottom: 20px;
 }
 
 .cycle-list {
@@ -721,18 +722,6 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-@media (min-width: 768px) {
-  .header {
-    margin-top: 100px;
-  }
-}
-
-@media (min-width: 1500px) {
-  .header {
-    margin-top: 0px;
-  }
 }
 
 .sub-header {
