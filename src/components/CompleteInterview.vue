@@ -128,25 +128,26 @@ export default {
 
 <style scoped>
 .complete-interview-page {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: auto;
-    font-family: Arial, sans-serif;
+    width: 100%;
+    display: block;
+    margin: 4px 0 0 0;
 }
 
 .complete-button {
-    padding: 10px 20px;
-    font-size: 16px;
-    background-color: #4CAF50;
+    padding: 6px 12px;
+    font-size: 13px;
+    background-color: #cb4e00;
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
     cursor: pointer;
+    width: 100%;
+    margin: 0;
+    transition: background-color 0.2s ease;
 }
 
 .complete-button:hover {
-    background-color: #45a049;
+    background-color: #863200;
 }
 
 .modal {
@@ -167,15 +168,15 @@ export default {
     border-radius: 8px;
     padding: 20px;
     width: 400px;
-    max-height: 80vh; /* Limit height to 80% of viewport height */
-    overflow-y: auto; /* Add vertical scrollbar when content overflows */
+    max-height: 80vh; 
+    overflow-y: auto; 
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     position: relative;
     color: black;
     font-family: Arial, sans-serif;
 }
 
-/* Optional: Style the scrollbar for webkit browsers */
+
 .modal-content::-webkit-scrollbar {
     width: 8px;
 }

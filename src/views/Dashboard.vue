@@ -840,13 +840,6 @@ button:hover {
     font-size: 12px;
 }
 
-.task-content {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 100%;
-}
-
 .task {
     background-color: #f0f0f0;
     padding: 10px;
@@ -854,7 +847,8 @@ button:hover {
     border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     flex-direction: column;
-    height: 100px;
+    min-height: 100px;
+    height: auto;
     position: relative;
     max-width: 100%;
 }
@@ -862,6 +856,7 @@ button:hover {
 .task-content {
     display: flex;
     flex-direction: column;
+    gap: 4px;
 }
 
 .company {
@@ -873,6 +868,7 @@ button:hover {
 .position, .status {
     font-size: 12px;
     color: black;
+    margin-bottom: 4px;
 }
 
 .task:hover {
