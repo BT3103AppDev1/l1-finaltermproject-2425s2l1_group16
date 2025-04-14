@@ -360,15 +360,18 @@ h2 {
 	margin-bottom: 10px;
 	text-align: left;
 }
+
 .subtitle {
 	font-size: 14px;
 	color: #666;
 	margin-bottom: 30px;
 	text-align: left;
 }
+
 .form-group {
 	margin-bottom: 20px;
 }
+
 label {
 	display: block;
 	margin-bottom: 8px;
@@ -376,6 +379,7 @@ label {
 	font-size: 14px;
 	color: #333;
 }
+
 input[type="email"],
 input[type="name"],
 input[type="password"] {
@@ -387,30 +391,37 @@ input[type="password"] {
 	font-size: 14px;
 	background-color: #f8f9fa;
 }
+
 input::placeholder {
 	color: #aaa;
 }
+
 input:focus {
 	outline: none;
 	border-color: #6c63ff;
 	box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
 }
+
 .input-error {
 	border-color: #dc3545;
 	background-color: #fff8f8;
 }
+
 .input-error:focus {
 	box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
 }
+
 .error-message,
 .info-message {
 	color: #dc3545;
 	font-size: 12px;
 	margin-top: 6px;
 }
+
 .info-message {
 	color: #666;
 }
+
 .general-error {
 	text-align: center;
 	margin-bottom: 15px;
@@ -418,8 +429,9 @@ input:focus {
 	font-size: 13px;
 	font-weight: 500;
 }
+
 .submit-btn {
-	background-color: #d9534f;
+	background-color: #c24600;
 	color: white;
 	border: none;
 	padding: 12px 20px;
@@ -431,23 +443,28 @@ input:focus {
 	margin-top: 10px;
 	transition: background-color 0.2s ease;
 }
+
 .submit-btn:hover {
-	background-color: #c9302c;
+	background-color: #fc640d;
 }
+
 .toggle-link {
 	text-align: center;
 	margin-top: 25px;
 	font-size: 14px;
 	color: #666;
 }
+
 .toggle-link a {
-	color: #d9534f;
+	color: #c24600;
 	text-decoration: none;
 	font-weight: 600;
 	margin-left: 5px;
 }
+
 .toggle-link a:hover {
 	text-decoration: underline;
+	background-color: transparent;
 }
 
 .divider {
@@ -459,6 +476,7 @@ input:focus {
 	text-transform: uppercase;
 	position: relative;
 }
+
 .divider::before,
 .divider::after {
 	content: "";
@@ -468,12 +486,15 @@ input:focus {
 	background-color: #ddd;
 	vertical-align: middle;
 }
+
 .divider::before {
 	margin-right: 10px;
 }
+
 .divider::after {
 	margin-left: 10px;
 }
+
 .google-signin-btn {
 	background-color: #ffffff; /* White background */
 	color: #444; /* Dark grey text */
