@@ -255,22 +255,27 @@ const fetchQuestions = async () => {
     );
     const querySnapshot = await getDocs(q);
     
+    // Initialize questions with 0 counts
     questions.value = querySnapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
+      upvoteCount: 0,
+      reportCount: 0
     }));
 
-    // After fetching questions, get upvotes and reports for each
+    // Get upvote and report counts for each question
     for (const question of questions.value) {
-      const allUpvotes = await getDocs(
-        collection(db, "InterviewQuestions", question.id, "upvote")
-      );
-      question.upvoteCount = allUpvotes.size;
+      // Get upvotes
+      const upvoteCollection = collection(db, "InterviewQuestions", question.id, "upvote");
+      const upvoteSnapshot = await getDocs(upvoteCollection);
+      question.upvoteCount = upvoteSnapshot.size;
 
-      const allReports = await getDocs(
-        collection(db, "InterviewQuestions", question.id, "report")
-      );
-      question.reportCount = allReports.size;
+      // Get reports
+      const reportDoc = await getDoc(doc(db, "InterviewQuestions", question.id, "report", "insights_me"));
+      if (reportDoc.exists()) {
+        const reportData = reportDoc.data();
+        question.reportCount = reportData.username ? reportData.username.length : 0;
+      }
     }
   } catch (error) {
     console.error('Error fetching questions:', error);
@@ -311,37 +316,34 @@ const increment_upvote = async (id) => {
   try {
     const docSnap = await getDoc(userRef);
     if (docSnap.exists()) {
+      // User has already upvoted, so remove their upvote
+      await deleteDoc(userRef);
+      
+      // Update contribution points
       const pointsRef = doc(db, "Users", currentUser);
       await updateDoc(pointsRef, {
         contribution_pts: increment(-1),
       });
-      await deleteDoc(userRef);
       
-      // Update the UI immediately for un-upvoting
+      // Update UI
       const questionIndex = questions.value.findIndex(q => q.id === id);
       if (questionIndex !== -1) {
         questions.value[questionIndex].upvoteCount--;
       }
     } else {
-      await setDoc(
-        doc(
-          db,
-          "InterviewQuestions",
-          currentQuestions,
-          "upvote",
-          currentUser
-        ),
-        {
-          username: currentUser,
-        }
-      );
+      // User hasn't upvoted yet, add their upvote
+      await setDoc(userRef, {
+        username: currentUser,
+        timestamp: new Date()
+      });
       
+      // Update contribution points
       const pointsRef = doc(db, "Users", "insights_me");
       await updateDoc(pointsRef, {
         contribution_pts: increment(1),
       });
 
-      // Update the UI immediately for upvoting
+      // Update UI
       const questionIndex = questions.value.findIndex(q => q.id === id);
       if (questionIndex !== -1) {
         questions.value[questionIndex].upvoteCount++;
@@ -350,7 +352,7 @@ const increment_upvote = async (id) => {
       toast.success("1 point has been added into your account!");
     }
   } catch (error) {
-    console.error("Error adding document", error);
+    console.error("Error updating upvote:", error);
     toast.error("Failed to update upvote");
   }
 };
@@ -359,28 +361,66 @@ const increment_report = async (id) => {
   let currentUser = "insights_me";
   let currentQuestions = id;
 
-  const userRef = doc(
-    db,
-    "InterviewQuestions",
-    currentQuestions,
-    "report",
-    currentUser
-  );
-  
   try {
-    await setDoc(userRef, {
-      username: currentUser,
-      reasons: selectedReason.value,
+    // Reference to the report document
+    const reportRef = doc(
+      db,
+      "InterviewQuestions",
+      currentQuestions,
+      "report",
+      "insights_me"
+    );
+
+    // Get existing document or create new one with empty lists
+    const reportDoc = await getDoc(reportRef);
+    let currentReasons = [];
+    let currentUsernames = [];
+    
+    if (reportDoc.exists()) {
+      const data = reportDoc.data();
+      currentReasons = data.reasons || [];
+      currentUsernames = data.username || [];
+    }
+
+    // Add new reason and username to the lists
+    currentReasons.push(selectedReason.value);
+    if (!currentUsernames.includes(currentUser)) {
+      currentUsernames.push(currentUser);
+    }
+
+    // Update document with new lists
+    await setDoc(reportRef, {
+      reasons: currentReasons,
+      username: currentUsernames,
+      lastUpdated: new Date()
     });
+
+    // Update the UI
+    const questionIndex = questions.value.findIndex(q => q.id === currentQuestions);
+    if (questionIndex !== -1) {
+      questions.value[questionIndex].reportCount++;
+    }
+
+    // Check if report count exceeds threshold
+    const allReports = await getDocs(collection(db, "InterviewQuestions", currentQuestions, "report"));
+    if (allReports.size >= 9) {
+      const questionRef = doc(db, "InterviewQuestions", currentQuestions);
+      await updateDoc(questionRef, {
+        status: "Removed"
+      });
+      
+      if (questionIndex !== -1) {
+        questions.value.splice(questionIndex, 1);
+      }
+    }
+
     showPopup.value = false;
     selectedReason.value = null;
     toast.success("Report submitted successfully");
   } catch (error) {
-    console.error("Error adding document", error);
+    console.error("Error submitting report:", error);
     toast.error("Failed to submit report");
   }
-
-  await display();
 };
 
 const quality_check = async () => {
