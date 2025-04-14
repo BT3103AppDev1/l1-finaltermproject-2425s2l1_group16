@@ -55,7 +55,13 @@
                             @dragstart="dragStart(app, status, index)"
                             @dragover.prevent
                             @drop="drop(status, index)"
-                            @click="openPopup(app.id)"
+                            @click="(event) => {
+                                // Check if the click originated from the CompleteInterview component
+                                if (event.target.closest('.complete-interview-page')) {
+                                    return;
+                                }
+                                openPopup(app.id);
+                            }"
                         >
                             <div class="task-content">
                                 <span class="company">{{ app.company }}</span>

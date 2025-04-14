@@ -1,9 +1,12 @@
 <template>
-    <div class="complete-interview-page">
-        <button @click="openModal" class="complete-button">Complete Interview</button>
+    <div class="complete-interview-page" @click.stop>
+        <button 
+            @click.stop.prevent="openModal" 
+            class="complete-button"
+        >Complete Interview</button>
 
-        <div v-if="isModalOpen" class="modal">
-            <div class="modal-content">
+        <div v-if="isModalOpen" class="modal" @click.stop>
+            <div class="modal-content" @click.stop>
                 <span class="close" @click="closeModal">&times;</span>
                 <h2 class="modal-title">Document Your Interview Questions</h2>
                 <p class="modal-description">Your submissions will be anonymised. These questions will help your peers in their interview preparation and we hope that one day you will benefit from this same help too!</p>
@@ -67,10 +70,12 @@ export default {
         };
     },
     methods: {
-        openModal() {
+        openModal(event) {
+            event.stopPropagation();
             this.isModalOpen = true;
         },
-        closeModal() {
+        closeModal(event) {
+            if (event) event.stopPropagation();
             this.isModalOpen = false;
             this.resetForm();
         },
@@ -326,7 +331,6 @@ input::placeholder, textarea::placeholder {
     background-color: #d32f2f;
 }
 
-/* Ensure consistent font for all inputs */
 input, select, textarea, button {
     font-family: Arial, sans-serif;
 }
