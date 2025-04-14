@@ -97,8 +97,22 @@ export default {
             this.questionEntries.splice(index, 1);
         },
         async getNextQuestionNumber() {
+            // Get all documents and find the highest question number from document IDs
             const querySnapshot = await getDocs(collection(db, 'InterviewQuestions'));
-            return querySnapshot.size + 1;
+            let maxNumber = 0;
+            
+            querySnapshot.forEach((doc) => {
+                const docId = doc.id;
+                if (docId.startsWith('question_')) {
+                    const numberStr = docId.split('_')[1];
+                    const number = parseInt(numberStr);
+                    if (!isNaN(number) && number > maxNumber) {
+                        maxNumber = number;
+                    }
+                }
+            });
+            
+            return maxNumber + 1;
         },
         async handleSubmit() {
             try {
@@ -110,11 +124,12 @@ export default {
                     }
                 }
 
+                // Get the starting question number for this batch
+                let nextQuestionNumber = await this.getNextQuestionNumber();
+
                 // Submit each question entry
                 for (const entry of this.questionEntries) {
-                    // Get the next question number
-                    const nextNumber = await this.getNextQuestionNumber();
-                    const docId = `question_${nextNumber}`;
+                    const docId = `question_${nextQuestionNumber}`;
 
                     const questionData = {
                         company: this.company,
@@ -127,8 +142,26 @@ export default {
                         userID: 1
                     };
 
-                    // Use setDoc with a specific document ID
-                    await setDoc(doc(db, 'InterviewQuestions', docId), questionData);
+                    // Add the main document with specific ID
+                    const questionsRef = collection(db, 'InterviewQuestions');
+                    const questionDocRef = doc(questionsRef, docId);
+                    await setDoc(questionDocRef, questionData);
+
+                    // Create report collection with 'insights_me' document
+                    const reportRef = collection(questionDocRef, 'report');
+                    await setDoc(doc(reportRef, 'insights_me'), {
+                        reasons: [],
+                        username: []
+                    });
+
+                    // Create upvote collection with 'insights_me' document
+                    const upvoteRef = collection(questionDocRef, 'upvote');
+                    await setDoc(doc(upvoteRef, 'insights_me'), {
+                        username: []
+                    });
+
+                    // Increment the number for the next question
+                    nextQuestionNumber++;
                 }
 
                 alert('Questions submitted successfully!');
