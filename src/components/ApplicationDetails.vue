@@ -316,6 +316,12 @@ const increment_upvote = async (id) => {
         contribution_pts: increment(-1),
       });
       await deleteDoc(userRef);
+      
+      // Update the UI immediately for un-upvoting
+      const questionIndex = questions.value.findIndex(q => q.id === id);
+      if (questionIndex !== -1) {
+        questions.value[questionIndex].upvoteCount--;
+      }
     } else {
       await setDoc(
         doc(
@@ -335,14 +341,18 @@ const increment_upvote = async (id) => {
         contribution_pts: increment(1),
       });
 
+      // Update the UI immediately for upvoting
+      const questionIndex = questions.value.findIndex(q => q.id === id);
+      if (questionIndex !== -1) {
+        questions.value[questionIndex].upvoteCount++;
+      }
+
       toast.success("1 point has been added into your account!");
     }
   } catch (error) {
     console.error("Error adding document", error);
     toast.error("Failed to update upvote");
   }
-
-  await display();
 };
 
 const increment_report = async (id) => {
