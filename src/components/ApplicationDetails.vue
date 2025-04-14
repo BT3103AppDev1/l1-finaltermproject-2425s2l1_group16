@@ -66,21 +66,21 @@
       </button>
 
       <div v-if="showInterviewQuestions" class="questions-list">
-        <h3>Interview Questions for Singtel - Data Analyst Intern</h3>
+        <h3>Interview Questions for {{ localApp.company }} - {{ localApp.position }}</h3>
         <div class="question-items">
-          <div class="question-item">
-            <div class="question-type">Technical</div>
-            <div class="question-text">Explain merge sort</div>
-            <div class="question-description">Asked for time complexity also</div>
+          <div class="question-item" v-for="question in questions" :key="question.id">
+            <div class="question-type">{{ question.type }}</div>
+            <div class="question-text">{{ question.question }}</div>
+            <div class="question-description">{{ question.description }}</div>
             <div class="question-actions">
               <div class="main-buttons">
-                <button @click="increment_upvote" class="action-btn">
+                <button @click="increment_upvote(question.id)" class="action-btn">
                   <font-awesome-icon :icon="['far', 'thumbs-up']" />
-                  {{ upvote_counter }}
+                  {{ question.upvoteCount }}
                 </button>
                 <button @click="showPopup = true" class="action-btn">
                   <font-awesome-icon :icon="['far', 'flag']" />
-                  {{ report_counter }}
+                  {{ question.reportCount }}
                 </button>
               </div>
 
@@ -104,7 +104,7 @@
 
                   <div class="popup-buttons">
                     <button @click="showPopup = false">Cancel</button>
-                    <button :disabled="!selectedReason" @click="increment_report">
+                    <button :disabled="!selectedReason" @click="increment_report(question.id)">
                       Report
                     </button>
                   </div>
@@ -153,7 +153,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { Filter } from "bad-words";
 import { useToast } from "vue-toastification";
-import { doc, getDoc, getDocs, updateDoc, deleteDoc, setDoc,collection, increment } from 'firebase/firestore';
+import { doc, getDoc, getDocs, updateDoc, deleteDoc, setDoc, collection, increment, query, where } from 'firebase/firestore';
 import { db } from '@/firebase';
 
 const toast = useToast();
@@ -181,6 +181,7 @@ const editingIndex = ref(null);
 const newSubStageDate = ref('');
 
 const subStages = ref([]);
+const questions = ref([]);
 
 // firestore data
 const localApp = reactive({
@@ -237,9 +238,43 @@ const statusOptions = [
   'Applied', 'Assessment', 'Interview', 'Accepted', 'Rejected', 'Turned Down'
 ];
 
-const toggleInterviewQuestions = () => {
+const toggleInterviewQuestions = async () => {
   showInterviewQuestions.value = !showInterviewQuestions.value;
-  console.log('Viewing interview questions');
+  if (showInterviewQuestions.value) {
+    await fetchQuestions();
+  }
+};
+
+const fetchQuestions = async () => {
+  try {
+    const questionsRef = collection(db, 'InterviewQuestions');
+    const q = query(
+      questionsRef,
+      where('company', '==', localApp.company),
+      where('role', '==', localApp.position)
+    );
+    const querySnapshot = await getDocs(q);
+    
+    questions.value = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    // After fetching questions, get upvotes and reports for each
+    for (const question of questions.value) {
+      const allUpvotes = await getDocs(
+        collection(db, "InterviewQuestions", question.id, "upvote")
+      );
+      question.upvoteCount = allUpvotes.size;
+
+      const allReports = await getDocs(
+        collection(db, "InterviewQuestions", question.id, "report")
+      );
+      question.reportCount = allReports.size;
+    }
+  } catch (error) {
+    console.error('Error fetching questions:', error);
+  }
 };
 
 const display = async () => {
@@ -262,9 +297,9 @@ const display = async () => {
   }
 };
 
-const increment_upvote = async () => {
+const increment_upvote = async (id) => {
   let currentUser = "insights_me";
-  let currentQuestions = "question_2";
+  let currentQuestions = id;
   const userRef = doc(
     db,
     "InterviewQuestions",
@@ -310,9 +345,9 @@ const increment_upvote = async () => {
   await display();
 };
 
-const increment_report = async () => {
+const increment_report = async (id) => {
   let currentUser = "insights_me";
-  let currentQuestions = "question_2";
+  let currentQuestions = id;
 
   const userRef = doc(
     db,
