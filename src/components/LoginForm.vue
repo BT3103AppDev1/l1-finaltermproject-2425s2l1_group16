@@ -180,7 +180,6 @@ export default {
 					case "auth/account-exists-with-different-credential":
 						this.googleError =
 							"An account already exists with this email using a different sign-in method. Try logging in with the original method.";
-						// You could potentially implement account linking here if needed
 						break;
 					case "auth/cancelled-popup-request":
 					case "auth/popup-blocked":
@@ -196,22 +195,26 @@ export default {
 							"An error occurred during Google Sign-In. Please try again.";
 				}
 			}
-		},	
+		},
 
 		handleFirebaseError(error) {
 			switch (error.code) {
+				case "auth/user-not-found":
+					this.generalError = "User not registered";
+					break;
 				case "auth/invalid-email":
 					this.emailError = "Please enter a valid email address.";
 					break;
 				case "auth/user-disabled":
 					this.generalError = "This user account has been disabled.";
 					break;
-				case "auth/user-not-found":
 				case "auth/invalid-credential": // This can mean user not found or wrong password
-					this.generalError = "Invalid email or password.";
+					this.generalError =
+						"Invalid email or password. Please try again.";
 					break;
-				case "auth/wrong-password": // Might still appear sometimes, handle defensively
-					this.generalError = "Invalid email or password.";
+				case "auth/wrong-password":
+					this.generalError =
+						"Invalid email or password. Please try again.";
 					break;
 				case "auth/operation-not-allowed":
 					this.generalError =
@@ -408,15 +411,15 @@ input:focus {
 
 .google-signin-btn {
 	background-color: #ffffff;
-	color: #444; 
-	border: 1px solid #ccc; 
+	color: #444;
+	border: 1px solid #ccc;
 	padding: 10px 15px;
 	border-radius: 5px;
 	cursor: pointer;
 	font-size: 14px;
-	font-weight: 600; 
+	font-weight: 600;
 	width: 100%;
-	margin: 0 auto 15px auto; 
+	margin: 0 auto 15px auto;
 	transition: background-color 0.2s ease, box-shadow 0.2s ease;
 	display: flex;
 	align-items: center;
