@@ -102,25 +102,36 @@ export default {
         },
         async handleSubmit() {
             try {
-                // Get the next question number
-                const nextNumber = await this.getNextQuestionNumber();
-                const docId = `question_${nextNumber}`;
+                // Validate that all required fields are filled
+                for (const entry of this.questionEntries) {
+                    if (!entry.question || !entry.questionType) {
+                        alert('Please fill in all required fields marked with *');
+                        return;
+                    }
+                }
 
-                const questionData = {
-                    company: this.company,
-                    description: this.description,
-                    question: this.question,
-                    report: 0,
-                    role: this.role,
-                    type: this.questionType,
-                    upvote: 0,
-                    userID: 1
-                };
+                // Submit each question entry
+                for (const entry of this.questionEntries) {
+                    // Get the next question number
+                    const nextNumber = await this.getNextQuestionNumber();
+                    const docId = `question_${nextNumber}`;
 
-                // Use setDoc with a specific document ID instead of addDoc
-                await setDoc(doc(db, 'InterviewQuestions', docId), questionData);
+                    const questionData = {
+                        company: this.company,
+                        description: entry.description || '',
+                        question: entry.question,
+                        report: 0,
+                        role: this.role,
+                        type: entry.questionType,
+                        upvote: 0,
+                        userID: 1
+                    };
 
-                alert('Question submitted successfully!');
+                    // Use setDoc with a specific document ID
+                    await setDoc(doc(db, 'InterviewQuestions', docId), questionData);
+                }
+
+                alert('Questions submitted successfully!');
                 this.closeModal();
             } catch (error) {
                 console.error('Error submitting question:', error);
