@@ -72,6 +72,7 @@
                                     v-if="status === 'Interview'" 
                                     :company="app.company"
                                     :role="app.position"
+                                    :appId="app.id"
                                 />       
                             </div>
                         </div>

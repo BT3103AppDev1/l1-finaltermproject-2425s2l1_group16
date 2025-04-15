@@ -1,37 +1,77 @@
 <template>
-    <div class="complete-interview-page" @click.stop>
+    <div class="complete-interview-page">
         <button 
-            @click.stop.prevent="openModal" 
+            @click.prevent="openModal" 
             class="complete-button"
         >Complete Interview</button>
 
-        <div v-if="isModalOpen" class="modal" @click.stop>
-            <div class="modal-content" @click.stop>
+        <div v-if="isModalOpen" class="modal" @mousedown.self="closeModal">
+            <div class="modal-content">
                 <span class="close" @click="closeModal">&times;</span>
                 <h2 class="modal-title">Document Your Interview Questions</h2>
                 <p class="modal-description">Your submissions will be anonymised. These questions will help your peers in their interview preparation and we hope that one day you will benefit from this same help too!</p>
                 
-                <!-- Question entries -->
-                <div v-for="(entry, index) in questionEntries" :key="index" class="question-entry">
-                    <label :for="'questionType' + index">Question Type*</label>
-                    <select v-model="entry.questionType" :id="'questionType' + index">
-                        <option value="Technical">Technical</option>
-                        <option value="Behavioral">Behavioral</option>
-                    </select>
-                    
-                    <label :for="'question' + index">Question*</label>
-                    <input type="text" v-model="entry.question" :id="'question' + index" placeholder="How would you make a circle?">
-                    
-                    <label :for="'description' + index">Description</label>
-                    <textarea v-model="entry.description" :id="'description' + index" placeholder="Your description here..."></textarea>
-                    
-                    <!-- Remove button for all entries except the first one -->
-                    <button v-if="index > 0" @click="removeEntry(index)" class="remove-button">Remove</button>
+                <!-- Round Navigation -->
+                <div class="round-navigation">
+                    <button 
+                        @click="previousRound" 
+                        class="nav-button" 
+                        :disabled="currentRoundIndex === 0"
+                    >
+                        ← Previous Round
+                    </button>
+                    <span class="round-indicator">Round {{ currentRoundIndex + 1 }} of {{ interviewRounds.length }}</span>
+                    <button 
+                        @click="nextRound" 
+                        class="nav-button" 
+                        :disabled="currentRoundIndex === interviewRounds.length - 1"
+                    >
+                        Next Round →
+                    </button>
                 </div>
 
-                <!-- Add question button -->
-                <button @click="addQuestionEntry" class="add-button">
-                    <span class="plus-icon">+</span> Add Another Question
+                <!-- Current Round Info -->
+                <div class="round-info">
+                    <div class="round-header">
+                        <input 
+                            type="text" 
+                            v-model="currentRound.roundName" 
+                            placeholder="Round Name (e.g. Technical Round, HR Round)"
+                            class="round-name-input"
+                        >
+                        <input 
+                            type="date" 
+                            v-model="currentRound.date"
+                            class="round-date-input"
+                        >
+                    </div>
+
+                    <!-- Question entries for current round -->
+                    <div v-for="(entry, index) in currentRound.questions" :key="index" class="question-entry">
+                        <label :for="'questionType' + index">Question Type*</label>
+                        <select v-model="entry.questionType" :id="'questionType' + index">
+                            <option value="Technical">Technical</option>
+                            <option value="Behavioral">Behavioral</option>
+                        </select>
+                        
+                        <label :for="'question' + index">Question*</label>
+                        <input type="text" v-model="entry.question" :id="'question' + index" placeholder="How would you make a circle?">
+                        
+                        <label :for="'description' + index">Description</label>
+                        <textarea v-model="entry.description" :id="'description' + index" placeholder="Your description here..."></textarea>
+                        
+                        <button v-if="index > 0" @click.stop="removeQuestion(index)" class="remove-button">Remove</button>
+                    </div>
+
+                    <!-- Add question button -->
+                    <button @click="addQuestion" class="add-button">
+                        <span class="plus-icon">+</span> Add Another Question
+                    </button>
+                </div>
+
+                <!-- Add new round button -->
+                <button @click="addNewRound" class="add-round-button">
+                    <span class="plus-icon">+</span> Add New Round
                 </button>
 
                 <div class="modal-actions">
@@ -45,7 +85,7 @@
 
 <script>
 import { db } from '@/firebase'
-import { collection, getDocs, setDoc, doc } from 'firebase/firestore'
+import { collection, getDocs, setDoc, doc, updateDoc } from 'firebase/firestore'
 
 export default {
     name: 'CompleteInterview',
@@ -57,17 +97,31 @@ export default {
         role: {
             type: String,
             required: true
+        },
+        appId: {
+            type: String,
+            required: true
         }
     },
     data() {
         return {
             isModalOpen: false,
-            questionEntries: [{
-                questionType: 'Technical',
-                question: '',
-                description: ''
+            currentRoundIndex: 0,
+            interviewRounds: [{
+                roundName: '',
+                date: new Date().toISOString().split('T')[0],
+                questions: [{
+                    questionType: 'Technical',
+                    question: '',
+                    description: ''
+                }]
             }]
         };
+    },
+    computed: {
+        currentRound() {
+            return this.interviewRounds[this.currentRoundIndex];
+        }
     },
     methods: {
         openModal(event) {
@@ -80,24 +134,50 @@ export default {
             this.resetForm();
         },
         resetForm() {
-            this.questionEntries = [{
-                questionType: 'Technical',
-                question: '',
-                description: ''
+            this.currentRoundIndex = 0;
+            this.interviewRounds = [{
+                roundName: '',
+                date: new Date().toISOString().split('T')[0],
+                questions: [{
+                    questionType: 'Technical',
+                    question: '',
+                    description: ''
+                }]
             }];
         },
-        addQuestionEntry() {
-            this.questionEntries.push({
+        previousRound() {
+            if (this.currentRoundIndex > 0) {
+                this.currentRoundIndex--;
+            }
+        },
+        nextRound() {
+            if (this.currentRoundIndex < this.interviewRounds.length - 1) {
+                this.currentRoundIndex++;
+            }
+        },
+        addNewRound() {
+            this.interviewRounds.push({
+                roundName: '',
+                date: new Date().toISOString().split('T')[0],
+                questions: [{
+                    questionType: 'Technical',
+                    question: '',
+                    description: ''
+                }]
+            });
+            this.currentRoundIndex = this.interviewRounds.length - 1;
+        },
+        addQuestion() {
+            this.currentRound.questions.push({
                 questionType: 'Technical',
                 question: '',
                 description: ''
             });
         },
-        removeEntry(index) {
-            this.questionEntries.splice(index, 1);
+        removeQuestion(index) {
+            this.currentRound.questions.splice(index, 1);
         },
         async getNextQuestionNumber() {
-            // Get all documents and find the highest question number from document IDs
             const querySnapshot = await getDocs(collection(db, 'InterviewQuestions'));
             let maxNumber = 0;
             
@@ -116,59 +196,75 @@ export default {
         },
         async handleSubmit() {
             try {
-                // Validate that all required fields are filled
-                for (const entry of this.questionEntries) {
-                    if (!entry.question || !entry.questionType) {
-                        alert('Please fill in all required fields marked with *');
+                // Validate all rounds
+                for (const round of this.interviewRounds) {
+                    if (!round.roundName) {
+                        alert('Please provide a name for each round');
                         return;
+                    }
+                    for (const entry of round.questions) {
+                        if (!entry.question || !entry.questionType) {
+                            alert('Please fill in all required fields marked with *');
+                            return;
+                        }
                     }
                 }
 
-                // Get the starting question number for this batch
                 let nextQuestionNumber = await this.getNextQuestionNumber();
 
-                // Submit each question entry
-                for (const entry of this.questionEntries) {
-                    const docId = `question_${nextQuestionNumber}`;
+                // Submit questions for each round
+                for (const round of this.interviewRounds) {
+                    for (const entry of round.questions) {
+                        const docId = `question_${nextQuestionNumber}`;
 
-                    const questionData = {
-                        company: this.company,
-                        description: entry.description || '',
-                        question: entry.question,
-                        report: 0,
-                        role: this.role,
-                        type: entry.questionType,
-                        upvote: 0,
-                        userID: 1
-                    };
+                        const questionData = {
+                            company: this.company,
+                            description: entry.description || '',
+                            question: entry.question,
+                            report: 0,
+                            role: this.role,
+                            type: entry.questionType,
+                            upvote: 0,
+                            userID: 1,
+                            roundName: round.roundName,
+                            interviewDate: round.date
+                        };
 
-                    // Add the main document with specific ID
-                    const questionsRef = collection(db, 'InterviewQuestions');
-                    const questionDocRef = doc(questionsRef, docId);
-                    await setDoc(questionDocRef, questionData);
+                        // Add the main document
+                        const questionsRef = collection(db, 'InterviewQuestions');
+                        const questionDocRef = doc(questionsRef, docId);
+                        await setDoc(questionDocRef, questionData);
 
-                    // Create report collection with 'insights_me' document
-                    const reportRef = collection(questionDocRef, 'report');
-                    await setDoc(doc(reportRef, 'insights_me'), {
-                        reasons: [],
-                        username: []
-                    });
+                        // Create report collection
+                        const reportRef = collection(questionDocRef, 'report');
+                        await setDoc(doc(reportRef, 'insights_me'), {
+                            reasons: [],
+                            username: []
+                        });
 
-                    // Create upvote collection with 'insights_me' document
-                    const upvoteRef = collection(questionDocRef, 'upvote');
-                    await setDoc(doc(upvoteRef, 'insights_me'), {
-                        username: []
-                    });
+                        // Create upvote collection
+                        const upvoteRef = collection(questionDocRef, 'upvote');
+                        await setDoc(doc(upvoteRef, 'insights_me'), {
+                            username: []
+                        });
 
-                    // Increment the number for the next question
-                    nextQuestionNumber++;
+                        nextQuestionNumber++;
+                    }
                 }
+
+                // Update the application with interview completion info
+                const appRef = doc(db, 'Users', 'insights_me', 'application_folder', this.appId);
+                await updateDoc(appRef, {
+                    interviewCompleted: true,
+                    interviewRounds: this.interviewRounds.length,
+                    lastInterviewDate: this.interviewRounds[this.interviewRounds.length - 1].date
+                });
 
                 alert('Questions submitted successfully!');
                 this.closeModal();
             } catch (error) {
-                console.error('Error submitting question:', error);
-                alert('Error submitting question. Please try again.');
+                console.error('Error submitting questions:', error);
+                alert('Error submitting questions. Please try again.');
             }
         }
     }
@@ -283,7 +379,7 @@ textarea {
 .add-button {
     width: 100%;
     padding: 16px;
-    margin: 24px 0;
+    margin: 24px 0 8px 0;
     background-color: #f0f9f0;
     color: #4CAF50;
     border: 2px dashed #4CAF50;
@@ -375,5 +471,72 @@ textarea {
 
 .close:hover {
     color: #333;
+}
+
+.round-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.nav-button {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.nav-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.round-indicator {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+}
+
+.round-header {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.round-name-input {
+    flex: 2;
+}
+
+.round-date-input {
+    flex: 1;
+}
+
+.add-round-button {
+    width: 100%;
+    padding: 16px;
+    margin: 8px 0;
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border: 2px dashed #1976d2;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.add-round-button:hover {
+    background-color: #bbdefb;
 }
 </style>

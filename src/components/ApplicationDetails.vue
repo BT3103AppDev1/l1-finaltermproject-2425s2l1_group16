@@ -255,7 +255,7 @@ const fetchQuestions = async () => {
     );
     const querySnapshot = await getDocs(q);
     
-    // Initialize all questions with 0 upvotes and reports
+    // Initialize questions array
     questions.value = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -263,8 +263,16 @@ const fetchQuestions = async () => {
       reportCount: 0
     }));
 
-    // Only get report counts
+    // Get upvote and report counts
     for (const question of questions.value) {
+      // Get upvote count
+      const upvoteDoc = await getDoc(doc(db, "InterviewQuestions", question.id, "upvote", "insights_me"));
+      if (upvoteDoc.exists()) {
+        const upvoteData = upvoteDoc.data();
+        question.upvoteCount = upvoteData.username ? upvoteData.username.length : 0;
+      }
+
+      // Get report count
       const reportDoc = await getDoc(doc(db, "InterviewQuestions", question.id, "report", "insights_me"));
       if (reportDoc.exists()) {
         const reportData = reportDoc.data();
