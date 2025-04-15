@@ -221,13 +221,12 @@ export default {
                             company: this.company,
                             description: entry.description || '',
                             question: entry.question,
-                            report: 0,
                             role: this.role,
                             type: entry.questionType,
-                            upvote: 0,
                             userID: 1,
                             roundName: round.roundName,
-                            interviewDate: round.date
+                            interviewDate: round.date,
+                            status: "Checked"
                         };
 
                         // Add the main document

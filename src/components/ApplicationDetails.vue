@@ -78,14 +78,14 @@
                   <font-awesome-icon :icon="['far', 'thumbs-up']" />
                   {{ question.upvoteCount }}
                 </button>
-                <button @click="showPopup = true" class="action-btn">
+                <button @click="openReportPopup(question.id)" class="action-btn">
                   <font-awesome-icon :icon="['far', 'flag']" />
                   {{ question.reportCount }}
                 </button>
               </div>
 
               <!-- Report Popup -->
-              <div v-if="showPopup" class="popup-overlay">
+              <div v-if="showPopup && currentQuestionId === question.id" class="popup-overlay">
                 <div class="popup-content">
                   <p>Report Question</p>
 
@@ -104,7 +104,7 @@
 
                   <div class="popup-buttons">
                     <button @click="showPopup = false">Cancel</button>
-                    <button :disabled="!selectedReason" @click="increment_report(question.id)">
+                    <button :disabled="!selectedReason" @click="increment_report(currentQuestionId)">
                       Report
                     </button>
                   </div>
@@ -160,6 +160,7 @@ const toast = useToast();
 const showInterviewQuestions = ref(false);
 const showPopup = ref(false);
 const selectedReason = ref(null);
+const currentQuestionId = ref(null);
 const upvote_counter = ref(0);
 const report_counter = ref(0);
 
@@ -266,11 +267,9 @@ const fetchQuestions = async () => {
     // Get upvote and report counts
     for (const question of questions.value) {
       // Get upvote count
-      const upvoteDoc = await getDoc(doc(db, "InterviewQuestions", question.id, "upvote", "insights_me"));
-      if (upvoteDoc.exists()) {
-        const upvoteData = upvoteDoc.data();
-        question.upvoteCount = upvoteData.username ? upvoteData.username.length : 0;
-      }
+      const upvoteCollection = collection(db, "InterviewQuestions", question.id, "upvote");
+      const upvoteSnapshot = await getDocs(upvoteCollection);
+      question.upvoteCount = upvoteSnapshot.size;
 
       // Get report count
       const reportDoc = await getDoc(doc(db, "InterviewQuestions", question.id, "report", "insights_me"));
@@ -321,16 +320,10 @@ const increment_upvote = async (id) => {
       // User has already upvoted, so remove their upvote
       await deleteDoc(userRef);
       
-      // Update contribution points
-      const pointsRef = doc(db, "Users", currentUser);
-      await updateDoc(pointsRef, {
-        contribution_pts: increment(1),
-      });
-      
-      // Update UI
+      // Update UI to decrease count
       const questionIndex = questions.value.findIndex(q => q.id === id);
       if (questionIndex !== -1) {
-        questions.value[questionIndex].upvoteCount--;
+        questions.value[questionIndex].upvoteCount = Math.max(0, questions.value[questionIndex].upvoteCount - 1);
       }
     } else {
       // User hasn't upvoted yet, add their upvote
@@ -339,13 +332,13 @@ const increment_upvote = async (id) => {
         timestamp: new Date()
       });
       
-      // Update contribution points
+      // Update contribution points only when adding an upvote
       const pointsRef = doc(db, "Users", "insights_me");
       await updateDoc(pointsRef, {
         contribution_pts: increment(1),
       });
 
-      // Update UI
+      // Update UI to increase count
       const questionIndex = questions.value.findIndex(q => q.id === id);
       if (questionIndex !== -1) {
         questions.value[questionIndex].upvoteCount++;
@@ -496,6 +489,11 @@ const cancelEditSubStage = () => {
   editingIndex.value = null;
   editedStageName.value = '';
 
+};
+
+const openReportPopup = (questionId) => {
+  currentQuestionId.value = questionId;
+  showPopup.value = true;
 };
 </script>
 
