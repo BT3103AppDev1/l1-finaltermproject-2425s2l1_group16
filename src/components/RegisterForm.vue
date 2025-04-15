@@ -257,7 +257,7 @@ export default {
 				this.clearForm();
 				// Redirect after successful registration
 
-				this.$router.push("/");
+				this.$router.push("/dashboard");
 			} catch (error) {
 				console.error(
 					"Firebase registration error:",

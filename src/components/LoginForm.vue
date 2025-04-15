@@ -163,7 +163,7 @@ export default {
 				console.log("Google Sign-In Successful:", user.displayName);
 				// You might want to clear the email/password form fields here too
 				this.clearForm();
-				this.$router.push("/"); // Redirect after successful Google login
+				this.$router.push("/dashboard"); // Redirect after successful Google login
 			} catch (error) {
 				console.error(
 					"Google Sign-In Error:",
