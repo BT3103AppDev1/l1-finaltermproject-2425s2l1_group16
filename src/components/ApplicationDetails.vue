@@ -255,7 +255,7 @@ const fetchQuestions = async () => {
     );
     const querySnapshot = await getDocs(q);
     
-    // Initialize questions with 0 counts
+    // Initialize all questions with 0 upvotes and reports
     questions.value = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -263,14 +263,8 @@ const fetchQuestions = async () => {
       reportCount: 0
     }));
 
-    // Get upvote and report counts for each question
+    // Only get report counts
     for (const question of questions.value) {
-      // Get upvotes
-      const upvoteCollection = collection(db, "InterviewQuestions", question.id, "upvote");
-      const upvoteSnapshot = await getDocs(upvoteCollection);
-      question.upvoteCount = upvoteSnapshot.size;
-
-      // Get reports
       const reportDoc = await getDoc(doc(db, "InterviewQuestions", question.id, "report", "insights_me"));
       if (reportDoc.exists()) {
         const reportData = reportDoc.data();
@@ -322,7 +316,7 @@ const increment_upvote = async (id) => {
       // Update contribution points
       const pointsRef = doc(db, "Users", currentUser);
       await updateDoc(pointsRef, {
-        contribution_pts: increment(-1),
+        contribution_pts: increment(1),
       });
       
       // Update UI
