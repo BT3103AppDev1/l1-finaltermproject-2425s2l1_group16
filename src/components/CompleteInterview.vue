@@ -214,99 +214,121 @@ export default {
 
 .modal-content {
     background-color: white;
-    border-radius: 8px;
-    padding: 20px;
-    width: 400px;
-    max-height: 80vh; 
-    overflow-y: auto; 
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 40px;
+    width: 800px;
+    min-height: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     position: relative;
     color: black;
     font-family: Arial, sans-serif;
-}
-
-
-.modal-content::-webkit-scrollbar {
-    width: 8px;
-}
-
-.modal-content::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.modal-content::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-}
-
-.modal-content::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    display: flex;
+    flex-direction: column;
 }
 
 .modal-title {
-    font-size: 20px;
+    font-size: 28px;
     font-weight: bold;
-    margin-bottom: 10px;
-    color: black;
+    margin-bottom: 16px;
+    color: #1a1a1a;
 }
 
 .modal-description {
-    font-size: 14px;
+    font-size: 16px;
     color: #666;
-    margin-bottom: 20px;
-    font-family: Arial, sans-serif;
+    margin-bottom: 32px;
+    line-height: 1.6;
 }
 
-.close {
-    color: #aaa;
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 24px;
-    cursor: pointer;
-}
-
-.close:hover {
-    color: black;
+.question-entry {
+    border: 1px solid #e0e0e0;
+    padding: 24px;
+    margin: 20px 0;
+    border-radius: 8px;
+    background-color: #fafafa;
+    position: relative;
 }
 
 label {
-    font-weight: bold;
-    margin-top: 10px;
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 15px;
 }
 
 input, select, textarea {
     width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-family: Arial, sans-serif;
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 15px;
+    background-color: white;
+    transition: border-color 0.2s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #4CAF50;
 }
 
 textarea {
-    height: 80px; /* Adjust height as needed */
+    height: 120px;
+    resize: vertical;
 }
 
-input::placeholder, textarea::placeholder {
-    font-family: Arial, sans-serif;
-    color: #666;
+.add-button {
+    width: 100%;
+    padding: 16px;
+    margin: 24px 0;
+    background-color: #f0f9f0;
+    color: #4CAF50;
+    border: 2px dashed #4CAF50;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.add-button:hover {
+    background-color: #e8f5e9;
+}
+
+.plus-icon {
+    font-size: 20px;
+    margin-right: 8px;
 }
 
 .modal-actions {
     display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
+    justify-content: center;
+    gap: 16px;
+    margin-top: auto;
+    padding-top: 32px;
+}
+
+.submit-button, .cancel-button {
+    padding: 12px 28px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    min-width: 120px;
+    text-align: center;
 }
 
 .submit-button {
     background-color: #4CAF50;
     color: white;
     border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
 }
 
 .submit-button:hover {
@@ -317,69 +339,41 @@ input::placeholder, textarea::placeholder {
     background-color: #f44336;
     color: white;
     border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
 }
 
 .cancel-button:hover {
-    background-color: #e53935;
-}
-
-.question-entry {
-    border: 1px solid #eee;
-    padding: 15px;
-    margin: 15px 0;
-    border-radius: 4px;
-    position: relative;
-}
-
-.add-button {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    background-color: #e8f5e9;
-    color: #4CAF50;
-    border: 1px dashed #4CAF50;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: Arial, sans-serif;
-}
-
-.add-button:hover {
-    background-color: #c8e6c9;
-}
-
-.plus-icon {
-    font-size: 18px;
-    margin-right: 8px;
+    background-color: #d32f2f;
 }
 
 .remove-button {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 16px;
+    right: 16px;
     background-color: #f44336;
     color: white;
     border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
+    padding: 8px 16px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
 }
 
 .remove-button:hover {
     background-color: #d32f2f;
 }
 
-input, select, textarea, button {
-    font-family: Arial, sans-serif;
+.close {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    font-size: 28px;
+    color: #666;
+    cursor: pointer;
+    transition: color 0.2s ease;
 }
 
-input::placeholder, textarea::placeholder {
-    font-family: Arial, sans-serif;
+.close:hover {
+    color: #333;
 }
 </style>
