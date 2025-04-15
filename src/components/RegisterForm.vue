@@ -43,7 +43,10 @@
 					@input="clearErrors('password')"
 				/>
 				<p v-if="!passwordError" class="info-message">
-					* Password must be at least 6 characters long.
+					* Password must contain at least:<br />
+					6 characters<br />
+					1 uppercase letter <br />1 number <br />
+					1 special character
 				</p>
 				<p v-if="passwordError" class="error-message">
 					{{ passwordError }}
@@ -186,8 +189,27 @@ export default {
 				isValid = false;
 			} else if (this.password.length < 6) {
 				this.passwordError =
-					"Password must be at least 6 characters long.";
+					"Password must be at least 6 characters long";
 				isValid = false;
+			} else {
+				const specialCharRegex =
+					/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
+				const numberRegex = /\d/;
+				const uppercaseRegex = /[A-Z]/;
+
+				if (!specialCharRegex.test(this.password)) {
+					this.passwordError =
+						"Password must contain at least one special character.";
+					isValid = false;
+				} else if (!numberRegex.test(this.password)) {
+					this.passwordError =
+						"Password must contain at least one number.";
+					isValid = false;
+				} else if (!uppercaseRegex.test(this.password)) {
+					this.passwordError =
+						"Password must contain at least one uppercase letter.";
+					isValid = false;
+				}
 			}
 
 			if (!this.confirmPassword) {
@@ -296,7 +318,6 @@ export default {
 					case "auth/account-exists-with-different-credential":
 						this.googleError =
 							"An account already exists with this email using a different sign-in method. Try logging in with the original method.";
-						// You could potentially implement account linking here if needed
 						break;
 					case "auth/cancelled-popup-request":
 					case "auth/popup-blocked":
@@ -320,7 +341,7 @@ export default {
 					break;
 				case "auth/email-already-in-use":
 					this.emailError =
-						"This email address is already registered.";
+						"This email has already been registered with another account. Please use a different email.";
 					break;
 				case "auth/operation-not-allowed":
 					this.generalError =
@@ -328,7 +349,7 @@ export default {
 					break;
 				case "auth/weak-password":
 					this.passwordError =
-						"Password is too weak. Please use at least 6 characters.";
+						"Password is too weak. Password must contain at least: \n6 characters\n1 uppercase letter\n1 number\n1 special character";
 					break;
 				default:
 					this.generalError =
@@ -342,7 +363,6 @@ export default {
 <style scoped>
 /* Copy relevant styles from Auth.vue - form container, inputs, labels, buttons, errors, links */
 .auth-form-container {
-	/* Renamed class for clarity */
 	text-align: left;
 	max-width: 450px;
 	margin: auto;
@@ -360,15 +380,18 @@ h2 {
 	margin-bottom: 10px;
 	text-align: left;
 }
+
 .subtitle {
 	font-size: 14px;
 	color: #666;
 	margin-bottom: 30px;
 	text-align: left;
 }
+
 .form-group {
 	margin-bottom: 20px;
 }
+
 label {
 	display: block;
 	margin-bottom: 8px;
@@ -376,6 +399,7 @@ label {
 	font-size: 14px;
 	color: #333;
 }
+
 input[type="email"],
 input[type="name"],
 input[type="password"] {
@@ -387,30 +411,37 @@ input[type="password"] {
 	font-size: 14px;
 	background-color: #f8f9fa;
 }
+
 input::placeholder {
 	color: #aaa;
 }
+
 input:focus {
 	outline: none;
 	border-color: #6c63ff;
 	box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
 }
+
 .input-error {
 	border-color: #dc3545;
 	background-color: #fff8f8;
 }
+
 .input-error:focus {
 	box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
 }
+
 .error-message,
 .info-message {
 	color: #dc3545;
 	font-size: 12px;
 	margin-top: 6px;
 }
+
 .info-message {
 	color: #666;
 }
+
 .general-error {
 	text-align: center;
 	margin-bottom: 15px;
@@ -418,8 +449,9 @@ input:focus {
 	font-size: 13px;
 	font-weight: 500;
 }
+
 .submit-btn {
-	background-color: #d9534f;
+	background-color: #c24600;
 	color: white;
 	border: none;
 	padding: 12px 20px;
@@ -431,49 +463,58 @@ input:focus {
 	margin-top: 10px;
 	transition: background-color 0.2s ease;
 }
+
 .submit-btn:hover {
-	background-color: #c9302c;
+	background-color: #fc640d;
 }
+
 .toggle-link {
 	text-align: center;
 	margin-top: 25px;
 	font-size: 14px;
 	color: #666;
 }
+
 .toggle-link a {
-	color: #d9534f;
+	color: #c24600;
 	text-decoration: none;
 	font-weight: 600;
 	margin-left: 5px;
 }
+
 .toggle-link a:hover {
 	text-decoration: underline;
+	background-color: transparent;
 }
 
 .divider {
 	text-align: center;
-	margin: 25px 0 20px 0; /* Adjusted margin */
+	margin: 25px 0 20px 0;
 	font-size: 12px;
 	color: #888;
 	font-weight: 500;
 	text-transform: uppercase;
 	position: relative;
 }
+
 .divider::before,
 .divider::after {
 	content: "";
 	display: inline-block;
-	width: 38%; /* Adjusted width */
+	width: 38%;
 	height: 1px;
 	background-color: #ddd;
 	vertical-align: middle;
 }
+
 .divider::before {
 	margin-right: 10px;
 }
+
 .divider::after {
 	margin-left: 10px;
 }
+
 .google-signin-btn {
 	background-color: #ffffff; /* White background */
 	color: #444; /* Dark grey text */

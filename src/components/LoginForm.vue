@@ -45,7 +45,7 @@
 
 		<button @click="signInWithGoogle" class="google-signin-btn">
 			<img src="@\assets\logo_google_g_icon.png" alt="Google logo" />
-			Sign In with Google
+			Sign in with Google
 		</button>
 
 		<p v-if="googleError" class="error-message general-error">
@@ -180,7 +180,6 @@ export default {
 					case "auth/account-exists-with-different-credential":
 						this.googleError =
 							"An account already exists with this email using a different sign-in method. Try logging in with the original method.";
-						// You could potentially implement account linking here if needed
 						break;
 					case "auth/cancelled-popup-request":
 					case "auth/popup-blocked":
@@ -200,18 +199,22 @@ export default {
 
 		handleFirebaseError(error) {
 			switch (error.code) {
+				case "auth/user-not-found":
+					this.generalError = "User not registered";
+					break;
 				case "auth/invalid-email":
 					this.emailError = "Please enter a valid email address.";
 					break;
 				case "auth/user-disabled":
 					this.generalError = "This user account has been disabled.";
 					break;
-				case "auth/user-not-found":
 				case "auth/invalid-credential": // This can mean user not found or wrong password
-					this.generalError = "Invalid email or password.";
+					this.generalError =
+						"Invalid email or password. Please try again.";
 					break;
-				case "auth/wrong-password": // Might still appear sometimes, handle defensively
-					this.generalError = "Invalid email or password.";
+				case "auth/wrong-password":
+					this.generalError =
+						"Invalid email or password. Please try again.";
 					break;
 				case "auth/operation-not-allowed":
 					this.generalError =
@@ -247,7 +250,7 @@ export default {
 	background: white;
 	padding: 30px 40px;
 	border-radius: 8px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 	border: 1px solid #d1e0ff;
 }
 
@@ -258,15 +261,18 @@ h2 {
 	margin-bottom: 10px;
 	text-align: left;
 }
+
 .subtitle {
 	font-size: 14px;
 	color: #666;
 	margin-bottom: 30px;
 	text-align: left;
 }
+
 .form-group {
 	margin-bottom: 20px;
 }
+
 label {
 	display: block;
 	margin-bottom: 8px;
@@ -274,6 +280,7 @@ label {
 	font-size: 14px;
 	color: #333;
 }
+
 input[type="email"],
 input[type="password"] {
 	width: 100%;
@@ -284,26 +291,32 @@ input[type="password"] {
 	font-size: 14px;
 	background-color: #f8f9fa;
 }
+
 input::placeholder {
 	color: #aaa;
 }
+
 input:focus {
 	outline: none;
 	border-color: #6c63ff;
 	box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
 }
+
 .input-error {
 	border-color: #dc3545;
 	background-color: #fff8f8;
 }
+
 .input-error:focus {
 	box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
 }
+
 .error-message {
 	color: #dc3545;
 	font-size: 12px;
 	margin-top: 6px;
 }
+
 .general-error {
 	text-align: center;
 	margin-bottom: 15px;
@@ -311,8 +324,9 @@ input:focus {
 	font-size: 13px;
 	font-weight: 500;
 }
+
 .submit-btn {
-	background-color: #d9534f;
+	background-color: #c24600;
 	color: white;
 	border: none;
 	padding: 12px 20px;
@@ -324,9 +338,11 @@ input:focus {
 	margin-top: 10px;
 	transition: background-color 0.2s ease;
 }
+
 .submit-btn:hover {
-	background-color: #c9302c;
+	background-color: #fc640d;
 }
+
 .signout-btn {
 	background-color: #6c757d;
 	color: white;
@@ -341,23 +357,28 @@ input:focus {
 	margin-bottom: 5px; /* Space below before toggle link */
 	transition: background-color 0.2s ease;
 }
+
 .signout-btn:hover {
 	background-color: #5a6268;
 }
+
 .toggle-link {
 	text-align: center;
 	margin-top: 25px;
 	font-size: 14px;
 	color: #666;
 }
+
 .toggle-link a {
-	color: #d9534f;
+	color: #c24600;
 	text-decoration: none;
 	font-weight: 600;
 	margin-left: 5px;
 }
+
 .toggle-link a:hover {
 	text-decoration: underline;
+	background-color: transparent;
 }
 
 .divider {
@@ -369,6 +390,7 @@ input:focus {
 	text-transform: uppercase;
 	position: relative;
 }
+
 .divider::before,
 .divider::after {
 	content: "";
@@ -378,23 +400,26 @@ input:focus {
 	background-color: #ddd;
 	vertical-align: middle;
 }
+
 .divider::before {
 	margin-right: 10px;
 }
+
 .divider::after {
 	margin-left: 10px;
 }
+
 .google-signin-btn {
 	background-color: #ffffff;
-	color: #444; 
-	border: 1px solid #ccc; 
+	color: #444;
+	border: 1px solid #ccc;
 	padding: 10px 15px;
 	border-radius: 5px;
 	cursor: pointer;
 	font-size: 14px;
-	font-weight: 600; 
+	font-weight: 600;
 	width: 100%;
-	margin: 0 auto 15px auto; 
+	margin: 0 auto 15px auto;
 	transition: background-color 0.2s ease, box-shadow 0.2s ease;
 	display: flex;
 	align-items: center;

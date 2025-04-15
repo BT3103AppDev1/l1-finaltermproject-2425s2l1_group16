@@ -8,10 +8,15 @@
                 <p>{{ summaryStats }}</p>
                 <div class="sub-header-buttons">
                     <div class="search-wrapper">
-                    <input type="text" placeholder="Search a company" class="search-input" />
-                    <button class="search-btn">
-                        <i class="fas fa-search"></i> 
-                    </button>
+                        <input 
+                            type="text" 
+                            placeholder="Search a company" 
+                            class="search-input" 
+                            v-model="searchQuery"
+                        />
+                        <button class="search-btn">
+                            <font-awesome-icon class="search-icon" icon="fa-solid fa-search" />
+                        </button>
                     </div>
                     <button @click="showForm = true">+ Add New Application</button>
                 </div>
@@ -38,7 +43,7 @@
                     @dragover="handleAutoScroll"
                     @wheel="handleHorizontalScroll">
                     <div
-                        v-for="(applications, status) in jobApplications"
+                        v-for="(applications, status) in filteredApplications"
                         :key="status"
                         class="column"
                         @dragover.prevent
@@ -67,7 +72,9 @@
                                 <span class="company">{{ app.company }}</span>
                                 <span class="position">{{ app.position }}</span>
                                 <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
-                                <button class="delete-btn" @click.stop="confirmDelete(app, status)">🗑️</button>
+                                <button class="delete-btn" @click.stop="confirmDelete(app, status)">
+                                    <font-awesome-icon class="trash-icon" icon="fa-solid fa-trash" />
+                                </button>
                                 <CompleteInterview 
                                     v-if="status === 'Interview'" 
                                     :company="app.company"
@@ -168,7 +175,7 @@ export default {
     components: { 
         AddApplicationForm,
         CompleteInterview,
-        ApplicationCard
+        ApplicationCard,
     },
 
     setup() {
@@ -626,6 +633,23 @@ export default {
             }
         };
 
+        // for filter function
+        const searchQuery = ref(''); 
+        const filteredApplications = computed(() => {
+            if (!searchQuery.value) {
+                return jobApplications.value;
+            } else {
+                const lowerCaseSearchQuery = searchQuery.value.toLowerCase();
+                return Object.keys(jobApplications.value).reduce((acc, status) => {
+                    acc[status] = jobApplications.value[status].filter(app =>
+                        app.company.toLowerCase().includes(lowerCaseSearchQuery) || 
+                        app.position.toLowerCase().includes(lowerCaseSearchQuery)
+                    );
+                    return acc;
+                }, {});
+            }
+        });
+
         return {
             userId,
             jobApplications,
@@ -661,6 +685,9 @@ export default {
             kanban,
             handleAutoScroll,
             handleHorizontalScroll,
+            // for filtering
+            searchQuery,
+            filteredApplications,
         };
     }
 };
@@ -694,6 +721,7 @@ export default {
   width: 100%;
   padding: 20px;
   box-sizing: border-box;
+  height: 100vh;
 }
 
 .dashboard {
@@ -708,7 +736,7 @@ export default {
     gap: 20px;
     justify-content: space-between;
     width: 100%;
-    min-height: 800px;
+    padding-bottom: 20px;
 }
 
 .cycle-list {
@@ -730,18 +758,6 @@ export default {
   align-items: center;
 }
 
-@media (min-width: 768px) {
-  .header {
-    margin-top: 100px;
-  }
-}
-
-@media (min-width: 1500px) {
-  .header {
-    margin-top: 0px;
-  }
-}
-
 .sub-header {
     font-size: 16px;
     display: flex;
@@ -752,7 +768,7 @@ export default {
 .sub-header-buttons {
     display: flex;
     justify-content: space-between;
-    gap: 30px;
+    gap: 10px;
 }
 
 .search-wrapper {
@@ -769,27 +785,23 @@ export default {
     background-color: transparent;
     padding: 8px;
     width: 170px;
-    height: 30px;
+    height: 20px;
     border-radius: 20px;
 }
 
-.search-btn {
-    background-color: transparent;
-    border: none;
-    cursor: pointer;
+.search-icon {
+    width: 15px;
 }
 
 button {
-    background-color: #007bff; /* Blue button color */
-    color: white;
+    background-color: transparent; /* Blue button color */
+    color: black;
+    font-size: 16px;
     padding: 10px 15px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-}
-
-button:hover {
-    background-color: #0056b3; /* Darker blue on hover */
+    font-weight: bold;
 }
 
 .kanban {
@@ -803,6 +815,7 @@ button:hover {
     /* hide scrolls */
     scrollbar-width: none;
     -ms-overflow-style: none; 
+    min-height: 800px;
 }
 
 /* gives the effect of hiding the highlights */
@@ -897,6 +910,10 @@ button:hover {
 
 .delete-btn:hover {
     background: lightgrey;
+}
+
+.trash-icon {
+    width: 12px;
 }
 
 .modal-content h3 {
