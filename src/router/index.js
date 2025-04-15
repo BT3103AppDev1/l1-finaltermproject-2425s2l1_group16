@@ -1,18 +1,27 @@
 import { createRouter, createWebHistory } from "vue-router";
-import Home from "../views/Home.vue";
+import { getAuth, onAuthStateChanged} from "firebase/auth";
 
 const router = createRouter({
 	history: createWebHistory(import.meta.env.BASE_URL),
 	routes: [
 		{
 			path: "/",
-			name: "home",
-			component: Home,
+			redirect: "/dashboard",
 		},
 		{
 			path: "/dashboard",
 			name: "dashboard",
 			component: () => import("../views/Dashboard.vue"),
+			beforeEnter: (to, from, next) => {
+				const auth = getAuth();
+				onAuthStateChanged(auth, (user) => {
+					if (user) {
+						next();
+					} else {
+						next("/login");
+					}
+				});
+			},
 		},
 		{
 			path: "/login",
@@ -26,5 +35,5 @@ const router = createRouter({
 		},
 	],
 });
-
+  
 export default router;

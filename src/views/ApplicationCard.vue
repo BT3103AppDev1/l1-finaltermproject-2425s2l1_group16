@@ -23,8 +23,6 @@ const closePopup = (e) => {
     <button @click="togglePopup">Open Application Information</button>
   </div>
 
-
-
   <div v-show="showPopup" id="popup-overlay" class="popup-overlay" @click="closePopup">
       <div class="application-info-pop-up">
          <!-- place X button at top right of the pop-up -->
@@ -34,8 +32,6 @@ const closePopup = (e) => {
             <h2>Application Information</h2>
             <ApplicationDetails />
           </section>
-
-            
 
           <section class="insights">
             <h2>Insights & Statistics</h2>
