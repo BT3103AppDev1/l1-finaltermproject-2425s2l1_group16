@@ -135,7 +135,7 @@ export default {
 
 				this.clearForm();
 				// Redirect after successful login
-				this.$router.push("/");
+				this.$router.push("/dashboard");
 			} catch (error) {
 				console.error(
 					"Firebase login error:",
