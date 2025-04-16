@@ -213,11 +213,13 @@ export default {
                 }
 
                 let nextQuestionNumber = await this.getNextQuestionNumber();
+                console.log('Starting question number:', nextQuestionNumber);
 
                 // Submit questions for each round
                 for (const round of this.interviewRounds) {
                     for (const entry of round.questions) {
                         const docId = `question_${nextQuestionNumber}`;
+                        console.log('Processing question:', docId);
 
                         const questionData = {
                             company: this.company,
@@ -228,44 +230,79 @@ export default {
                             userID: 1,
                             roundName: round.roundName,
                             interviewDate: round.date,
-                            status: "Checked"
+                            status: "Checked",
+                            upvoteCount: 0,
+                            reportCount: 0
                         };
 
-                        // Add the main document
-                        const questionsRef = collection(db, 'InterviewQuestions');
-                        const questionDocRef = doc(questionsRef, docId);
-                        await setDoc(questionDocRef, questionData);
+                        console.log('Question data:', questionData);
 
-                        // Create report collection
-                        const reportRef = collection(questionDocRef, 'report');
-                        await setDoc(doc(reportRef, 'insights_me'), {
-                            reasons: [],
-                            username: []
-                        });
+                        try {
+                            // Add the main document
+                            const questionsRef = collection(db, 'InterviewQuestions');
+                            const questionDocRef = doc(questionsRef, docId);
+                            await setDoc(questionDocRef, questionData);
+                            console.log('Question document created:', docId);
 
-                        // Create upvote collection
-                        const upvoteRef = collection(questionDocRef, 'upvote');
-                        await setDoc(doc(upvoteRef, 'insights_me'), {
-                            username: []
-                        });
+                            // Create report collection
+                            const reportRef = collection(questionDocRef, 'report');
+                            await setDoc(doc(reportRef, 'insights_me'), {
+                                reasons: [],
+                                username: []
+                            });
+                            console.log('Report collection created for:', docId);
 
-                        nextQuestionNumber++;
+                            // Create upvote collection
+                            const upvoteRef = collection(questionDocRef, 'upvote');
+                            await setDoc(doc(upvoteRef, 'insights_me'), {
+                                username: []
+                            });
+                            console.log('Upvote collection created for:', docId);
+
+                            nextQuestionNumber++;
+                        } catch (error) {
+                            console.error('Error creating question:', docId, error);
+                            throw new Error(`Failed to create question ${docId}: ${error.message}`);
+                        }
                     }
                 }
 
                 // Update the application with interview completion info
-                const appRef = doc(db, 'Users', 'insights_me', 'application_folder', this.appId);
-                await updateDoc(appRef, {
-                    interviewCompleted: true,
-                    interviewRounds: this.interviewRounds.length,
-                    lastInterviewDate: this.interviewRounds[this.interviewRounds.length - 1].date
-                });
+                try {
+                    // First check if the application document exists
+                    const appRef = doc(db, 'Users', 'insights_me', 'application_folder', this.appId);
+                    const appDoc = await getDocs(collection(db, 'Users', 'insights_me', 'application_folder'));
+                    
+                    console.log('Checking application document:', this.appId);
+                    console.log('Available application documents:', appDoc.docs.map(doc => doc.id));
+
+                    // Create the document if it doesn't exist
+                    const updateData = {
+                        interviewCompleted: true,
+                        interviewRounds: this.interviewRounds.length,
+                        lastInterviewDate: this.interviewRounds[this.interviewRounds.length - 1].date
+                    };
+
+                    if (!appDoc.docs.find(doc => doc.id === this.appId)) {
+                        console.log('Application document does not exist, creating new one');
+                        await setDoc(appRef, updateData);
+                    } else {
+                        console.log('Application document exists, updating');
+                        await updateDoc(appRef, updateData);
+                    }
+                    
+                    console.log('Application updated successfully');
+                } catch (error) {
+                    console.error('Error updating application:', error);
+                    // Continue even if application update fails
+                    console.log('Continuing despite application update error');
+                }
 
                 alert('Questions submitted successfully!');
                 this.closeModal();
             } catch (error) {
-                console.error('Error submitting questions:', error);
-                alert('Error submitting questions. Please try again.');
+                console.error('Error in handleSubmit:', error);
+                alert(`Error submitting questions: ${error.message}. Please try again.`);
             }
         }
     }
