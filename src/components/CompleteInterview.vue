@@ -28,6 +28,13 @@
                     >
                         Next Round →
                     </button>
+                    <button 
+                        v-if="interviewRounds.length > 1"
+                        @click.stop="deleteCurrentRound" 
+                        class="delete-round-button"
+                    >
+                        Delete Round
+                    </button>
                 </div>
 
                 <!-- Current Round Info -->
@@ -178,6 +185,14 @@ export default {
         },
         removeQuestion(index) {
             this.currentRound.questions.splice(index, 1);
+        },
+        deleteCurrentRound() {
+            if (this.interviewRounds.length > 1) {
+                this.interviewRounds.splice(this.currentRoundIndex, 1);
+                if (this.currentRoundIndex === this.interviewRounds.length) {
+                    this.currentRoundIndex--;
+                }
+            }
         },
         async getNextQuestionNumber() {
             const querySnapshot = await getDocs(collection(db, 'InterviewQuestions'));
@@ -576,5 +591,21 @@ textarea {
 
 .add-round-button:hover {
     background-color: #bbdefb;
+}
+
+.delete-round-button {
+    padding: 8px 16px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+    margin-left: 10px;
+}
+
+.delete-round-button:hover {
+    background-color: #d32f2f;
 }
 </style>
