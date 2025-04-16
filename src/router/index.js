@@ -33,6 +33,12 @@ const router = createRouter({
 			name: "registration",
 			component: () => import("../views/Register.vue"),
 		},
+		// Not Found page
+		{
+			path: "/:pathMatch(.*)*",
+			name: "NotFound",
+			component: () => import("../views/NotFound.vue"),
+		}
 	],
 });
   

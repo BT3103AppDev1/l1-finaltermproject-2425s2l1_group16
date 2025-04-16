@@ -1,7 +1,7 @@
 <template>
     <div class="modal" @click.self="$emit('close')">
         <div class="modal-content">
-            <h3>Add New Application</h3>
+            <h2>Add New Application</h2>
             <form @submit.prevent="submitApplication">
                 <label>Company:</label>
                 <input type="text" v-model="company" required />
@@ -30,10 +30,8 @@
                 />
 
                 <div class="buttons">
-                    <button type="button" @click="$emit('close')">
-                        Cancel
-                    </button>
-                    <button type="submit">Add</button>
+                    <button class="cancel-button" type="button" @click="$emit('close')">Cancel</button>
+                    <button class="add-button" type="submit">Add</button>
                 </div>
             </form>
         </div>
@@ -162,34 +160,57 @@ export default {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-input, textarea {
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #333;
+}
+
+input {
     width: 100%;
     padding: 8px;
-    margin: 5px 0;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+textarea {
+    width: 100%;
+    padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
 }
 
 .buttons {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 20px;
     margin-top: 10px;
 }
 
 button {
-    padding: 8px 12px;
+    flex: 1;
+    max-width: 100px;
+    padding: 8px 0;
     border: none;
-    background: #007bff;
-    color: white;
     border-radius: 5px;
+    background: #c24600;
+    color: white;
+    font-weight: bold;
     cursor: pointer;
+    text-align: center;
 }
 
 button:hover {
-    background: #0056b3;
+    background: #fc640d;
 }
 
 button[type="button"] {
     background: #888;
+}
+
+button[type="button"]:hover {
+    background: #666;
 }
 </style>
