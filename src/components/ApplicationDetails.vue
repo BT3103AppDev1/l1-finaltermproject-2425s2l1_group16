@@ -306,48 +306,74 @@ const display = async () => {
 const increment_upvote = async (id) => {
   let currentUser = "insights_me";
   let currentQuestions = id;
-  const userUpvoteRef = doc(
-    db,
-    "InterviewQuestions",
-    currentQuestions,
-    "upvote",
-    currentUser
-  );
   
   try {
+    // First, ensure the question document exists
+    const questionRef = doc(db, "InterviewQuestions", currentQuestions);
+    const questionDoc = await getDoc(questionRef);
+    
+    if (!questionDoc.exists()) {
+      toast.error("Question not found");
+      return;
+    }
+
+    // Reference to the upvote collection and user's upvote document
+    const upvoteCollectionRef = collection(db, "InterviewQuestions", currentQuestions, "upvote");
+    const userUpvoteRef = doc(upvoteCollectionRef, currentUser);
+    
     const docSnap = await getDoc(userUpvoteRef);
     
     if (docSnap.exists()) {
-      // User has already upvoted, remove their upvote
-      await deleteDoc(userUpvoteRef);
-      
-      // Update UI to decrease count
-      const questionIndex = questions.value.findIndex(q => q.id === id);
-      if (questionIndex !== -1) {
-        questions.value[questionIndex].upvoteCount = Math.max(0, questions.value[questionIndex].upvoteCount - 1);
+      // User has already upvoted, remove their upvote document only
+      try {
+        await deleteDoc(userUpvoteRef);
+        console.log("Successfully removed upvote");
+        
+        // Update UI to decrease count
+        const questionIndex = questions.value.findIndex(q => q.id === id);
+        if (questionIndex !== -1) {
+          questions.value[questionIndex].upvoteCount = Math.max(0, questions.value[questionIndex].upvoteCount - 1);
+        }
+      } catch (deleteError) {
+        console.error("Error removing upvote:", deleteError);
+        toast.error("Failed to remove upvote");
+        return;
       }
     } else {
       // User hasn't upvoted, add their upvote
-      await setDoc(userUpvoteRef, {
-        timestamp: new Date()
-      });
+      try {
+        await setDoc(userUpvoteRef, {
+          timestamp: new Date(),
+          userId: currentUser
+        });
 
-      // Update contribution points
-      const pointsRef = doc(db, "Users", "insights_me");
-      await updateDoc(pointsRef, {
-        contribution_pts: increment(1),
-      });
+        // Update contribution points
+        const pointsRef = doc(db, "Users", "insights_me");
+        await updateDoc(pointsRef, {
+          contribution_pts: increment(1),
+        });
 
-      // Update UI to increase count
-      const questionIndex = questions.value.findIndex(q => q.id === id);
-      if (questionIndex !== -1) {
-        questions.value[questionIndex].upvoteCount++;
+        // Update UI to increase count
+        const questionIndex = questions.value.findIndex(q => q.id === id);
+        if (questionIndex !== -1) {
+          questions.value[questionIndex].upvoteCount++;
+        }
+
+        console.log("Successfully added upvote");
+        toast.success("1 point has been added into your account!");
+      } catch (addError) {
+        console.error("Error adding upvote:", addError);
+        toast.error("Failed to add upvote");
+        return;
       }
-
-      toast.success("1 point has been added into your account!");
     }
+
+    // Verify upvote count after operation
+    const finalUpvoteSnapshot = await getDocs(upvoteCollectionRef);
+    console.log(`Current upvote count for question ${id}: ${finalUpvoteSnapshot.size}`);
+    
   } catch (error) {
-    console.error("Error updating upvote:", error);
+    console.error("Error in upvote operation:", error);
     toast.error("Failed to update upvote");
   }
 };
