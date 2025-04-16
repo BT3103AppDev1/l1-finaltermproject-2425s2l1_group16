@@ -52,6 +52,8 @@
                         <select v-model="entry.questionType" :id="'questionType' + index">
                             <option value="Technical">Technical</option>
                             <option value="Behavioral">Behavioral</option>
+                            <option value="General">General</option>
+                            <option value="Current Affairs">Current Affairs</option>
                         </select>
                         
                         <label :for="'question' + index">Question*</label>
