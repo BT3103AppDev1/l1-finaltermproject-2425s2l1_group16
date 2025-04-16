@@ -61,10 +61,9 @@ const handleConfirmedUpdate = (msg) => {
         <div class="popup-header">
           <h1 class="company-name">{{ truncatedCompany }}</h1>
           <div class="action-links">
-            <a href="#" class="link-btn" @click="switchTab('application-details')" :class="{'active-tab': activeTab === 'application-details'}">Application Details</a><span class="separator"> | </span>
-            <a href="#" class="link-btn" @click="switchTab('edit-application')" :class="{'active-tab': activeTab === 'edit-application'}">Edit Application</a><span class="separator"> | </span>
-            <a href="#" class="link-btn">Delete Application</a><span class="separator"> | </span>
-            <a href="#" class="link-btn" @click="switchTab('insights')" :class="{'active-tab': activeTab === 'insights'}">Insights & Statistics</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click.prevent="switchTab('application-details')" :class="{'active-tab': activeTab === 'application-details'}">Application Details</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click.prevent="switchTab('edit-application')" :class="{'active-tab': activeTab === 'edit-application'}">Edit Application</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click.prevent="switchTab('insights')" :class="{'active-tab': activeTab === 'insights'}">Insights & Statistics</a><span class="separator"> | </span>
             <a href="#" class="link-btn">Interview Questions</a>
           </div>
         </div>
