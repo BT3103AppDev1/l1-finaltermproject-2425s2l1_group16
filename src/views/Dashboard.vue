@@ -3,6 +3,9 @@
         <div class="dashboard">
             <div class="header">
                 <h1>Summer Intern 2025</h1>
+                <!-- for testing-->
+                <h3>Testing: Welcome {{ userId }}!</h3>
+                <button @click="signOutUser" class="logout-btn">Log Out</button>
             </div>
             <div class="sub-header">
                 <p>{{ summaryStats }}</p>
@@ -163,9 +166,11 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
+import { useRouter } from 'vue-router';
 import { db } from "@/firebase";
 import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc, query, where } from "firebase/firestore";
+import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { DateTime } from 'luxon';
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
 import ApplicationCard from '@/components/ApplicationCard.vue';
@@ -179,8 +184,23 @@ export default {
     },
 
     setup() {
-        // CHANGE!!!!
-        const userId = ref('insights_me');
+        // for logout (testing)
+        const signOutUser = async () => {
+            const auth = getAuth();
+            try {
+                await signOut(auth);
+                console.log("User signed out successfully.");
+                userId.value = null;
+                router.push("/login");
+            } catch (error) {
+                console.error("Sign out error:", error);
+            }
+        };
+
+        const userId = ref(null);
+        const router = useRouter();
+
+        // userId.value = 'insights_me';
 
         const selectedAppId = ref(null);
         const showPopup = ref(false);
@@ -266,6 +286,11 @@ export default {
         };
 
         const loadApplications = async () => {
+            if (!userId.value) {
+                console.log('User ID is not set. Waiting...');
+                return; 
+            }
+
             const applicationsRef = collection(
                 db,
                 "Users",
@@ -287,7 +312,6 @@ export default {
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
                 const status = data.status;
-
                 const stages = data.stages;
                 console.log(stages)
 
@@ -326,7 +350,25 @@ export default {
             });
         };
 
+        watch(userId, (newUserId) => {
+            if (newUserId) {
+                loadApplications(); 
+            }
+        });
+
         onMounted(() => {
+            const auth = getAuth();
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId.value = user.uid; 
+                    console.log("Logged in!", userId.value);
+                } else {
+                    router.push('/login');
+                    console.log("Not logged in..");
+                }
+            });
+            
             loadApplications();
         });
 
@@ -651,7 +693,10 @@ export default {
         });
 
         return {
+            // testing
+            signOutUser,
             userId,
+            router,
             jobApplications,
             statusLabels,
             dragStart,

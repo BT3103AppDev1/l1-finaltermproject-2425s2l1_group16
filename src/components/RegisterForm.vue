@@ -257,7 +257,7 @@ export default {
 				this.clearForm();
 				// Redirect after successful registration
 
-				this.$router.push("/");
+				this.$router.push("/dashboard");
 			} catch (error) {
 				console.error(
 					"Firebase registration error:",
@@ -297,11 +297,10 @@ export default {
 					console.log(
 						"Existing user detected via Google Sign-In (RegisterForm)."
 					);
-					// Optional: Update last login time or other details for existing user
 				}
 
 				this.clearForm();
-				this.$router.push("/"); // Redirect after successful Google login
+				this.$router.push("/dashboard"); // Redirect after successful Google login
 			} catch (error) {
 				console.error(
 					"Google Sign-In Error:",
