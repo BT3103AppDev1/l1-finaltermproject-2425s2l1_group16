@@ -266,7 +266,7 @@ const fetchQuestions = async () => {
 
     // Get upvote and report counts
     for (const question of questions.value) {
-      // Get upvote count
+      // Get upvote count by counting documents in upvote collection
       const upvoteCollection = collection(db, "InterviewQuestions", question.id, "upvote");
       const upvoteSnapshot = await getDocs(upvoteCollection);
       question.upvoteCount = upvoteSnapshot.size;
@@ -306,7 +306,7 @@ const display = async () => {
 const increment_upvote = async (id) => {
   let currentUser = "insights_me";
   let currentQuestions = id;
-  const userRef = doc(
+  const userUpvoteRef = doc(
     db,
     "InterviewQuestions",
     currentQuestions,
@@ -315,10 +315,11 @@ const increment_upvote = async (id) => {
   );
   
   try {
-    const docSnap = await getDoc(userRef);
+    const docSnap = await getDoc(userUpvoteRef);
+    
     if (docSnap.exists()) {
-      // User has already upvoted, so remove their upvote
-      await deleteDoc(userRef);
+      // User has already upvoted, remove their upvote
+      await deleteDoc(userUpvoteRef);
       
       // Update UI to decrease count
       const questionIndex = questions.value.findIndex(q => q.id === id);
@@ -326,13 +327,12 @@ const increment_upvote = async (id) => {
         questions.value[questionIndex].upvoteCount = Math.max(0, questions.value[questionIndex].upvoteCount - 1);
       }
     } else {
-      // User hasn't upvoted yet, add their upvote
-      await setDoc(userRef, {
-        username: currentUser,
+      // User hasn't upvoted, add their upvote
+      await setDoc(userUpvoteRef, {
         timestamp: new Date()
       });
-      
-      // Update contribution points only when adding an upvote
+
+      // Update contribution points
       const pointsRef = doc(db, "Users", "insights_me");
       await updateDoc(pointsRef, {
         contribution_pts: increment(1),
@@ -353,7 +353,7 @@ const increment_upvote = async (id) => {
 };
 
 const increment_report = async (id) => {
-  let currentUser = "insights_me";
+  let currentUser = "iNAdIQiZmbWgjuWqTlU15PjYp4l1"; // Using the actual UID
   let currentQuestions = id;
 
   try {
@@ -375,13 +375,19 @@ const increment_report = async (id) => {
       const data = reportDoc.data();
       currentReasons = data.reasons || [];
       currentUsernames = data.username || [];
+
+      // Check if user has already reported
+      if (currentUsernames.includes(currentUser)) {
+        toast.error("You have already reported this question");
+        showPopup.value = false;
+        selectedReason.value = null;
+        return;
+      }
     }
 
     // Add new reason and username to the lists
     currentReasons.push(selectedReason.value);
-    if (!currentUsernames.includes(currentUser)) {
-      currentUsernames.push(currentUser);
-    }
+    currentUsernames.push(currentUser);
 
     // Update document with new lists
     await setDoc(reportRef, {
@@ -393,12 +399,11 @@ const increment_report = async (id) => {
     // Update the UI
     const questionIndex = questions.value.findIndex(q => q.id === currentQuestions);
     if (questionIndex !== -1) {
-      questions.value[questionIndex].reportCount++;
+      questions.value[questionIndex].reportCount = currentUsernames.length;
     }
 
     // Check if report count exceeds threshold
-    const allReports = await getDocs(collection(db, "InterviewQuestions", currentQuestions, "report"));
-    if (allReports.size >= 9) {
+    if (currentUsernames.length >= 9) {
       const questionRef = doc(db, "InterviewQuestions", currentQuestions);
       await updateDoc(questionRef, {
         status: "Removed"

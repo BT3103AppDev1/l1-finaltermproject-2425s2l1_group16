@@ -259,20 +259,20 @@ export default {
                             await setDoc(questionDocRef, questionData);
                             console.log('Question document created:', docId);
 
-                            // Create report collection
+                            // Create upvote collection with empty username array
+                            const upvoteRef = collection(questionDocRef, 'upvote');
+                            await setDoc(doc(upvoteRef, 'insights_me'), {
+                                username: [] // Array that will store user UIDs who upvoted
+                            });
+                            console.log('Upvote collection created for:', docId);
+
+                            // Create report collection with empty arrays
                             const reportRef = collection(questionDocRef, 'report');
                             await setDoc(doc(reportRef, 'insights_me'), {
                                 reasons: [],
                                 username: []
                             });
                             console.log('Report collection created for:', docId);
-
-                            // Create upvote collection
-                            const upvoteRef = collection(questionDocRef, 'upvote');
-                            await setDoc(doc(upvoteRef, 'insights_me'), {
-                                username: []
-                            });
-                            console.log('Upvote collection created for:', docId);
 
                             nextQuestionNumber++;
                         } catch (error) {
