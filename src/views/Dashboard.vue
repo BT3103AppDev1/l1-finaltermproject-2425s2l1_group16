@@ -2,10 +2,18 @@
     <div class="dashboard-wrapper">
         <div class="dashboard">
             <div class="header">
-                <h1>Summer Intern 2025</h1>
-                <!-- for testing-->
-                <h3>Testing: Welcome {{ userId }}!</h3>
-                <button @click="signOutUser" class="logout-btn">Log Out</button>
+                <div class="logo-title-wrapper">
+                    <img src="../assets/logo-placeholder.png" alt="InternTrack Logo" class="logo-img" />
+                    <h1 class="main-title">Summer Intern 2025</h1>
+                </div>
+                <div class="profile-icon">
+                    <font-awesome-icon icon="fa-solid fa-user-circle" />
+                </div>
+            </div>
+            <!-- for testing, please delete later -->
+            <div class="sub-header">
+                <p>For testing only: Welcome {{ userId }}!</p>
+                <button @click="signOutUser">Log Out</button>
             </div>
             <div class="sub-header">
                 <p>{{ summaryStats }}</p>
@@ -142,7 +150,11 @@
     </teleport>
 
     <teleport to="body">
-        <div v-if="showDeleteModal" class="modal-overlay">
+        <div 
+            v-if="showDeleteModal" 
+            class="modal-overlay"
+            @click.self="showDeleteModal = false"
+        >
             <div class="modal-content">
                  <h3>Are you sure you want to delete this application?</h3>
                  <p>This action cannot be undone.</p>
@@ -675,7 +687,24 @@ export default {
             }
         };
 
-        // for filter function
+        // when pop-up is opened, only scroll the pop-ups
+        watch(showPopup, (newVal) => {
+            if (newVal) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        });
+
+        watch(showForm, (newVal) => {
+            if (newVal) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        });
+
+        // for searching filter function
         const searchQuery = ref(''); 
         const filteredApplications = computed(() => {
             if (!searchQuery.value) {
@@ -739,6 +768,20 @@ export default {
 </script>
 
 <style scoped>
+.logo-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-img {
+    height: 50px;
+    width: 50px;
+    border-radius: 50%; 
+    object-fit: cover;
+    border: 2px solid #c24600; 
+}
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -803,6 +846,12 @@ export default {
   align-items: center;
 }
 
+.profile-icon {
+  font-size: 40px;
+  color: #333;
+  cursor: pointer;
+}
+
 .sub-header {
     font-size: 16px;
     display: flex;
@@ -820,7 +869,7 @@ export default {
     display: flex;
     align-items: center;
     background-color: #c2470064;
-    padding: 5px 10px;
+    padding: 0px 10px;
     border-radius: 20px;
 }
 
