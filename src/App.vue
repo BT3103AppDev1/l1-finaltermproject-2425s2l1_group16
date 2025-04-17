@@ -5,8 +5,23 @@
 </template>
 
 <script>
+import { onMounted } from 'vue'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
+import { resetPoints } from './utils/resetPoints'
+
 export default {
-  name: 'App'
+  name: 'App',
+  setup() {
+    const auth = getAuth();
+
+    onMounted(() => {
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          await resetPoints();
+        }
+      });
+    });
+  }
 }
 </script>
 
