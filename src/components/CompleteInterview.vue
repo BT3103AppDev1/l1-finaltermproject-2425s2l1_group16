@@ -125,6 +125,7 @@ import {
   setDoc,
   doc,
   updateDoc,
+  increment
 } from "firebase/firestore";
 import { Filter } from "bad-words";
 import { getAuth } from "firebase/auth";
@@ -325,7 +326,6 @@ export default {
               // Get current user
               const auth = getAuth();
               const user = auth.currentUser;
-              console.log(user.uid);
 
               // Add the main document
               const questionsRef = collection(db, "InterviewQuestions");

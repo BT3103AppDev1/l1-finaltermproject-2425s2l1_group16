@@ -231,7 +231,7 @@ const report_counter = ref(0);
 // Get current user
 const auth = getAuth();
 const user = auth.currentUser;
-console.log(user.uid);
+
 
 const reasons = [
   "Sexual content",
