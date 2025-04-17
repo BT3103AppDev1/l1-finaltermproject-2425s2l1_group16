@@ -21,7 +21,7 @@
                     <div class="search-wrapper">
                         <input 
                             type="text" 
-                            placeholder="Search a company" 
+                            placeholder="Search a company or role" 
                             class="search-input" 
                             v-model="searchQuery"
                         />
@@ -113,38 +113,45 @@
     <teleport to="body">
         <div v-if="showDropConfirmModal" class="modal-overlay" @click.self="showDropConfirmModal = false">
             <div class="modal-content">
-            <h3>Confirm Status Change</h3>
-            <p>
-            You are moving <strong>{{ pendingDrop?.app.company }}</strong>
-            to <strong>{{ pendingDrop?.to }}</strong><br/>
-            </p>
+                <h3>Confirm Status Change</h3>
+                <p>
+                You are moving the application <strong style="font-weight: bold;">"{{ pendingDrop?.app.company }}"</strong>
+                to <strong style="font-weight: bold;">{{ pendingDrop?.to }}</strong>:
+                </p>
 
-            <!-- only when you are shifting to interview or assessment statuses -->
-            <div v-if="pendingDrop?.to === 'Interview' || pendingDrop?.to === 'Assessment'">
-                <label for="stageName">Enter Stage Name:</label>
-                <input
-                    type="text"
-                    id="stageName"
-                    v-model="stageName"
-                    placeholder="Enter stage name"
-                />
-            </div>
+                <!-- only when you are shifting to interview or assessment statuses -->
+                <div v-if="pendingDrop?.to === 'Interview' || pendingDrop?.to === 'Assessment'">
+                    <div class="input-group">
+                        <label for="stageName">Enter Stage Name:</label>
+                        <input
+                            type="text"
+                            id="stageName"
+                            v-model="stageName"
+                            placeholder="Enter stage name"
+                            class="input-field"
+                            required
+                        />
+                    </div>
+                </div>
 
-            <div v-if="pendingDrop?.to !== 'Applied' && pendingDrop?.to !== 'Turned Down'">
-                <label for="responseDate">Select Response Date:</label>
-                <input
-                    type="date"
-                    id="responseDate"
-                    v-model="responseDate"
-                    :max="maxDate"
-                    required
-                />
-            </div>
+                <div v-if="pendingDrop?.to !== 'Applied' && pendingDrop?.to !== 'Turned Down'">
+                    <div class="input-group">
+                        <label for="responseDate">Select Response Date:</label>
+                        <input
+                            type="date"
+                            id="responseDate"
+                            v-model="responseDate"
+                            :max="maxDate"
+                            class="input-field"
+                            required
+                        />
+                    </div>
+                </div>
 
-            <div class="modal-actions">
-                <button @click="confirmDropStatus">Confirm</button>
-                <button @click="showDropConfirmModal = false">Cancel</button>
-            </div>
+                <div class="modal-actions">
+                    <button @click="confirmDropStatus" class="confirm-button">Confirm</button>
+                    <button @click="showDropConfirmModal = false" class="cancel-button">Cancel</button>
+                </div>
             </div>
         </div>
     </teleport>
@@ -159,8 +166,8 @@
                  <h3>Are you sure you want to delete this application?</h3>
                  <p>This action cannot be undone.</p>
                 <div class="modal-actions">
-                    <button @click="performDelete">Delete</button>
-                    <button @click="showDeleteModal = false">Cancel</button>
+                    <button @click="performDelete" class="delete-button">Delete</button>
+                    <button @click="showDeleteModal = false" class="cancel-button">Cancel</button>
                 </div>
             </div>
         </div>
@@ -583,14 +590,13 @@ export default {
                     }
                 }
 
-                // makes updates["working_days"] = 0
-                if (totalWorkingDays < 0) {
-                    updates["working_days"] = 0;
+                // makes updates["average_working_days"] = 0
+                if (totalWorkingDays <= 0) {
+                    updates["average_working_days"] = 0;
                 // minus to account for the intervals between each stage transition
                 } else {
-                    updates["working_days"] = totalWorkingDays - (stagesWithDates.length);
+                    updates["average_working_days"] = Math.round((totalWorkingDays - (stagesWithDates.length)) / (stagesWithDates.length));
                 }
-                updates["average_working_days"] = Math.round((totalWorkingDays - (stagesWithDates.length)) / (stagesWithDates.length));
                 updates["response_days_map"] = { ...responseDaysMap };
                 //
 
@@ -1012,10 +1018,11 @@ button {
 
 .modal-content h3 {
     margin: 0 0 10px;
+    font-weight: bold;
 }
 
 .modal-content p {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .modal-actions {
@@ -1031,12 +1038,38 @@ button {
     cursor: pointer;
 }
 
-.modal-actions button:first-child {
-    background-color: red;
-    color: white;
+.input-group {
+    margin-bottom: 15px;
 }
 
-.modal-actions button:last-child {
+.input-field {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+}
+
+.confirm-button, .delete-button {
+    width: 100px;
+    padding: 8px 0;
+    border: none;
+    border-radius: 5px;
+    background-color: #c24600;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+}
+
+.delete-button {
+    background-color: red;
+}
+
+.confirm-button:hover {
+    background: #fc640d;
+}
+
+.cancel-button {
+    width: 100px;
     background-color: #e2e8f0;
     color: #334155;
 }
