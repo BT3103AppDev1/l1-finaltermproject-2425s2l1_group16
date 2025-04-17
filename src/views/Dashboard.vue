@@ -435,9 +435,9 @@ export default {
                 }
                 
                 const movedApp = columnApps.splice(sourceIndex.value, 1)[0];
-
                 columnApps.splice(dropIndex, 0, movedApp);
 
+                // shifting the ranks around within the same status
                 for (let i = 0; i < columnApps.length; i++) {
                     const appRef = doc(db, "Users", userId.value, "application_folder", columnApps[i].id);
                     await updateDoc(appRef, { rank: i });
@@ -463,22 +463,6 @@ export default {
             };
 
             showDropConfirmModal.value = true;
-
-            // edit ranks of new status
-            const targetColumn = jobApplications.value[newStatus];
-            for (let i = 0; i < targetColumn.length; i++) {
-                const app = targetColumn[i];
-                const appRef = doc(db, "Users", userId.value, "application_folder", app.id);
-                await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
-            }
-            const appRef = doc(db, "Users", userId.value, "application_folder", draggedApplication.value.id);
-            await updateDoc(appRef, { rank: 0 });
-            const sourceDocRef = doc(db, "Users", userId.value, "application_folder", draggedApplication.value.id);
-            const updates = {
-                status: newStatus,
-                last_updated: statusUpdateDate,
-            };
-            await updateDoc(sourceDocRef, updates);
 
             // Clear drag state
             draggedApplication.value = null;
@@ -638,6 +622,14 @@ export default {
 
                 // Update Firestore
                 await updateDoc(sourceDocRef, updates);
+
+                // edit ranks of new status
+                const targetColumn = jobApplications.value[to];
+                for (let i = 0; i < targetColumn.length; i++) {
+                    const app = targetColumn[i];
+                    const appRef = doc(db, "Users", userId.value, "application_folder", app.id);
+                    await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
+                }
 
                 // Remove the application from the old column
                 jobApplications.value[from] = jobApplications.value[from].filter(
