@@ -30,8 +30,8 @@
                 />
 
                 <div class="buttons">
-                    <button class="cancel-button" type="button" @click="$emit('close')">Cancel</button>
                     <button class="add-button" type="submit">Add</button>
+                    <button class="cancel-button" type="button" @click="$emit('close')">Cancel</button>
                 </div>
             </form>
         </div>
@@ -206,11 +206,9 @@ button:hover {
     background: #fc640d;
 }
 
-button[type="button"] {
-    background: #888;
-}
-
-button[type="button"]:hover {
-    background: #666;
+.cancel-button {
+    width: 100px;
+    background-color: #e2e8f0;
+    color: #334155;
 }
 </style>
