@@ -83,9 +83,14 @@
                                 <span class="company">{{ app.company }}</span>
                                 <span class="position">{{ app.position }}</span>
                                 <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
-                                <button class="delete-btn" @click.stop="confirmDelete(app, status)">
-                                    <font-awesome-icon class="trash-icon" icon="fa-solid fa-trash" />
-                                </button>
+                                <div class="task-buttons">
+                                    <button v-if="status === 'Interview' || status === 'Assessment'" class="add-btn">
+                                        <font-awesome-icon class="add-icon" icon="fa-solid fa-plus" />
+                                    </button>
+                                    <button class="delete-btn" @click.stop="confirmDelete(app, status)">
+                                        <font-awesome-icon class="trash-icon" icon="fa-solid fa-trash" />
+                                    </button>
+                                </div>
                                 <CompleteInterview 
                                     v-if="status === 'Interview'" 
                                     :company="app.company"
@@ -435,9 +440,9 @@ export default {
                 }
                 
                 const movedApp = columnApps.splice(sourceIndex.value, 1)[0];
-
                 columnApps.splice(dropIndex, 0, movedApp);
 
+                // shifting the ranks around within the same status
                 for (let i = 0; i < columnApps.length; i++) {
                     const appRef = doc(db, "Users", userId.value, "application_folder", columnApps[i].id);
                     await updateDoc(appRef, { rank: i });
@@ -463,22 +468,6 @@ export default {
             };
 
             showDropConfirmModal.value = true;
-
-            // edit ranks of new status
-            const targetColumn = jobApplications.value[newStatus];
-            for (let i = 0; i < targetColumn.length; i++) {
-                const app = targetColumn[i];
-                const appRef = doc(db, "Users", userId.value, "application_folder", app.id);
-                await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
-            }
-            const appRef = doc(db, "Users", userId.value, "application_folder", draggedApplication.value.id);
-            await updateDoc(appRef, { rank: 0 });
-            const sourceDocRef = doc(db, "Users", userId.value, "application_folder", draggedApplication.value.id);
-            const updates = {
-                status: newStatus,
-                last_updated: statusUpdateDate,
-            };
-            await updateDoc(sourceDocRef, updates);
 
             // Clear drag state
             draggedApplication.value = null;
@@ -639,6 +628,14 @@ export default {
                 // Update Firestore
                 await updateDoc(sourceDocRef, updates);
 
+                // edit ranks of new status
+                const targetColumn = jobApplications.value[to];
+                for (let i = 0; i < targetColumn.length; i++) {
+                    const app = targetColumn[i];
+                    const appRef = doc(db, "Users", userId.value, "application_folder", app.id);
+                    await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
+                }
+
                 // Remove the application from the old column
                 jobApplications.value[from] = jobApplications.value[from].filter(
                     (item) => item.id !== app.id
@@ -661,6 +658,10 @@ export default {
                     last_status_date: formattedLastStatusDate,
                     rank: 0,
                 });
+
+                // clear inputs after confirmation
+                stageName.value = "";
+                responseDate.value = DateTime.now().setZone('Asia/Singapore').toISODate();
 
                 showDropConfirmModal.value = false;
                 pendingDrop.value = null;
@@ -996,6 +997,18 @@ button {
     cursor: grab;
 }
 
+.add-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 80%;
+    position: absolute;
+    top: 7px;
+    right: 25px;
+}
+
 .delete-btn {
     background: none;
     border: none;
@@ -1004,12 +1017,12 @@ button {
     padding: 8px 12px;
     border-radius: 80%;
     position: absolute;
-    top: 5px;
+    top: 7px;
     right: 2px;
 }
 
-.delete-btn:hover {
-    background: lightgrey;
+.delete-btn:hover, .add-btn:hover {
+    background: rgba(211, 211, 211, 0.8);
 }
 
 .trash-icon {

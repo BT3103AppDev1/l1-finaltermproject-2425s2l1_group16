@@ -211,4 +211,8 @@ button:hover {
     background-color: #e2e8f0;
     color: #334155;
 }
+
+.cancel-button:hover {
+    background: #e2e8f0;
+}
 </style>
