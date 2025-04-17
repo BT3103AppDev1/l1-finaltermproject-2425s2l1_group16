@@ -6,12 +6,12 @@ import "./firebase";
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faThumbsUp, faFlag } from '@fortawesome/free-regular-svg-icons'
-import { faSearch, faTrash, faUserCircle } from '@fortawesome/free-solid-svg-icons'
+import { faSearch, faTrash, faUserCircle, faPlus } from '@fortawesome/free-solid-svg-icons'
 import Toast, { POSITION } from "vue-toastification";
 import "vue-toastification/dist/index.css";
 
 /* add icons to the library */
-library.add(faThumbsUp, faFlag, faSearch, faTrash, faUserCircle)
+library.add(faThumbsUp, faFlag, faSearch, faTrash, faUserCircle, faPlus)
 
 const app = createApp(App)
 

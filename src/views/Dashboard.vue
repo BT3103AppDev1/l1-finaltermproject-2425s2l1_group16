@@ -83,9 +83,14 @@
                                 <span class="company">{{ app.company }}</span>
                                 <span class="position">{{ app.position }}</span>
                                 <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
-                                <button class="delete-btn" @click.stop="confirmDelete(app, status)">
-                                    <font-awesome-icon class="trash-icon" icon="fa-solid fa-trash" />
-                                </button>
+                                <div class="task-buttons">
+                                    <button v-if="status === 'Interview' || status === 'Assessment'" class="add-btn">
+                                        <font-awesome-icon class="add-icon" icon="fa-solid fa-plus" />
+                                    </button>
+                                    <button class="delete-btn" @click.stop="confirmDelete(app, status)">
+                                        <font-awesome-icon class="trash-icon" icon="fa-solid fa-trash" />
+                                    </button>
+                                </div>
                                 <CompleteInterview 
                                     v-if="status === 'Interview'" 
                                     :company="app.company"
@@ -654,6 +659,10 @@ export default {
                     rank: 0,
                 });
 
+                // clear inputs after confirmation
+                stageName.value = "";
+                responseDate.value = DateTime.now().setZone('Asia/Singapore').toISODate();
+
                 showDropConfirmModal.value = false;
                 pendingDrop.value = null;
             } catch (err) {
@@ -988,6 +997,18 @@ button {
     cursor: grab;
 }
 
+.add-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 80%;
+    position: absolute;
+    top: 7px;
+    right: 25px;
+}
+
 .delete-btn {
     background: none;
     border: none;
@@ -996,12 +1017,12 @@ button {
     padding: 8px 12px;
     border-radius: 80%;
     position: absolute;
-    top: 5px;
+    top: 7px;
     right: 2px;
 }
 
-.delete-btn:hover {
-    background: lightgrey;
+.delete-btn:hover, .add-btn:hover {
+    background: rgba(211, 211, 211, 0.8);
 }
 
 .trash-icon {
