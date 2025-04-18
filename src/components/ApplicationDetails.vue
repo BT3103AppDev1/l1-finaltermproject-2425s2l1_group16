@@ -279,10 +279,34 @@ onMounted(async () => {
 });
 
 const sortedStages = computed(() => {
-  return Object.entries(stages.value || {}).sort((a, b) => new Date(a[1].date) - new Date(b[1].date));
+  const entries = Object.entries(stages.value || {});
+  
+  return entries.sort((a, b) => {
+    // Extract stage type and number
+    const [aKey, aValue] = a;
+    const [bKey, bValue] = b;
+    
+    // If both are interview stages, sort by number
+    if (aKey.startsWith('interview_') && bKey.startsWith('interview_')) {
+      const aNum = parseInt(aKey.split('_')[1]);
+      const bNum = parseInt(bKey.split('_')[1]);
+      return aNum - bNum;
+    }
+    
+    // If only one is an interview stage, maintain relative position
+    if (aKey.startsWith('interview_')) return 1;
+    if (bKey.startsWith('interview_')) return -1;
+    
+    // For non-interview stages, sort by date
+    return new Date(aValue.date) - new Date(bValue.date);
+  });
 });
 
 const formatStageLabel = (key) => {
+  const stage = stages.value[key];
+  if (stage && stage.name && key.startsWith('interview_')) {
+    return stage.name;  // Return the custom name if it exists for interview stages
+  }
   return key.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
 };
 // filter for status to get colour
