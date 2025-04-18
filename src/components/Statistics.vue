@@ -361,6 +361,7 @@ const hasBarData = computed(() => totalBarUsers.value >= 10);
     flex-direction: column;
     gap: 16px;
     margin: auto;
+    padding: 12px;
 }
 
 .statistics-container {

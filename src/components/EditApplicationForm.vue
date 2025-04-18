@@ -121,50 +121,51 @@ defineExpose({ saveAutoFields });
 
 <style scoped>
 .edit-application-form {
-display: flex;
-flex-direction: column;
-gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
 }
 
 .form-group {
-display: flex;
-flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group label {
-font-weight: bold;
-margin-bottom: 4px;
+  font-weight: bold;
+  margin-bottom: 4px;
 }
 
 input,
 textarea {
-padding: 8px;
-border: 1px solid #ccc;
-border-radius: 6px;
-font-size: 1rem;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
 }
 
 .update-btn {
-padding: 10px;
-background-color: #3b82f6;
-color: white;
-border: none;
-border-radius: 6px;
-cursor: pointer;
+  padding: 10px;
+  background-color: #c24600;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .update-btn:hover {
-background-color: #2563eb;
+  background-color: #fc640d;
 }
 
 .toggle-btn {
-background: none;
-border: none;
-color: #3b82f6;
-font-size: 0.875rem;
-cursor: pointer;
-padding: 4px 8px;
-margin-top: 6px;
-width: fit-content;
+  background: none;
+  border: none;
+  color: #c24600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-top: 6px;
+  width: fit-content;
 }
 </style>
