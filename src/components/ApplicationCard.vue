@@ -10,8 +10,6 @@ defineProps({
   userId: String,
 });
 
-
-
 // to close pop-up when clicked outside of the pop-up + update the clicktoedit fields
 const editFormRef = ref(null); 
 const emit = defineEmits(['close']);
@@ -79,10 +77,9 @@ const handleConfirmedUpdate = (msg) => {
         <div class="popup-header">
           <h1 class="company-name">{{ truncatedCompany }}</h1>
           <div class="action-links">
-            <a href="#" class="link-btn" @click="switchTab('application-details')" :class="{'active-tab': activeTab === 'application-details'}">Application Details</a><span class="separator"> | </span>
-            <a href="#" class="link-btn" @click="switchTab('edit-application')" :class="{'active-tab': activeTab === 'edit-application'}">Edit Application</a><span class="separator"> | </span>
-            <a href="#" class="link-btn">Delete Application</a><span class="separator"> | </span>
-            <a href="#" class="link-btn" @click="switchTab('insights')" :class="{'active-tab': activeTab === 'insights'}">Insights & Statistics</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click.prevent="switchTab('application-details')" :class="{'active-tab': activeTab === 'application-details'}">Application Details</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click.prevent="switchTab('edit-application')" :class="{'active-tab': activeTab === 'edit-application'}">Edit Application</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click.prevent="switchTab('insights')" :class="{'active-tab': activeTab === 'insights'}">Insights & Statistics</a><span class="separator"> | </span>
             <a href="#" class="link-btn">Interview Questions</a>
           </div>
         </div>
@@ -99,16 +96,16 @@ const handleConfirmedUpdate = (msg) => {
           <section v-if="activeTab === 'edit-application'" class="application-info">
             <h2 class="application-details-title">Edit Application</h2>
             <EditApplicationForm
-            ref="editFormRef"
-            :appId="appId"
-            :userId="userId"
-            @application-updated="handleConfirmedUpdate"
-            @auto-save-update="showToast('Application Updated (Auto-Saved)')"
+              ref="editFormRef"
+              :appId="appId"
+              :userId="userId"
+              @application-updated="handleConfirmedUpdate"
+              @auto-save-update="showToast('Application Updated (Auto-Saved)')"
             />
 
           </section>
           <section v-if="activeTab === 'insights'" class="insights">
-            <h2 class="insights-title">Insights & Statistics</h2>
+            <h2 class="application-details-title">Insights & Statistics</h2>
             <Statistics 
               :appId="appId" 
               :userId="userId" 
@@ -139,7 +136,9 @@ const handleConfirmedUpdate = (msg) => {
 }
 
 .insights-title {
-  padding-bottom: 12px;
+  padding: 12px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .company-name {
@@ -237,5 +236,4 @@ const handleConfirmedUpdate = (msg) => {
   font-weight: bold;
   
 }
-
 </style>

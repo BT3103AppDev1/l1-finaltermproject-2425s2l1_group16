@@ -2,9 +2,22 @@
     <div class="dashboard-wrapper">
         <div class="dashboard">
             <div class="header">
-                <h1>Summer Intern 2025</h1>
-                <h3>Testing: Welcome {{ userId }}!</h3>
-                <button @click="signOutUser" class="logout-btn">Log Out</button>
+                <div class="logo-title-wrapper">
+                    <img
+                        src="../assets/logo-placeholder.png"
+                        alt="InternTrack Logo"
+                        class="logo-img"
+                    />
+                    <h1 class="main-title">Summer Intern 2025</h1>
+                </div>
+                <div class="profile-icon">
+                    <font-awesome-icon icon="fa-solid fa-user-circle" />
+                </div>
+            </div>
+            <!-- for testing, please delete later -->
+            <div class="sub-header">
+                <p>For testing only: Welcome {{ userId }}!</p>
+                <button @click="signOutUser">Log Out</button>
             </div>
             <div class="sub-header">
                 <p>{{ summaryStats }}</p>
@@ -12,7 +25,7 @@
                     <div class="search-wrapper">
                         <input
                             type="text"
-                            placeholder="Search a company"
+                            placeholder="Search a company or role"
                             class="search-input"
                             v-model="searchQuery"
                         />
@@ -112,19 +125,34 @@
                                     >{{ app.status }} on
                                     {{ app.last_status_date }}</span
                                 >
-                                <button
-                                    class="delete-btn"
-                                    @click.stop="confirmDelete(app, status)"
-                                >
-                                    <font-awesome-icon
-                                        class="trash-icon"
-                                        icon="fa-solid fa-trash"
-                                    />
-                                </button>
+                                <div class="task-buttons">
+                                    <button
+                                        v-if="status === 'Interview'"
+                                        class="add-btn"
+                                        @click.stop="
+                                            openAddInterviewModal(app.id)
+                                        "
+                                    >
+                                        <font-awesome-icon
+                                            class="add-icon"
+                                            icon="fa-solid fa-plus"
+                                        />
+                                    </button>
+                                    <button
+                                        class="delete-btn"
+                                        @click.stop="confirmDelete(app, status)"
+                                    >
+                                        <font-awesome-icon
+                                            class="trash-icon"
+                                            icon="fa-solid fa-trash"
+                                        />
+                                    </button>
+                                </div>
                                 <CompleteInterview
                                     v-if="status === 'Interview'"
                                     :company="app.company"
                                     :role="app.position"
+                                    :appId="app.id"
                                 />
                             </div>
                         </div>
@@ -235,7 +263,11 @@
     </teleport>
 
     <teleport to="body">
-        <div v-if="showDeleteModal" class="modal-overlay">
+        <div
+            v-if="showDeleteModal"
+            class="modal-overlay"
+            @click.self="showDeleteModal = false"
+        >
             <div class="modal-content">
                 <h3>
                     Are you sure you want to delete "{{
@@ -259,6 +291,62 @@
             :userId="userId"
             @close="closePopup"
         />
+    </teleport>
+
+    <teleport to="body">
+        <div
+            v-if="showAddInterviewModal"
+            class="modal-overlay"
+            @click.self="showAddInterviewModal = false"
+        >
+            <div class="modal-content">
+                <h3>Add New Interview Stage</h3>
+                <div class="input-group">
+                    <label>Stage Key:</label>
+                    <input
+                        type="text"
+                        :value="`Interview Number: ${
+                            computedInterviewKey.split('_')[1]
+                        }`"
+                        disabled
+                        class="input-field"
+                    />
+                </div>
+                <div class="input-group">
+                    <label for="customStageName">Stage Name:</label>
+                    <input
+                        type="text"
+                        id="customStageName"
+                        v-model="customStageName"
+                        placeholder="e.g., HR Interview"
+                        class="input-field"
+                    />
+                </div>
+                <div class="input-group">
+                    <label for="newInterviewDate">Select Date:</label>
+                    <input
+                        type="date"
+                        id="newInterviewDate"
+                        v-model="newInterviewDate"
+                        class="input-field"
+                    />
+                </div>
+                <div class="modal-actions">
+                    <button
+                        class="confirm-button"
+                        @click="addInterviewSubStage"
+                    >
+                        Confirm
+                    </button>
+                    <button
+                        class="cancel-button"
+                        @click="showAddInterviewModal = false"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
     </teleport>
 </template>
 
@@ -907,9 +995,9 @@ export default {
                 }
 
                 const movedApp = columnApps.splice(sourceIndex.value, 1)[0];
-
                 columnApps.splice(dropIndex, 0, movedApp);
 
+                // shifting the ranks around within the same status
                 for (let i = 0; i < columnApps.length; i++) {
                     const appRef = doc(
                         db,
@@ -941,40 +1029,6 @@ export default {
             };
 
             showDropConfirmModal.value = true;
-
-            // edit ranks of new status
-            const targetColumn = jobApplications.value[newStatus];
-            for (let i = 0; i < targetColumn.length; i++) {
-                const app = targetColumn[i];
-                const appRef = doc(
-                    db,
-                    "Users",
-                    userId.value,
-                    "application_folder",
-                    app.id
-                );
-                await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
-            }
-            const appRef = doc(
-                db,
-                "Users",
-                userId.value,
-                "application_folder",
-                draggedApplication.value.id
-            );
-            await updateDoc(appRef, { rank: 0 });
-            const sourceDocRef = doc(
-                db,
-                "Users",
-                userId.value,
-                "application_folder",
-                draggedApplication.value.id
-            );
-            const updates = {
-                status: newStatus,
-                last_updated: statusUpdateDate,
-            };
-            await updateDoc(sourceDocRef, updates);
 
             // Clear drag state
             draggedApplication.value = null;
@@ -1070,7 +1124,7 @@ export default {
                         }).toJSDate();
                         stagesWithDates.push({ stage, date: stageDate });
 
-                        // "Applied" and "Turned Down" stages are not stages that the compny responds
+                        // "Applied" and "Turned Down" stages are not stages that the company responds
                         if (stage !== "applied" && stage !== "turned down") {
                             const dayOfWeek = stageDate.getDay();
                             // only care about work days (Mon to Fri, dayOfWeek 1 to 5)
@@ -1087,6 +1141,7 @@ export default {
                 for (let i = 0; i < stagesWithDates.length - 1; i++) {
                     const currentStage = stagesWithDates[i];
                     const nextStage = stagesWithDates[i + 1];
+                    console.log(stagesWithDates);
 
                     totalWorkingDays += calculateWorkingDays(
                         currentStage.date,
@@ -1120,23 +1175,21 @@ export default {
                     }
                 }
 
-                // makes updates["working_days"] = 0
-                if (totalWorkingDays < 0) {
-                    updates["working_days"] = 0;
+                // makes updates["average_working_days"] = 0
+                if (totalWorkingDays <= 0) {
+                    updates["average_working_days"] = 0;
                     // minus to account for the intervals between each stage transition
                 } else {
-                    updates["working_days"] =
-                        totalWorkingDays - stagesWithDates.length;
+                    updates["average_working_days"] = Math.round(
+                        (totalWorkingDays - stagesWithDates.length) /
+                            stagesWithDates.length
+                    );
                 }
-                updates["average_working_days"] = Math.round(
-                    (totalWorkingDays - stagesWithDates.length) /
-                        stagesWithDates.length
-                );
                 updates["response_days_map"] = { ...responseDaysMap };
                 //
 
-                if (to === "Interview" || to === "Assessment") {
-                    // change to "interview" or "assessment"
+                if (to === "Interview") {
+                    // change to "interview"
                     const type = to.toLowerCase();
 
                     const existingStages = Object.keys(stages).filter((stage) =>
@@ -1160,10 +1213,14 @@ export default {
                             : 1;
 
                     // Create the new stage with the next available number (either "interview_1" or the next number)
-                    updates[`stages.${type}_${nextNum}`] = {
+                    const newStage = {
                         name: stageName.value,
                         date: responseDateAtMidnightString,
                     };
+                    if (to === "Interview") {
+                        newStage.isCompleted = false;
+                    }
+                    updates[`stages.${type}_${nextNum}`] = newStage;
                 } else {
                     // For other statuses like "Applied", there's no applied_1, applied_2
                     // Also, it does not make sense to use response date for Applied and Turned Down when response date is for a company
@@ -1180,6 +1237,20 @@ export default {
 
                 // Update Firestore
                 await updateDoc(sourceDocRef, updates);
+
+                // edit ranks of new status
+                const targetColumn = jobApplications.value[to];
+                for (let i = 0; i < targetColumn.length; i++) {
+                    const app = targetColumn[i];
+                    const appRef = doc(
+                        db,
+                        "Users",
+                        userId.value,
+                        "application_folder",
+                        app.id
+                    );
+                    await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
+                }
 
                 // Remove the application from the old column
                 jobApplications.value[from] = jobApplications.value[
@@ -1209,6 +1280,12 @@ export default {
                     last_status_date: formattedLastStatusDate,
                     rank: 0,
                 });
+
+                // clear inputs after confirmation
+                stageName.value = "";
+                responseDate.value = DateTime.now()
+                    .setZone("Asia/Singapore")
+                    .toISODate();
 
                 showDropConfirmModal.value = false;
                 pendingDrop.value = null;
@@ -1247,7 +1324,24 @@ export default {
             }
         };
 
-        // for filter function
+        // when pop-up is opened, only scroll the pop-ups
+        watch(showPopup, (newVal) => {
+            if (newVal) {
+                document.body.style.overflow = "hidden";
+            } else {
+                document.body.style.overflow = "";
+            }
+        });
+
+        watch(showForm, (newVal) => {
+            if (newVal) {
+                document.body.style.overflow = "hidden";
+            } else {
+                document.body.style.overflow = "";
+            }
+        });
+
+        // for searching filter function
         const searchQuery = ref("");
         const filteredApplications = computed(() => {
             if (!searchQuery.value) {
@@ -1271,6 +1365,167 @@ export default {
                 );
             }
         });
+
+        // for adding in stages when in interview
+        const customStageName = ref("");
+        const showAddInterviewModal = ref(false);
+        const newInterviewAppId = ref(null);
+        const newInterviewDate = ref(DateTime.now().toISODate());
+
+        const computedInterviewKey = ref("");
+
+        const openAddInterviewModal = async (appId) => {
+            newInterviewAppId.value = appId;
+            newInterviewDate.value = DateTime.now().toISODate();
+
+            const appRef = doc(
+                db,
+                "Users",
+                userId.value,
+                "application_folder",
+                appId
+            );
+            const snapshot = await getDoc(appRef);
+
+            if (!snapshot.exists()) return;
+
+            const data = snapshot.data();
+            const stages = data.stages || {};
+            const interviewKeys = Object.keys(stages).filter((key) =>
+                key.startsWith("interview_")
+            );
+
+            const nextIndex = interviewKeys.length + 1;
+            computedInterviewKey.value = `interview_${nextIndex}`;
+
+            showAddInterviewModal.value = true;
+        };
+
+        const addInterviewSubStage = async () => {
+            const appRef = doc(
+                db,
+                "Users",
+                userId.value,
+                "application_folder",
+                newInterviewAppId.value
+            );
+            const snapshot = await getDoc(appRef);
+
+            if (!snapshot.exists()) {
+                console.error("Application not found");
+                return;
+            }
+
+            const formattedDate = DateTime.fromISO(newInterviewDate.value)
+                .setZone("Asia/Singapore")
+                .toISO();
+
+            const dateInShort = DateTime.fromISO(newInterviewDate.value)
+                .setZone("Asia/Singapore")
+                .toLocaleString(DateTime.DATE_SHORT);
+
+            const newStage = {
+                name: customStageName.value || computedInterviewKey.value, // fallback to key if empty
+                date: formattedDate,
+                isCompleted: false,
+            };
+
+            const stages = snapshot.data().stages || {};
+
+            let totalWorkingDays = 0;
+            const stagesWithDates = [];
+            const responseDaysMap = {};
+
+            for (let [stage, stageDetails] of Object.entries(stages)) {
+                console.log("Stage:", stage, "Details:", stageDetails);
+                if (stageDetails && stageDetails.date) {
+                    const stageDate = DateTime.fromISO(stageDetails.date, {
+                        zone: "Asia/Singapore",
+                    }).toJSDate();
+                    stagesWithDates.push({ stage, date: stageDate });
+
+                    if (stage !== "applied" && stage !== "turned down") {
+                        const dayOfWeek = stageDate.getDay();
+                        // Only consider weekdays (Monday to Friday)
+                        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                            responseDaysMap[dayOfWeek] =
+                                (responseDaysMap[dayOfWeek] || 0) + 1;
+                        }
+                    }
+                }
+            }
+
+            // Sort stages by date
+            stagesWithDates.sort((a, b) => a.date - b.date);
+
+            // Calculate working days between interview stages
+            for (let i = 0; i < stagesWithDates.length - 1; i++) {
+                const currentStage = stagesWithDates[i];
+                const nextStage = stagesWithDates[i + 1];
+
+                let currentStageDateISO = new Date(
+                    currentStage.date
+                ).toISOString();
+                let nextStageDateISO = new Date(nextStage.date).toISOString();
+                let currentStageDate = DateTime.fromISO(currentStageDateISO, {
+                    zone: "Asia/Singapore",
+                });
+                let nextStageDate = DateTime.fromISO(nextStageDateISO, {
+                    zone: "Asia/Singapore",
+                });
+
+                totalWorkingDays += calculateWorkingDays(
+                    currentStageDate.toISO(),
+                    nextStageDate.toISO()
+                );
+            }
+
+            // calculate the working days between the next interview stage here
+            const latestStage = stagesWithDates[stagesWithDates.length - 1];
+            let latestStageDateISO = new Date(latestStage.date).toISOString();
+            let nextInterviewStageDateISO = DateTime.fromISO(
+                newInterviewDate.value
+            )
+                .setZone("Asia/Singapore")
+                .toJSDate()
+                .toISOString();
+            totalWorkingDays += calculateWorkingDays(
+                latestStageDateISO,
+                nextInterviewStageDateISO
+            );
+
+            // Calculate average working days and store it in the updates object
+            const averageWorkingDays =
+                totalWorkingDays > 0
+                    ? Math.round(
+                          (totalWorkingDays - stagesWithDates.length) /
+                              stagesWithDates.length
+                      )
+                    : 0;
+
+            const updates = {
+                [`stages.${computedInterviewKey.value}`]: newStage,
+                last_status_date: dateInShort,
+                average_working_days: averageWorkingDays,
+                response_days_map: { ...responseDaysMap },
+            };
+
+            await updateDoc(appRef, updates);
+
+            console.log(`Added ${computedInterviewKey.value}`);
+
+            // force reactivity
+            const appIndex = jobApplications.value["Interview"].findIndex(
+                (app) => app.id === newInterviewAppId.value
+            );
+            if (appIndex !== -1) {
+                jobApplications.value["Interview"][appIndex].last_status_date =
+                    dateInShort;
+            }
+
+            showAddInterviewModal.value = false;
+            customStageName.value = ""; // reset field
+        };
 
         return {
             // testing
@@ -1335,6 +1590,14 @@ export default {
             selectedCycleForSettings,
             openCycleSettingsModal,
             closeCycleSettingsModal,
+            //for stages
+            showAddInterviewModal,
+            newInterviewAppId,
+            newInterviewDate,
+            computedInterviewKey,
+            openAddInterviewModal,
+            addInterviewSubStage,
+            customStageName,
         };
     },
     methods: {
@@ -1348,6 +1611,20 @@ export default {
 </script>
 
 <style scoped>
+.logo-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-img {
+    height: 50px;
+    width: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #c24600;
+}
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -1412,6 +1689,12 @@ export default {
     align-items: center;
 }
 
+.profile-icon {
+    font-size: 40px;
+    color: #333;
+    cursor: pointer;
+}
+
 .sub-header {
     font-size: 16px;
     display: flex;
@@ -1429,7 +1712,7 @@ export default {
     display: flex;
     align-items: center;
     background-color: #c2470064;
-    padding: 5px 10px;
+    padding: 0px 10px;
     border-radius: 20px;
 }
 
@@ -1552,6 +1835,18 @@ button {
     cursor: grab;
 }
 
+.add-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 80%;
+    position: absolute;
+    top: 7px;
+    right: 25px;
+}
+
 .delete-btn {
     background: none;
     border: none;
@@ -1560,12 +1855,13 @@ button {
     padding: 8px 12px;
     border-radius: 80%;
     position: absolute;
-    top: 5px;
+    top: 7px;
     right: 2px;
 }
 
-.delete-btn:hover {
-    background: lightgrey;
+.delete-btn:hover,
+.add-btn:hover {
+    background: rgba(211, 211, 211, 0.8);
 }
 
 .trash-icon {
@@ -1574,10 +1870,11 @@ button {
 
 .modal-content h3 {
     margin: 0 0 10px;
+    font-weight: bold;
 }
 
 .modal-content p {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .modal-actions {
@@ -1593,12 +1890,39 @@ button {
     cursor: pointer;
 }
 
-.modal-actions button:first-child {
-    background-color: red;
-    color: white;
+.input-group {
+    margin-bottom: 15px;
 }
 
-.modal-actions button:last-child {
+.input-field {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+}
+
+.confirm-button,
+.delete-button {
+    width: 100px;
+    padding: 8px 0;
+    border: none;
+    border-radius: 5px;
+    background-color: #c24600;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+}
+
+.delete-button {
+    background-color: red;
+}
+
+.confirm-button:hover {
+    background: #fc640d;
+}
+
+.cancel-button {
+    width: 100px;
     background-color: #e2e8f0;
     color: #334155;
 }

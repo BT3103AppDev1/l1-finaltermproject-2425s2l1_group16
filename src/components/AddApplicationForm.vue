@@ -1,7 +1,7 @@
 <template>
     <div class="modal" @click.self="$emit('close')">
         <div class="modal-content">
-            <h3>Add New Application</h3>
+            <h2>Add New Application</h2>
             <form @submit.prevent="submitApplication">
                 <label>Company:</label>
                 <input type="text" v-model="company" required />
@@ -32,10 +32,20 @@
                 <p v-else>Please select an application cycle before adding.</p> -->
 
                 <div class="buttons">
-                    <button type="button" @click="$emit('close')">
+                    <button
+                        class="cancel-button"
+                        type="button"
+                        @click="$emit('close')"
+                    >
                         Cancel
                     </button>
-                    <button type="submit" :disabled="!currentCycle">Add</button>
+                    <button
+                        class="add-button"
+                        type="submit"
+                        :disabled="!currentCycle"
+                    >
+                        Add
+                    </button>
                 </div>
             </form>
         </div>
@@ -159,35 +169,59 @@ export default {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-input,
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #333;
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
 textarea {
     width: 100%;
     padding: 8px;
-    margin: 5px 0;
     border: 1px solid #ccc;
     border-radius: 4px;
 }
 
 .buttons {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 20px;
     margin-top: 10px;
 }
 
 button {
-    padding: 8px 12px;
+    flex: 1;
+    max-width: 100px;
+    padding: 8px 0;
     border: none;
-    background: #007bff;
-    color: white;
     border-radius: 5px;
+    background: #c24600;
+    color: white;
+    font-weight: bold;
     cursor: pointer;
+    text-align: center;
 }
 
 button:hover {
-    background: #0056b3;
+    background: #fc640d;
 }
 
-button[type="button"] {
-    background: #888;
+.cancel-button {
+    width: 100px;
+    background-color: #e2e8f0;
+    color: #334155;
+}
+
+.cancel-button:hover {
+    background: #e2e8f0;
 }
 </style>

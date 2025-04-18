@@ -9,6 +9,8 @@ import { faThumbsUp, faFlag } from "@fortawesome/free-regular-svg-icons";
 import {
     faSearch,
     faTrash,
+    faUserCircle,
+    faPlus,
     faGear,
     faPen,
 } from "@fortawesome/free-solid-svg-icons";
@@ -16,7 +18,16 @@ import Toast, { POSITION } from "vue-toastification";
 import "vue-toastification/dist/index.css";
 
 /* add icons to the library */
-library.add(faThumbsUp, faFlag, faSearch, faTrash, faGear, faPen);
+library.add(
+    faThumbsUp,
+    faFlag,
+    faSearch,
+    faTrash,
+    faUserCircle,
+    faPlus,
+    faGear,
+    faPen
+);
 
 const app = createApp(App);
 
