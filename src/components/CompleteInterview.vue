@@ -63,13 +63,20 @@
           </div>
 
           <!-- Question entries for current round -->
+          <div v-if="currentRound.isCompleted" class="completed-round-message">
+            This round has been completed. Questions are displayed for reference only.
+          </div>
           <div
             v-for="(entry, index) in currentRound.questions"
             :key="index"
             class="question-entry"
           >
             <label :for="'questionType' + index">Question Type*</label>
-            <select v-model="entry.questionType" :id="'questionType' + index">
+            <select 
+              v-model="entry.questionType" 
+              :id="'questionType' + index"
+              :disabled="currentRound.isCompleted"
+            >
               <option value="Technical">Technical</option>
               <option value="Behavioral">Behavioral</option>
               <option value="General">General</option>
@@ -82,6 +89,7 @@
               v-model="entry.question"
               :id="'question' + index"
               placeholder="How would you make a circle?"
+              :disabled="currentRound.isCompleted"
             />
 
             <label :for="'description' + index">Description</label>
@@ -89,10 +97,11 @@
               v-model="entry.description"
               :id="'description' + index"
               placeholder="Your description here..."
+              :disabled="currentRound.isCompleted"
             ></textarea>
 
             <button
-              v-if="index > 0"
+              v-if="index > 0 && !currentRound.isCompleted"
               @click.stop="removeQuestion(index)"
               class="remove-button"
             >
@@ -100,14 +109,24 @@
             </button>
           </div>
 
-          <!-- Add question button -->
-          <button @click="addQuestion" class="add-button">
+          <!-- Add question button - only show for incomplete rounds -->
+          <button 
+            v-if="!currentRound.isCompleted"
+            @click="addQuestion" 
+            class="add-button"
+          >
             <span class="plus-icon">+</span> Add Another Question
           </button>
         </div>
 
         <div class="modal-actions">
-          <button @click="handleSubmit" class="submit-button">Submit</button>
+          <button 
+            v-if="!currentRound.isCompleted"
+            @click="handleSubmit" 
+            class="submit-button"
+          >
+            Submit
+          </button>
           <button @click="closeModal" class="cancel-button">Cancel</button>
         </div>
       </div>
@@ -183,9 +202,23 @@ export default {
           });
 
         this.interviewRounds = interviewStages.map(([key, value]) => {
-          // Get existing questions from the current round in memory if they exist
-          const existingRound = this.interviewRounds.find(r => r.stageKey === key);
-          const existingQuestions = existingRound?.questions || [];
+          let questions;
+
+          if (value.isCompleted && value.questions && value.questions.length > 0) {
+            // For completed stages, use the questions directly from Firestore
+            questions = value.questions.map(q => ({
+              questionType: q.type || 'Technical', // Map the 'type' field to 'questionType'
+              question: q.question || '',
+              description: q.description || ''
+            }));
+          } else {
+            // For incomplete stages, start with one empty question
+            questions = [{
+              questionType: "Technical",
+              question: "",
+              description: "",
+            }];
+          }
 
           return {
             stageKey: key,
@@ -193,12 +226,7 @@ export default {
             roundName: value.name || `Interview ${key.split('_')[1]}`,
             date: value.date?.split('T')[0] || new Date().toISOString().split('T')[0],
             isCompleted: value.isCompleted || false,
-            // Use existing questions if available, otherwise initialize with one empty question
-            questions: existingQuestions.length > 0 ? existingQuestions : [{
-              questionType: "Technical",
-              question: "",
-              description: "",
-            }],
+            questions
           };
         });
 
@@ -266,12 +294,14 @@ export default {
     },
     async handleSubmit() {
       try {
-        // Validate all rounds have questions filled
+        // Validate only incomplete rounds that have questions filled
         for (const round of this.interviewRounds) {
-          for (const entry of round.questions) {
-            if (!entry.question || !entry.questionType) {
-              alert(`Please fill in all required fields marked with * in ${round.roundName}`);
-              return;
+          if (!round.isCompleted) {  // Only validate incomplete rounds
+            for (const entry of round.questions) {
+              if (!entry.question || !entry.questionType) {
+                alert(`Please fill in all required fields marked with * in ${round.roundName}`);
+                return;
+              }
             }
           }
         }
@@ -282,18 +312,20 @@ export default {
           throw new Error("No authenticated user found");
         }
 
-        // Quality check all questions first
+        // Quality check only questions from incomplete rounds
         const filter = new Filter();
         for (const round of this.interviewRounds) {
-          for (const entry of round.questions) {
-            if (filter.isProfane(entry.question)) {
-              alert("Please refrain from using any profanities");
-              return;
-            }
+          if (!round.isCompleted) {  // Only check incomplete rounds
+            for (const entry of round.questions) {
+              if (filter.isProfane(entry.question)) {
+                alert("Please refrain from using any profanities");
+                return;
+              }
 
-            if (this.countWords(entry.question) <= 5) {
-              alert("Your question must be at least 5 words long");
-              return;
+              if (this.countWords(entry.question) <= 5) {
+                alert("Your question must be at least 5 words long");
+                return;
+              }
             }
           }
         }
@@ -302,51 +334,53 @@ export default {
         const applicationRef = doc(db, "Users", user.uid, "application_folder", this.appId);
         const appDoc = await getDoc(applicationRef);
         const currentData = appDoc.data();
-        const stages = currentData.stages || {};
+        const stages = { ...currentData.stages };
         const updatedStages = { ...stages };
 
-        // Save all questions from all rounds
+        // Save questions only from incomplete rounds
         for (const round of this.interviewRounds) {
-          const savedQuestions = [];
+          if (!round.isCompleted) {  // Only process incomplete rounds
+            const savedQuestions = [];
 
-          for (const entry of round.questions) {
-            const docId = `question_${nextQuestionNumber}`;
+            for (const entry of round.questions) {
+              const docId = `question_${nextQuestionNumber}`;
 
-            const questionData = {
-              company: this.company,
-              description: entry.description || "",
-              question: entry.question,
-              role: this.role,
-              type: entry.questionType,
-              userID: user.uid,
-              roundName: round.roundName,
-              interviewDate: round.date,
-              status: "Checked",
-              upvoteCount: 0,
-              reportCount: 0,
-              roundNumber: round.roundNumber,
-              stageKey: round.stageKey
+              const questionData = {
+                company: this.company,
+                description: entry.description || "",
+                question: entry.question,
+                role: this.role,
+                type: entry.questionType,
+                userID: user.uid,
+                roundName: round.roundName,
+                interviewDate: round.date,
+                status: "Checked",
+                upvoteCount: 0,
+                reportCount: 0,
+                roundNumber: round.roundNumber,
+                stageKey: round.stageKey
+              };
+
+              // Add the question document
+              const questionsRef = collection(db, "InterviewQuestions");
+              const questionDocRef = doc(questionsRef, docId);
+              await setDoc(questionDocRef, questionData);
+
+              savedQuestions.push({
+                id: docId,
+                ...questionData
+              });
+
+              nextQuestionNumber++;
+            }
+
+            // Update the stages object only for this incomplete round
+            updatedStages[round.stageKey] = {
+              ...stages[round.stageKey],
+              isCompleted: true,
+              questions: savedQuestions
             };
-
-            // Add the question document
-            const questionsRef = collection(db, "InterviewQuestions");
-            const questionDocRef = doc(questionsRef, docId);
-            await setDoc(questionDocRef, questionData);
-
-            savedQuestions.push({
-              id: docId,
-              ...questionData
-            });
-
-            nextQuestionNumber++;
           }
-
-          // Update the stages object for this round
-          updatedStages[round.stageKey] = {
-            ...stages[round.stageKey],
-            isCompleted: true,
-            questions: savedQuestions
-          };
         }
 
         // Update the application document with all stages
@@ -354,7 +388,7 @@ export default {
           stages: updatedStages
         });
 
-        alert("All questions have been submitted successfully!");
+        alert("Questions have been submitted successfully!");
         this.closeModal();
 
       } catch (error) {
@@ -404,9 +438,23 @@ export default {
             });
 
           this.interviewRounds = interviewStages.map(([key, value]) => {
-            // Get existing questions from the current round in memory if they exist
-            const existingRound = this.interviewRounds.find(r => r.stageKey === key);
-            const existingQuestions = existingRound?.questions || [];
+            let questions;
+
+            if (value.isCompleted && value.questions && value.questions.length > 0) {
+              // For completed stages, use the questions directly from Firestore
+              questions = value.questions.map(q => ({
+                questionType: q.type || 'Technical', // Map the 'type' field to 'questionType'
+                question: q.question || '',
+                description: q.description || ''
+              }));
+            } else {
+              // For incomplete stages, start with one empty question
+              questions = [{
+                questionType: "Technical",
+                question: "",
+                description: "",
+              }];
+            }
 
             return {
               stageKey: key,
@@ -414,12 +462,7 @@ export default {
               roundName: value.name || `Interview ${key.split('_')[1]}`,
               date: value.date?.split('T')[0] || new Date().toISOString().split('T')[0],
               isCompleted: value.isCompleted || false,
-              // Use existing questions if available, otherwise initialize with one empty question
-              questions: existingQuestions.length > 0 ? existingQuestions : [{
-                questionType: "Technical",
-                question: "",
-                description: "",
-              }],
+              questions
             };
           });
 
@@ -764,5 +807,24 @@ textarea {
 
 .delete-round-button:hover {
   background-color: #d32f2f;
+}
+
+.completed-round-message {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  text-align: center;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background-color: #f5f5f5;
+  color: #666;
+  cursor: not-allowed;
+  border-color: #ddd;
 }
 </style>
