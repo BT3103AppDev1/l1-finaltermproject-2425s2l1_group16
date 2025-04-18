@@ -231,9 +231,11 @@ const mostFrequentResponseDay = computed(() => {
     if (entries.length === 0) return 'No data available';
     // to get the highest counts
     const sortedEntries = entries.sort((a, b) => b[1] - a[1]);
-    const mostFrequentDay = sortedEntries[0][0];
-    const dayName = weekdayNames[mostFrequentDay];
-    return `${company.value} usually responds on ${dayName}s`;
+    const maxCount = sortedEntries[0][1];
+    const mostFrequentDays = sortedEntries.filter(entry => entry[1] === maxCount)
+                                          .map(entry => weekdayNames[entry[0]]);
+    const dayList = mostFrequentDays.join(' and ');
+    return `${company.value} usually responds on ${dayList}`;
 });
 
 // Pie chart data
