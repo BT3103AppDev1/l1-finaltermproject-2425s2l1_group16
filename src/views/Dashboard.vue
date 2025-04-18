@@ -84,7 +84,9 @@
                                 <span class="position">{{ app.position }}</span>
                                 <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
                                 <div class="task-buttons">
-                                    <button v-if="status === 'Interview'" class="add-btn">
+                                    <button 
+                                    v-if="status === 'Interview'" class="add-btn" 
+                                    @click.stop="openAddInterviewModal(app.id)">
                                         <font-awesome-icon class="add-icon" icon="fa-solid fa-plus" />
                                     </button>
                                     <button class="delete-btn" @click.stop="confirmDelete(app, status)">
@@ -186,6 +188,45 @@
             :userId="userId"
             @close="closePopup" 
         />
+    </teleport>
+    
+    <teleport to="body">
+    <div v-if="showAddInterviewModal" class="modal-overlay" @click.self="showAddInterviewModal = false">
+        <div class="modal-content">
+        <h3>Add New Interview Stage</h3>
+        <div class="input-group">
+        <label>Stage Key:</label>
+        <input
+            type="text"
+            :value="`Interview Number: ${computedInterviewKey.split('_')[1]}`"
+            disabled
+            class="input-field"
+        />
+        </div>
+        <div class="input-group">
+        <label for="customStageName">Stage Name:</label>
+        <input
+            type="text"
+            id="customStageName"
+            v-model="customStageName"
+            placeholder="e.g., HR Interview"
+            class="input-field"/>
+        </div>
+        <div class="input-group">
+            <label for="newInterviewDate">Select Date:</label>
+            <input
+            type="date"
+            id="newInterviewDate"
+            v-model="newInterviewDate"
+            class="input-field"
+            />
+        </div>
+        <div class="modal-actions">
+            <button class="confirm-button" @click="addInterviewSubStage">Confirm</button>
+            <button class="cancel-button" @click="showAddInterviewModal = false">Cancel</button>
+        </div>
+        </div>
+    </div>
     </teleport>
 </template>
 
@@ -607,10 +648,14 @@ export default {
                     const nextNum = stageNumbers.length > 0 ? Math.max(...stageNumbers) + 1 : 1;
 
                     // Create the new stage with the next available number (either "interview_1" or the next number)
-                    updates[`stages.${type}_${nextNum}`] = {
+                    const newStage = {
                         name: stageName.value,
                         date: responseDateAtMidnightString,
-                    };
+                    }
+                    if (to === "Interview") {
+                        newStage.isCompleted = false;
+                    }
+                    updates[`stages.${type}_${nextNum}`] = newStage;
                 } else {
                     // For other statuses like "Applied", there's no applied_1, applied_2
                     // Also, it does not make sense to use response date for Applied and Turned Down when response date is for a company
@@ -728,6 +773,63 @@ export default {
             }
         });
 
+        // for adding in stages when in interview
+        const customStageName = ref("");
+        const showAddInterviewModal = ref(false);
+        const newInterviewAppId = ref(null);
+        const newInterviewDate = ref(DateTime.now().toISODate());
+
+        const computedInterviewKey = ref("");
+
+        
+        const openAddInterviewModal = async (appId) => {
+            newInterviewAppId.value = appId;
+            newInterviewDate.value = DateTime.now().toISODate();
+
+            const appRef = doc(db, "Users", userId.value, "application_folder", appId);
+            const snapshot = await getDoc(appRef);
+
+            if (!snapshot.exists()) return;
+
+            const data = snapshot.data();
+            const stages = data.stages || {};
+            const interviewKeys = Object.keys(stages).filter(key => key.startsWith("interview_"));
+
+            const nextIndex = interviewKeys.length + 1;
+            computedInterviewKey.value = `interview_${nextIndex}`;
+
+            showAddInterviewModal.value = true;
+        };
+        const addInterviewSubStage = async () => {
+            const appRef = doc(db, "Users", userId.value, "application_folder", newInterviewAppId.value);
+            const snapshot = await getDoc(appRef); 
+
+            if (!snapshot.exists()) {
+                console.error("Application not found");
+                return;
+            }
+
+            const formattedDate = DateTime.fromISO(newInterviewDate.value).toISO();
+
+            const newStage = {
+                name: customStageName.value || computedInterviewKey.value, // fallback to key if empty
+                date: formattedDate,
+                isCompleted: false, 
+            };
+
+            await updateDoc(appRef, {
+                [`stages.${computedInterviewKey.value}`]: newStage
+            });
+
+            console.log(`Added ${computedInterviewKey.value}`);
+
+            showAddInterviewModal.value = false;
+            customStageName.value = ""; // reset field
+        };
+
+
+                
+
         return {
             // testing
             signOutUser,
@@ -769,6 +871,14 @@ export default {
             // for filtering
             searchQuery,
             filteredApplications,
+            //for stages
+            showAddInterviewModal,
+            newInterviewAppId,
+            newInterviewDate,
+            computedInterviewKey,
+            openAddInterviewModal,
+            addInterviewSubStage,
+            customStageName
         };
     }
 };

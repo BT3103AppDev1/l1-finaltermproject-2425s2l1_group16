@@ -10,23 +10,7 @@
       <input type="text" v-model="localApp.position" disabled />
     </div>
 
-    <div class="detail-item">
-      <label>Status:</label>
-      <div style="display: flex; align-items: center; gap: 8px">
-        <select v-model="localApp.status" disabled>
-          <option v-for="option in statusOptions" :key="option">
-            {{ option }}
-          </option>
-        </select>
-        <button
-          type="button"
-          class="add-stage-btn"
-          @click="showSubStageModal = true"
-        >
-          + Add Sub-Stage
-        </button>
-      </div>
-    </div>
+    
 
     <div class="detail-item">
       <label>Status Date:</label>
@@ -159,45 +143,9 @@
         </div>
       </div>
     </div>
-    <div class="detail-item" v-if="subStages.length">
-      <label>Sub-Stages:</label>
-      <ul class="sub-stages-list">
-        <li
-          v-for="(stage, index) in subStages"
-          :key="index"
-          class="sub-stage-item"
-        >
-          <div v-if="editingIndex !== index">
-            {{ stage.name }} – {{ formatDate(stage.date) }}
-            <button @click="startEditSubStage(index)">✏️</button>
-            <button @click="deleteSubStage(index)">🗑️</button>
-          </div>
-          <div v-else>
-            <input v-model="editedStageName" />
-            <button @click="confirmEditSubStage(index)">✅</button>
-            <button @click="cancelEditSubStage">❌</button>
-          </div>
-        </li>
-      </ul>
-    </div>
+    
 
-    <teleport to="body">
-      <div v-if="showSubStageModal" class="modal-overlay">
-        <div class="modal-content">
-          <h3>Add Sub-Stage</h3>
-          <input
-            type="text"
-            v-model="newSubStage"
-            placeholder="e.g. Technical Round"
-          />
-          <input type="date" v-model="newSubStageDate" />
-          <div class="modal-actions">
-            <button @click="addSubStage">Add</button>
-            <button @click="showSubStageModal = false">Cancel</button>
-          </div>
-        </div>
-      </div>
-    </teleport>
+    
   </div>
 </template>
 
@@ -244,13 +192,6 @@ const reasons = [
 
 // UI State
 const showPassword = ref(false);
-const showSubStageModal = ref(false);
-const newSubStage = ref("");
-const editedStageName = ref("");
-const editingIndex = ref(null);
-const newSubStageDate = ref("");
-
-const subStages = ref([]);
 const questions = ref([]);
 
 // firestore data
@@ -300,7 +241,6 @@ onMounted(async () => {
   if (docSnap.exists()) {
     const data = docSnap.data();
     Object.assign(localApp, data);
-    subStages.value = data.subStages || [];
     // emit company name to Parent (ApplicationCard.vue)
     emit("passCompany", localApp.company);
   } else {
@@ -542,42 +482,9 @@ const formatDate = (dateStr) => {
   return isNaN(d) ? dateStr : d.toLocaleDateString();
 };
 
-const addSubStage = async () => {
-  if (newSubStage.value.trim() !== "" && newSubStageDate.value !== "") {
-    const newStage = {
-      name: newSubStage.value.trim(),
-      date: newSubStageDate.value,
-    };
-    subStages.value.push(newStage);
-    await updateDoc(docPath, { subStages: subStages.value });
-    newSubStage.value = "";
-    newSubStageDate.value = "";
-    showSubStageModal.value = false;
-  }
-};
 
-// delete sub-stage
-const deleteSubStage = async (index) => {
-  subStages.value.splice(index, 1);
-  await updateDoc(docPath, { subStages: subStages.value });
-};
 
-// edit sub-stage
-const startEditSubStage = (index) => {
-  editingIndex.value = index;
-  editedStageName.value = subStages.value[index].name;
-};
 
-const confirmEditSubStage = async (index) => {
-  subStages.value[index].name = editedStageName.value;
-  editingIndex.value = null;
-  await updateDoc(docPath, { subStages: subStages.value });
-};
-
-const cancelEditSubStage = () => {
-  editingIndex.value = null;
-  editedStageName.value = "";
-};
 
 const openReportPopup = (questionId) => {
   currentQuestionId.value = questionId;
