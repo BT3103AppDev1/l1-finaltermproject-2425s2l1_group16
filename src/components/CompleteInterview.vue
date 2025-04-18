@@ -1,7 +1,12 @@
 <template>
   <div class="complete-interview-page">
-    <button @click.prevent="openModal" class="complete-button">
-      Complete Interview
+    <button 
+      @click.prevent="checkAndOpenModal" 
+      class="complete-button"
+      :class="{ 'disabled': allRoundsCompleted }"
+      :disabled="allRoundsCompleted"
+    >
+      {{ allRoundsCompleted ? 'All Rounds Documented' : 'Complete Interview' }}
     </button>
 
     <div v-if="isModalOpen" class="modal" @mousedown.self="closeModal">
@@ -23,10 +28,13 @@
           >
             ← Previous Round
           </button>
-          <span class="round-indicator"
-            >Round {{ currentRoundIndex + 1 }} of
-            {{ interviewRounds.length }}</span
+          <button 
+            v-if="currentRoundIndex !== 0"
+            @click="removeRound" 
+            class="delete-round-button"
           >
+            Delete Round
+          </button>
           <button
             @click="nextRound"
             class="nav-button"
@@ -34,28 +42,23 @@
           >
             Next Round →
           </button>
-          <button
-            v-if="interviewRounds.length > 1"
-            @click.stop="deleteCurrentRound"
-            class="delete-round-button"
-          >
-            Delete Round
-          </button>
         </div>
 
         <!-- Current Round Info -->
-        <div class="round-info">
+        <div class="round-info" v-if="currentRound">
           <div class="round-header">
             <input
               type="text"
               v-model="currentRound.roundName"
-              placeholder="Round Name (e.g. Technical Round, HR Round)"
+              placeholder="Round Name"
               class="round-name-input"
+              disabled
             />
             <input
               type="date"
               v-model="currentRound.date"
               class="round-date-input"
+              disabled
             />
           </div>
 
@@ -103,11 +106,6 @@
           </button>
         </div>
 
-        <!-- Add new round button -->
-        <button @click="addNewRound" class="add-round-button">
-          <span class="plus-icon">+</span> Add New Round
-        </button>
-
         <div class="modal-actions">
           <button @click="handleSubmit" class="submit-button">Submit</button>
           <button @click="closeModal" class="cancel-button">Cancel</button>
@@ -125,7 +123,10 @@ import {
   setDoc,
   doc,
   updateDoc,
-  increment
+  increment,
+  getDoc,
+  onSnapshot,
+  deleteDoc
 } from "firebase/firestore";
 import { Filter } from "bad-words";
 import { getAuth } from "firebase/auth";
@@ -150,19 +151,9 @@ export default {
     return {
       isModalOpen: false,
       currentRoundIndex: 0,
-      interviewRounds: [
-        {
-          roundName: "",
-          date: new Date().toISOString().split("T")[0],
-          questions: [
-            {
-              questionType: "Technical",
-              question: "",
-              description: "",
-            },
-          ],
-        },
-      ],
+      interviewRounds: [],
+      allRoundsCompleted: false,
+      unsubscribe: null
     };
   },
   computed: {
@@ -171,8 +162,74 @@ export default {
     },
   },
   methods: {
-    openModal(event) {
+    async loadInterviewRounds() {
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const appRef = doc(db, "Users", user.uid, "application_folder", this.appId);
+        const appDoc = await getDoc(appRef);
+        
+        if (!appDoc.exists()) return;
+
+        const stages = appDoc.data().stages || {};
+        const interviewStages = Object.entries(stages)
+          .filter(([key]) => key.startsWith('interview_'))
+          .sort((a, b) => {
+            const aNum = parseInt(a[0].split('_')[1]);
+            const bNum = parseInt(b[0].split('_')[1]);
+            return aNum - bNum;
+          });
+
+        this.interviewRounds = interviewStages.map(([key, value]) => {
+          // Get existing questions from the current round in memory if they exist
+          const existingRound = this.interviewRounds.find(r => r.stageKey === key);
+          const existingQuestions = existingRound?.questions || [];
+
+          return {
+            stageKey: key,
+            roundNumber: parseInt(key.split('_')[1]),
+            roundName: value.name || `Interview ${key.split('_')[1]}`,
+            date: value.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+            isCompleted: value.isCompleted || false,
+            // Use existing questions if available, otherwise initialize with one empty question
+            questions: existingQuestions.length > 0 ? existingQuestions : [{
+              questionType: "Technical",
+              question: "",
+              description: "",
+            }],
+          };
+        });
+
+        this.allRoundsCompleted = this.interviewRounds.every(round => round.isCompleted);
+
+        if (this.allRoundsCompleted) {
+          console.log("All interview rounds have been documented");
+        }
+      } catch (error) {
+        console.error("Error loading interview rounds:", error);
+      }
+    },
+    async checkAndOpenModal(event) {
       event.stopPropagation();
+      await this.loadInterviewRounds();
+      
+      if (this.interviewRounds.length === 0) {
+        alert("No interview rounds found for this application.");
+        return;
+      }
+      
+      if (this.allRoundsCompleted) {
+        alert("All interview rounds have been documented.");
+        return;
+      }
+
+      const incompleteIndex = this.interviewRounds.findIndex(round => !round.isCompleted);
+      if (incompleteIndex !== -1) {
+        this.currentRoundIndex = incompleteIndex;
+      }
+
       this.isModalOpen = true;
     },
     closeModal(event) {
@@ -182,19 +239,7 @@ export default {
     },
     resetForm() {
       this.currentRoundIndex = 0;
-      this.interviewRounds = [
-        {
-          roundName: "",
-          date: new Date().toISOString().split("T")[0],
-          questions: [
-            {
-              questionType: "Technical",
-              question: "",
-              description: "",
-            },
-          ],
-        },
-      ];
+      this.loadInterviewRounds();
     },
     previousRound() {
       if (this.currentRoundIndex > 0) {
@@ -206,21 +251,10 @@ export default {
         this.currentRoundIndex++;
       }
     },
-    addNewRound() {
-      this.interviewRounds.push({
-        roundName: "",
-        date: new Date().toISOString().split("T")[0],
-        questions: [
-          {
-            questionType: "Technical",
-            question: "",
-            description: "",
-          },
-        ],
-      });
-      this.currentRoundIndex = this.interviewRounds.length - 1;
-    },
     addQuestion() {
+      if (!this.currentRound.questions) {
+        this.currentRound.questions = [];
+      }
       this.currentRound.questions.push({
         questionType: "Technical",
         question: "",
@@ -230,13 +264,109 @@ export default {
     removeQuestion(index) {
       this.currentRound.questions.splice(index, 1);
     },
-    deleteCurrentRound() {
-      if (this.interviewRounds.length > 1) {
-        this.interviewRounds.splice(this.currentRoundIndex, 1);
-        if (this.currentRoundIndex === this.interviewRounds.length) {
-          this.currentRoundIndex--;
+    async handleSubmit() {
+      try {
+        // Validate all rounds have questions filled
+        for (const round of this.interviewRounds) {
+          for (const entry of round.questions) {
+            if (!entry.question || !entry.questionType) {
+              alert(`Please fill in all required fields marked with * in ${round.roundName}`);
+              return;
+            }
+          }
         }
+
+        const auth = getAuth();
+        const user = auth.currentUser;
+        if (!user) {
+          throw new Error("No authenticated user found");
+        }
+
+        // Quality check all questions first
+        const filter = new Filter();
+        for (const round of this.interviewRounds) {
+          for (const entry of round.questions) {
+            if (filter.isProfane(entry.question)) {
+              alert("Please refrain from using any profanities");
+              return;
+            }
+
+            if (this.countWords(entry.question) <= 5) {
+              alert("Your question must be at least 5 words long");
+              return;
+            }
+          }
+        }
+
+        let nextQuestionNumber = await this.getNextQuestionNumber();
+        const applicationRef = doc(db, "Users", user.uid, "application_folder", this.appId);
+        const appDoc = await getDoc(applicationRef);
+        const currentData = appDoc.data();
+        const stages = currentData.stages || {};
+        const updatedStages = { ...stages };
+
+        // Save all questions from all rounds
+        for (const round of this.interviewRounds) {
+          const savedQuestions = [];
+
+          for (const entry of round.questions) {
+            const docId = `question_${nextQuestionNumber}`;
+
+            const questionData = {
+              company: this.company,
+              description: entry.description || "",
+              question: entry.question,
+              role: this.role,
+              type: entry.questionType,
+              userID: user.uid,
+              roundName: round.roundName,
+              interviewDate: round.date,
+              status: "Checked",
+              upvoteCount: 0,
+              reportCount: 0,
+              roundNumber: round.roundNumber,
+              stageKey: round.stageKey
+            };
+
+            // Add the question document
+            const questionsRef = collection(db, "InterviewQuestions");
+            const questionDocRef = doc(questionsRef, docId);
+            await setDoc(questionDocRef, questionData);
+
+            savedQuestions.push({
+              id: docId,
+              ...questionData
+            });
+
+            nextQuestionNumber++;
+          }
+
+          // Update the stages object for this round
+          updatedStages[round.stageKey] = {
+            ...stages[round.stageKey],
+            isCompleted: true,
+            questions: savedQuestions
+          };
+        }
+
+        // Update the application document with all stages
+        await updateDoc(applicationRef, {
+          stages: updatedStages
+        });
+
+        alert("All questions have been submitted successfully!");
+        this.closeModal();
+
+      } catch (error) {
+        console.error("Error in handleSubmit:", error);
+        alert(`Error submitting questions: ${error.message}. Please try again.`);
       }
+    },
+    countWords(text) {
+      if (!text) return 0;
+      text = text.trim();
+      let wordList = text.split(/\s/);
+      return wordList.filter(word => word !== "").length;
     },
     async getNextQuestionNumber() {
       const querySnapshot = await getDocs(collection(db, "InterviewQuestions"));
@@ -255,163 +385,102 @@ export default {
 
       return maxNumber + 1;
     },
-    countWords(text) {
-      if (!text) {
-        return 0;
-      } else {
-        text = text.trim();
-        let wordList = text.split(/\s/);
-        let words = wordList.filter(function (element) {
-          return element != "";
-        });
-        return words.length;
-      }
-    },
+    setupRealtimeListener() {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) return;
 
-    async handleSubmit() {
-      try {
-        // Validate all rounds
-        for (const round of this.interviewRounds) {
-          if (!round.roundName) {
-            alert("Please provide a name for each round");
-            return;
-          }
-          for (const entry of round.questions) {
-            if (!entry.question || !entry.questionType) {
-              alert("Please fill in all required fields marked with *");
-              return;
-            }
-          }
-        }
+      const appRef = doc(db, "Users", user.uid, "application_folder", this.appId);
+      
+      this.unsubscribe = onSnapshot(appRef, (doc) => {
+        if (doc.exists()) {
+          const stages = doc.data().stages || {};
+          const interviewStages = Object.entries(stages)
+            .filter(([key]) => key.startsWith('interview_'))
+            .sort((a, b) => {
+              const aNum = parseInt(a[0].split('_')[1]);
+              const bNum = parseInt(b[0].split('_')[1]);
+              return aNum - bNum;
+            });
 
-        let nextQuestionNumber = await this.getNextQuestionNumber();
-        console.log("Starting question number:", nextQuestionNumber);
+          this.interviewRounds = interviewStages.map(([key, value]) => {
+            // Get existing questions from the current round in memory if they exist
+            const existingRound = this.interviewRounds.find(r => r.stageKey === key);
+            const existingQuestions = existingRound?.questions || [];
 
-        // Submit questions for each round
-        for (const round of this.interviewRounds) {
-          for (const entry of round.questions) {
-            const docId = `question_${nextQuestionNumber}`;
-            console.log("Processing question:", docId);
-
-            // Quality check after each submission
-            // Users are not allowed to use any profanities and each question should have at least 5 words
-            const filter = new Filter();
-            if (filter.isProfane(entry.question)) {
-              alert("Please refrain from using any profanities");
-              return;
-            }
-
-            if (this.countWords(entry.question) <= 5) {
-              alert("Your question must be at least 5 words long");
-              return;
-            }
-
-            const questionData = {
-              company: this.company,
-              description: entry.description || "",
-              question: entry.question,
-              role: this.role,
-              type: entry.questionType,
-              userID: 1,
-              roundName: round.roundName,
-              interviewDate: round.date,
-              status: "Checked",
-              upvoteCount: 0,
-              reportCount: 0,
+            return {
+              stageKey: key,
+              roundNumber: parseInt(key.split('_')[1]),
+              roundName: value.name || `Interview ${key.split('_')[1]}`,
+              date: value.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+              isCompleted: value.isCompleted || false,
+              // Use existing questions if available, otherwise initialize with one empty question
+              questions: existingQuestions.length > 0 ? existingQuestions : [{
+                questionType: "Technical",
+                question: "",
+                description: "",
+              }],
             };
+          });
 
-            console.log("Question data:", questionData);
-
-            try {
-              // Get current user
-              const auth = getAuth();
-              const user = auth.currentUser;
-
-              // Add the main document
-              const questionsRef = collection(db, "InterviewQuestions");
-              const questionDocRef = doc(questionsRef, docId);
-              await setDoc(questionDocRef, questionData);
-              console.log("Question document created:", docId);
-
-              // Award points since user passed quality checks
-              const appRef = doc(db, "Users", user.uid);
-              await updateDoc(appRef, {
-                contribution_pts: increment(5),
-              });
-
-              // Create empty upvote collection 
-              const upvoteRef = collection(questionDocRef, "upvote");
-              console.log("Upvote collection created for:", docId);
-
-              // Create empty report collection 
-              const reportRef = collection(questionDocRef, "report");
-              console.log("Report collection created for:", docId);
-
-              nextQuestionNumber++;
-            } catch (error) {
-              console.error("Error creating question:", docId, error);
-              throw new Error(
-                `Failed to create question ${docId}: ${error.message}`
-              );
-            }
-          }
+          this.allRoundsCompleted = this.interviewRounds.every(round => round.isCompleted);
         }
-
-        // Update the application with interview completion info
-        try {
-          // First check if the application document exists
-          const appRef = doc(
-            db,
-            "Users",
-            "insights_me",
-            "application_folder",
-            this.appId
-          );
-          const appDoc = await getDocs(
-            collection(db, "Users", "insights_me", "application_folder")
-          );
-
-          console.log("Checking application document:", this.appId);
-          console.log(
-            "Available application documents:",
-            appDoc.docs.map((doc) => doc.id)
-          );
-
-          // Create the document if it doesn't exist
-          const updateData = {
-            interviewCompleted: true,
-            interviewRounds: this.interviewRounds.length,
-            lastInterviewDate:
-              this.interviewRounds[this.interviewRounds.length - 1].date,
-          };
-
-          if (!appDoc.docs.find((doc) => doc.id === this.appId)) {
-            console.log(
-              "Application document does not exist, creating new one"
-            );
-            await setDoc(appRef, updateData);
-          } else {
-            console.log("Application document exists, updating");
-            await updateDoc(appRef, updateData);
-          }
-
-          console.log("Application updated successfully");
-        } catch (error) {
-          console.error("Error updating application:", error);
-          // Continue even if application update fails
-          console.log("Continuing despite application update error");
-        }
-
-        alert("Questions submitted successfully!");
-        this.closeModal();
-      } catch (error) {
-        console.error("Error in handleSubmit:", error);
-        alert(
-          `Error submitting questions: ${error.message}. Please try again.`
-        );
-      }
+      });
     },
+    async removeRound() {
+      if (!this.currentRound || this.currentRoundIndex === 0) return;
+      
+      if (confirm(`Are you sure you want to remove ${this.currentRound.roundName}? This action cannot be undone.`)) {
+        try {
+          const auth = getAuth();
+          const user = auth.currentUser;
+          if (!user) return;
+
+          const applicationRef = doc(db, "Users", user.uid, "application_folder", this.appId);
+          const appDoc = await getDoc(applicationRef);
+          const currentData = appDoc.data();
+          const stages = { ...currentData.stages };
+
+          // Delete questions from InterviewQuestions collection
+          const questionsRef = collection(db, "InterviewQuestions");
+          const querySnapshot = await getDocs(questionsRef);
+          const deletePromises = [];
+
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.stageKey === this.currentRound.stageKey) {
+              deletePromises.push(deleteDoc(doc.ref));
+            }
+          });
+
+          await Promise.all(deletePromises);
+
+          // Remove the stage from stages object
+          delete stages[this.currentRound.stageKey];
+
+          // Update the application document
+          await updateDoc(applicationRef, { stages });
+
+          // Move to previous round
+          this.currentRoundIndex--;
+
+          // The realtime listener will update interviewRounds automatically
+        } catch (error) {
+          console.error("Error removing round:", error);
+          alert("Failed to remove round. Please try again.");
+        }
+      }
+    }
   },
+  mounted() {
+    this.setupRealtimeListener();
+  },
+  beforeUnmount() {
+    // Clean up the listener when the component is destroyed
+    if (this.unsubscribe) {
+      this.unsubscribe();
+    }
+  }
 };
 </script>
 
@@ -437,6 +506,11 @@ export default {
 
 .complete-button:hover {
   background-color: #863200;
+}
+
+.complete-button.disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 
 .modal {
@@ -630,6 +704,7 @@ textarea {
   padding: 12px;
   background-color: #f8f9fa;
   border-radius: 8px;
+  gap: 12px;
 }
 
 .nav-button {
@@ -649,9 +724,11 @@ textarea {
 }
 
 .round-indicator {
-  font-size: 16px;
   font-weight: 500;
   color: #333;
+  padding: 8px 16px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
 }
 
 .round-header {
@@ -668,37 +745,21 @@ textarea {
   flex: 1;
 }
 
-.add-round-button {
-  width: 100%;
-  padding: 16px;
-  margin: 8px 0;
-  background-color: #e3f2fd;
-  color: #1976d2;
-  border: 2px dashed #1976d2;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.add-round-button:hover {
-  background-color: #bbdefb;
+.round-name-input:disabled,
+.round-date-input:disabled {
+  background-color: #f5f5f5;
+  color: #666;
 }
 
 .delete-round-button {
-  padding: 8px 16px;
   background-color: #f44336;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  padding: 8px 16px;
   font-size: 14px;
   transition: background-color 0.2s ease;
-  margin-left: 10px;
 }
 
 .delete-round-button:hover {
