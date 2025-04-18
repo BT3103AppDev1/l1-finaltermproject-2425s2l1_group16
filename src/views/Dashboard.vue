@@ -127,7 +127,7 @@
                 </p>
 
                 <!-- only when you are shifting to interview or assessment statuses -->
-                <div v-if="pendingDrop?.to === 'Interview' || pendingDrop?.to === 'Assessment'">
+                <div v-if="pendingDrop?.to === 'Interview'">
                     <div class="input-group">
                         <label for="stageName">Enter Stage Name:</label>
                         <input
@@ -584,7 +584,7 @@ export default {
                         const stageDate = DateTime.fromISO(stageDetails.date, { zone: 'Asia/Singapore' }).toJSDate();
                         stagesWithDates.push({ stage, date: stageDate });
 
-                        // "Applied" and "Turned Down" stages are not stages that the compny responds
+                        // "Applied" and "Turned Down" stages are not stages that the company responds
                         if (stage !== "applied" && stage !== "turned down") {
                             const dayOfWeek = stageDate.getDay();
                             // only care about work days (Mon to Fri, dayOfWeek 1 to 5)
@@ -600,6 +600,7 @@ export default {
                 for (let i = 0; i < stagesWithDates.length - 1; i++) {
                     const currentStage = stagesWithDates[i];
                     const nextStage = stagesWithDates[i + 1];
+                    console.log(stagesWithDates)
 
                     totalWorkingDays += calculateWorkingDays(currentStage.date, nextStage.date);
                 }
@@ -630,8 +631,8 @@ export default {
                 updates["response_days_map"] = { ...responseDaysMap };
                 //
 
-                if (to === "Interview" || to === "Assessment") {
-                    // change to "interview" or "assessment"
+                if (to === "Interview") {
+                    // change to "interview"
                     const type = to.toLowerCase();
 
                     const existingStages = Object.keys(stages).filter(stage => stage.startsWith(type));
@@ -781,7 +782,6 @@ export default {
 
         const computedInterviewKey = ref("");
 
-        
         const openAddInterviewModal = async (appId) => {
             newInterviewAppId.value = appId;
             newInterviewDate.value = DateTime.now().toISODate();
@@ -800,6 +800,7 @@ export default {
 
             showAddInterviewModal.value = true;
         };
+
         const addInterviewSubStage = async () => {
             const appRef = doc(db, "Users", userId.value, "application_folder", newInterviewAppId.value);
             const snapshot = await getDoc(appRef); 
@@ -809,7 +810,13 @@ export default {
                 return;
             }
 
-            const formattedDate = DateTime.fromISO(newInterviewDate.value).toISO();
+            const formattedDate = DateTime.fromISO(newInterviewDate.value)
+                                          .setZone('Asia/Singapore')
+                                          .toISO();    
+            
+            const dateInShort = DateTime.fromISO(newInterviewDate.value)
+                                        .setZone('Asia/Singapore')
+                                        .toLocaleString(DateTime.DATE_SHORT);
 
             const newStage = {
                 name: customStageName.value || computedInterviewKey.value, // fallback to key if empty
@@ -817,18 +824,75 @@ export default {
                 isCompleted: false, 
             };
 
-            await updateDoc(appRef, {
-                [`stages.${computedInterviewKey.value}`]: newStage
-            });
+            const stages = snapshot.data().stages || {};
+
+            let totalWorkingDays = 0;
+            const stagesWithDates = [];
+            const responseDaysMap = {}; 
+
+            for (let [stage, stageDetails] of Object.entries(stages)) {
+                console.log("Stage:", stage, "Details:", stageDetails);
+                if (stageDetails && stageDetails.date) {
+                    const stageDate = DateTime.fromISO(stageDetails.date, { zone: 'Asia/Singapore' }).toJSDate();
+                    stagesWithDates.push({ stage, date: stageDate });
+
+                    if (stage !== "applied" && stage !== "turned down") {
+                        const dayOfWeek = stageDate.getDay();
+                        // Only consider weekdays (Monday to Friday)
+                        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                            responseDaysMap[dayOfWeek] = (responseDaysMap[dayOfWeek] || 0) + 1;
+                        }
+                    }
+                }
+            }
+
+            // Sort stages by date
+            stagesWithDates.sort((a, b) => a.date - b.date);
+
+            // Calculate working days between interview stages
+            for (let i = 0; i < stagesWithDates.length - 1; i++) {
+                const currentStage = stagesWithDates[i];
+                const nextStage = stagesWithDates[i + 1];
+
+                let currentStageDateISO = new Date(currentStage.date).toISOString();
+                let nextStageDateISO = new Date(nextStage.date).toISOString();
+                let currentStageDate = DateTime.fromISO(currentStageDateISO, { zone: 'Asia/Singapore' });
+                let nextStageDate = DateTime.fromISO(nextStageDateISO, { zone: 'Asia/Singapore' });
+
+                totalWorkingDays += calculateWorkingDays(currentStageDate.toISO(), nextStageDate.toISO());
+            }
+
+            // calculate the working days between the next interview stage here
+            const latestStage = stagesWithDates[stagesWithDates.length - 1];
+            let latestStageDateISO = new Date(latestStage.date).toISOString();
+            let nextInterviewStageDateISO = DateTime.fromISO(newInterviewDate.value).setZone('Asia/Singapore').toJSDate().toISOString();
+            totalWorkingDays += calculateWorkingDays(latestStageDateISO, nextInterviewStageDateISO);
+
+            // Calculate average working days and store it in the updates object
+            const averageWorkingDays = totalWorkingDays > 0 
+                ? Math.round((totalWorkingDays - (stagesWithDates.length)) / (stagesWithDates.length)) 
+                : 0;
+            
+            const updates = {
+                [`stages.${computedInterviewKey.value}`]: newStage,
+                last_status_date: dateInShort,
+                average_working_days: averageWorkingDays,
+                response_days_map: { ...responseDaysMap }
+            }
+
+            await updateDoc(appRef, updates);
 
             console.log(`Added ${computedInterviewKey.value}`);
+
+            // force reactivity
+            const appIndex = jobApplications.value["Interview"].findIndex(app => app.id === newInterviewAppId.value);
+            if (appIndex !== -1) {
+                jobApplications.value["Interview"][appIndex].last_status_date = dateInShort;
+            }
 
             showAddInterviewModal.value = false;
             customStageName.value = ""; // reset field
         };
-
-
-                
 
         return {
             // testing
