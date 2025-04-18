@@ -10,8 +10,6 @@ defineProps({
   userId: String,
 });
 
-
-
 // to close pop-up when clicked outside of the pop-up + update the clicktoedit fields
 const editFormRef = ref(null); 
 const emit = defineEmits(['close']);
@@ -98,16 +96,16 @@ const handleConfirmedUpdate = (msg) => {
           <section v-if="activeTab === 'edit-application'" class="application-info">
             <h2 class="application-details-title">Edit Application</h2>
             <EditApplicationForm
-            ref="editFormRef"
-            :appId="appId"
-            :userId="userId"
-            @application-updated="handleConfirmedUpdate"
-            @auto-save-update="showToast('Application Updated (Auto-Saved)')"
+              ref="editFormRef"
+              :appId="appId"
+              :userId="userId"
+              @application-updated="handleConfirmedUpdate"
+              @auto-save-update="showToast('Application Updated (Auto-Saved)')"
             />
 
           </section>
           <section v-if="activeTab === 'insights'" class="insights">
-            <h2 class="insights-title">Insights & Statistics</h2>
+            <h2 class="application-details-title">Insights & Statistics</h2>
             <Statistics 
               :appId="appId" 
               :userId="userId" 
@@ -138,7 +136,9 @@ const handleConfirmedUpdate = (msg) => {
 }
 
 .insights-title {
-  padding-bottom: 12px;
+  padding: 12px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .company-name {
@@ -236,5 +236,4 @@ const handleConfirmedUpdate = (msg) => {
   font-weight: bold;
   
 }
-
 </style>

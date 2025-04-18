@@ -84,7 +84,7 @@
                                 <span class="position">{{ app.position }}</span>
                                 <span class="status">{{ app.status }} on {{ app.last_status_date }}</span>
                                 <div class="task-buttons">
-                                    <button v-if="status === 'Interview' || status === 'Assessment'" class="add-btn">
+                                    <button v-if="status === 'Interview'" class="add-btn">
                                         <font-awesome-icon class="add-icon" icon="fa-solid fa-plus" />
                                     </button>
                                     <button class="delete-btn" @click.stop="confirmDelete(app, status)">
