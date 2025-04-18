@@ -55,6 +55,19 @@
       <textarea rows="3" v-model="localApp.notes" disabled></textarea>
     </div>
 
+    <div class="node-timeline">
+    <template v-for="([stage, details], index) in sortedStages" :key="index">
+      <div class="timeline-node" :class="getStageColor(details.status || stage)">
+        <div class="node-circle"></div>
+        <div class="node-label">
+          <strong>{{ formatStageLabel(stage) }}</strong>
+          <div class="node-date">{{ formatDate(details.date) }}</div>
+        </div>
+      </div>
+      <div v-if="index !== sortedStages.length - 1" class="timeline-arrow">→</div>
+    </template>
+    </div>
+
     <div class="interview-questions-section">
       <button @click="toggleInterviewQuestions" class="interview-questions-btn">
         View Interview Questions
@@ -150,7 +163,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted,computed } from "vue";
 import { useToast } from "vue-toastification";
 import {
   doc,
@@ -249,14 +262,40 @@ onMounted(async () => {
   await display();
 });
 
-const statusOptions = [
-  "Applied",
-  "Assessment",
-  "Interview",
-  "Accepted",
-  "Rejected",
-  "Turned Down",
-];
+//stages node 
+const stages = ref({});
+
+onMounted(async () => {
+  const docSnap = await getDoc(docPath);
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    Object.assign(localApp, data);
+    stages.value = data.stages || {};
+    emit("passCompany", localApp.company);
+  } else {
+    console.error("No such document!");
+  }
+  await display();
+});
+
+const sortedStages = computed(() => {
+  return Object.entries(stages.value || {}).sort((a, b) => new Date(a[1].date) - new Date(b[1].date));
+});
+
+const formatStageLabel = (key) => {
+  return key.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+};
+// filter for status to get colour
+const getStageColor = (stage) => {
+  const statusKey = stage.toLowerCase();
+  if (statusKey.includes('applied')) return 'node-applied';
+  if (statusKey.includes('assessment')) return 'node-assessment';
+  if (statusKey.includes('interview')) return 'node-interview';
+  if (statusKey.includes('offered')) return 'node-offered';
+  if (statusKey.includes('rejected')) return 'node-rejected';
+  if (statusKey.includes('turn')) return 'node-turned-down';
+  return 'node-default';
+};
 
 const toggleInterviewQuestions = async () => {
   showInterviewQuestions.value = !showInterviewQuestions.value;
@@ -800,4 +839,69 @@ const openReportPopup = (questionId) => {
   border: 1px solid #ccc;
   border-radius: 6px;
 }
+.node-timeline {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  margin-top: 12px;
+  padding-left: 10px;
+  position: relative;
+  overflow-x: auto;      
+
+}.node-timeline {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  margin-top: 12px;
+  padding-left: 10px;
+  position: relative;
+  overflow-x: auto;      
+  scrollbar-width: thin;
+}
+
+.timeline-node {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  flex-direction: column;
+}
+
+.node-circle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #ccc;
+}
+
+.node-label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.95rem;
+  color: navy;
+  text-align: left;
+  margin-left: 24px;
+}
+
+.node-date {
+  font-size: 0.8rem;
+  color: black;
+}
+
+.timeline-arrow {
+  font-size: 1.25rem;
+  color: black;
+  margin-left: 5px;
+  margin-top: -10px;
+}
+
+/* colours for the differnet stages */
+.node-applied .node-circle { background-color: turquoise; }
+.node-assessment .node-circle { background-color: orange; }
+.node-interview .node-circle { background-color: purple; }
+.node-offered .node-circle { background-color: green; }
+.node-rejected .node-circle { background-color: red; }
+.node-turned-down .node-circle { background-color: grey; }
+.node-default .node-circle { background-color: black; }
 </style>
+
