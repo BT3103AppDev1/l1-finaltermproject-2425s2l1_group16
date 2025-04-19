@@ -220,14 +220,6 @@ const localApp = reactive({
   notes: "",
 });
 
-// onMounted(async () => {
-//  const docRef = doc(db, "Users", "insights_me", "application_folder", "3JQC4QcVShXVJzX3lPJM");
-//  const docSnap = await getDoc(docRef);
-
-//const statusOptions = [
-//  'Applied', 'Assessment', 'Interview', 'Accepted', 'Rejected', 'Turned Down'
-//];
-
 const props = defineProps({
   userId: {
     type: String,
@@ -237,13 +229,17 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  selectedCycle: {
+    type: String,
+    required: true,
+  },
 });
 
 const docPath = doc(
   db,
   "Users",
   props.userId,
-  "application_folder",
+  props.selectedCycle,
   props.appId
 );
 
