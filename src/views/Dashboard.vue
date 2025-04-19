@@ -1230,18 +1230,18 @@ export default {
                         db,
                         "Users",
                         userId.value,
-                        "application_folder",
+                        selectedCycle.value,
                         app.id
                     );
                     await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
                 }
 
-                // Remove the application from the old column
-                jobApplications.value[from] = jobApplications.value[
-                    from
-                ].filter((item) => item.id !== app.id);
+                // Remove the application from the old column and update ranks
+                jobApplications.value[from] = jobApplications.value[from].filter(
+                    (item) => item.id !== app.id
+                );
 
-                jobApplications.value[from].forEach(async (item, index) => {
+                const updatePromises = jobApplications.value[from].map(async (item, index) => {
                     const appRef = doc(
                         db,
                         "Users",
@@ -1249,15 +1249,17 @@ export default {
                         selectedCycle.value,
                         item.id
                     );
-                    await updateDoc(appRef, { rank: index });
+                    return updateDoc(appRef, { rank: index });
                 });
 
-                // Ensure the new column is an array (fixes empty column issue)
+                await Promise.all(updatePromises);
+
+                // Ensure the new column is an array
                 if (!jobApplications.value[to]) {
                     jobApplications.value[to] = [];
                 }
 
-                // Add the application to the new column (force reactivity)
+                // Add the application to the new column
                 jobApplications.value[to].unshift({
                     ...app,
                     status: to,
