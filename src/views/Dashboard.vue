@@ -1366,7 +1366,7 @@ export default {
                 db,
                 "Users",
                 userId.value,
-                "application_folder",
+                selectedCycle.value,
                 appId
             );
             const snapshot = await getDoc(appRef);
@@ -1390,7 +1390,7 @@ export default {
                 db,
                 "Users",
                 userId.value,
-                "application_folder",
+                selectedCycle.value,
                 newInterviewAppId.value
             );
             const snapshot = await getDoc(appRef);
