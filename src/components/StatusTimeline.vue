@@ -9,7 +9,7 @@
         </li>
       </ul>
     </div>
-  </template>
+</template>
   
   <script setup>
   import { computed } from 'vue';

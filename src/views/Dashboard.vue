@@ -195,30 +195,32 @@
         <div class="modal-content">
         <h3>Add New Interview Stage</h3>
         <div class="input-group">
-        <label>Stage Key:</label>
-        <input
-            type="text"
-            :value="`Interview Number: ${computedInterviewKey.split('_')[1]}`"
-            disabled
-            class="input-field"
-        />
+            <label>Interview Key:</label>
+            <input
+                type="text"
+                :value="`Interview Number: ${computedInterviewKey.split('_')[1]}`"
+                disabled
+                class="input-field"
+            />
         </div>
         <div class="input-group">
-        <label for="customStageName">Stage Name:</label>
-        <input
-            type="text"
-            id="customStageName"
-            v-model="customStageName"
-            placeholder="e.g., HR Interview"
-            class="input-field"/>
+            <label for="customStageName">Interview Name:</label>
+            <input
+                type="text"
+                id="customStageName"
+                v-model="customStageName"
+                placeholder="e.g. HR Interview"
+                class="input-field"
+            />
         </div>
         <div class="input-group">
             <label for="newInterviewDate">Select Date:</label>
             <input
-            type="date"
-            id="newInterviewDate"
-            v-model="newInterviewDate"
-            class="input-field"
+                type="date"
+                id="newInterviewDate"
+                v-model="newInterviewDate"
+                class="input-field"
+                :max="maxDate"
             />
         </div>
         <div class="modal-actions">
@@ -264,9 +266,6 @@ export default {
 
         const userId = ref(null);
         const router = useRouter();
-
-        // userId.value = 'insights_me';
-
         const selectedAppId = ref(null);
         const showPopup = ref(false);
 
@@ -893,6 +892,15 @@ export default {
             showAddInterviewModal.value = false;
             customStageName.value = ""; // reset field
         };
+
+        // prevent scroll up and down when modal is open
+        watch(showAddInterviewModal, (newVal) => {
+            if (newVal) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        });
 
         return {
             // testing
