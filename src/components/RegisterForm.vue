@@ -43,10 +43,7 @@
 					@input="clearErrors('password')"
 				/>
 				<p v-if="!passwordError" class="info-message">
-					* Password must contain at least:<br />
-					6 characters<br />
-					1 uppercase letter <br />1 number <br />
-					1 special character
+					* Password must contain at least 6 characters
 				</p>
 				<p v-if="passwordError" class="error-message">
 					{{ passwordError }}
@@ -123,11 +120,7 @@ async function createUserDocument(user) {
 	const userData = {
 		uid: user.uid,
 		email: user.email || "",
-		// Ensure displayName reflects the latest update if possible
 		displayName: user.displayName || "", // Use Auth profile's displayName
-		//photoURL: user.photoURL || '',
-		//createdAt: serverTimestamp(),
-		//providerId: user.providerData?.[0]?.providerId || 'unknown',
 	};
 
 	try {
@@ -141,7 +134,6 @@ async function createUserDocument(user) {
 		);
 	} catch (error) {
 		console.error("Error creating user document in Firestore:", error);
-		// Consider how to handle this error in the UI if necessary
 	}
 }
 
@@ -192,24 +184,24 @@ export default {
 					"Password must be at least 6 characters long";
 				isValid = false;
 			} else {
-				const specialCharRegex =
-					/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
-				const numberRegex = /\d/;
-				const uppercaseRegex = /[A-Z]/;
-
-				if (!specialCharRegex.test(this.password)) {
-					this.passwordError =
-						"Password must contain at least one special character.";
-					isValid = false;
-				} else if (!numberRegex.test(this.password)) {
-					this.passwordError =
-						"Password must contain at least one number.";
-					isValid = false;
-				} else if (!uppercaseRegex.test(this.password)) {
-					this.passwordError =
-						"Password must contain at least one uppercase letter.";
-					isValid = false;
-				}
+				// Stricted checks for password security, we can use if needed, exclude for now
+				// const specialCharRegex =
+				// 	/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/;
+				// const numberRegex = /\d/;
+				// const uppercaseRegex = /[A-Z]/;
+				// if (!specialCharRegex.test(this.password)) {
+				// 	this.passwordError =
+				// 		"Password must contain at least one special character.";
+				// 	isValid = false;
+				// } else if (!numberRegex.test(this.password)) {
+				// 	this.passwordError =
+				// 		"Password must contain at least one number.";
+				// 	isValid = false;
+				// } else if (!uppercaseRegex.test(this.password)) {
+				// 	this.passwordError =
+				// 		"Password must contain at least one uppercase letter.";
+				// 	isValid = false;
+				// }
 			}
 
 			if (!this.confirmPassword) {
@@ -360,7 +352,6 @@ export default {
 </script>
 
 <style scoped>
-/* Copy relevant styles from Auth.vue - form container, inputs, labels, buttons, errors, links */
 .auth-form-container {
 	text-align: left;
 	max-width: 450px;
@@ -368,7 +359,7 @@ export default {
 	background: white;
 	padding: 30px 40px;
 	border-radius: 8px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 	border: 1px solid #d1e0ff;
 }
 
