@@ -8,6 +8,7 @@ defineProps({
   show: Boolean,
   appId: String,
   userId: String,
+  selectedCycle: String,
 });
 
 // to close pop-up when clicked outside of the pop-up + update the clicktoedit fields
@@ -91,6 +92,7 @@ const handleConfirmedUpdate = (msg) => {
               @passCompany="handleCompanyUpdate"
               :userId="userId"
               :key="detailsKey" 
+              :selectedCycle="selectedCycle"
             />
           </section>
           <section v-if="activeTab === 'edit-application'" class="application-info">
@@ -99,6 +101,7 @@ const handleConfirmedUpdate = (msg) => {
               ref="editFormRef"
               :appId="appId"
               :userId="userId"
+              :selectedCycle="selectedCycle"
               @application-updated="handleConfirmedUpdate"
               @auto-save-update="showToast('Application Updated (Auto-Saved)')"
             />
@@ -109,6 +112,7 @@ const handleConfirmedUpdate = (msg) => {
             <Statistics 
               :appId="appId" 
               :userId="userId" 
+              :selectedCycle="selectedCycle"
             />
           </section>
         </div>
