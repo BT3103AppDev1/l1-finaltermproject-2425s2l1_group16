@@ -87,7 +87,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { db } from '@/firebase';
-import { doc, getDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collectionGroup, query, where, getDocs, collection } from 'firebase/firestore';
 import { use } from 'echarts/core';
 import VChart from 'vue-echarts';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -135,6 +135,7 @@ const props = defineProps({
 });
 
 onMounted(async () => {
+    // users' own application_folder, need to change it to the actual application folder they are at
     const docPath = doc(db, "Users", props.userId, "application_folder", props.appId);
 
     const myDocSnap = await getDoc(docPath);
