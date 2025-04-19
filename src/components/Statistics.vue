@@ -87,7 +87,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { db } from '@/firebase';
-import { doc, getDoc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collectionGroup, query, where, getDocs, collection } from 'firebase/firestore';
 import { use } from 'echarts/core';
 import VChart from 'vue-echarts';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -131,11 +131,16 @@ const props = defineProps({
   appId: {
     type: String,
     required: true
+  },
+  selectedCycle: {
+    type: String,
+    required: true
   }
 });
 
 onMounted(async () => {
-    const docPath = doc(db, "Users", props.userId, "application_folder", props.appId);
+    // users' own application_folder, need to change it to the actual application folder they are at
+    const docPath = doc(db, "Users", props.userId, props.selectedCycle, props.appId);
 
     const myDocSnap = await getDoc(docPath);
 
@@ -231,9 +236,11 @@ const mostFrequentResponseDay = computed(() => {
     if (entries.length === 0) return 'No data available';
     // to get the highest counts
     const sortedEntries = entries.sort((a, b) => b[1] - a[1]);
-    const mostFrequentDay = sortedEntries[0][0];
-    const dayName = weekdayNames[mostFrequentDay];
-    return `${company.value} usually responds on ${dayName}s`;
+    const maxCount = sortedEntries[0][1];
+    const mostFrequentDays = sortedEntries.filter(entry => entry[1] === maxCount)
+                                          .map(entry => weekdayNames[entry[0]]);
+    const dayList = mostFrequentDays.join(' and ');
+    return `${company.value} usually responds on ${dayList}`;
 });
 
 // Pie chart data
@@ -361,6 +368,7 @@ const hasBarData = computed(() => totalBarUsers.value >= 10);
     flex-direction: column;
     gap: 16px;
     margin: auto;
+    padding: 12px;
 }
 
 .statistics-container {

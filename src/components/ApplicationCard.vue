@@ -8,12 +8,17 @@ defineProps({
   show: Boolean,
   appId: String,
   userId: String,
+  selectedCycle: String,
 });
 
-// to close pop-up when clicked outside of the pop-up
+// to close pop-up when clicked outside of the pop-up + update the clicktoedit fields
+const editFormRef = ref(null); 
 const emit = defineEmits(['close']);
-const handleOverlayClick = (e) => {
-  emit('close');
+const handleOverlayClick = async (e) => {
+  if (activeTab.value === 'edit-application' && editFormRef.value?.saveAutoFields) {
+    await editFormRef.value.saveAutoFields();
+  }
+  emit('close'); 
 };
 
 // get the company name from the child (ApplicationDetails.vue)
@@ -35,12 +40,24 @@ const truncatedCompany = computed(() => {
 // Default is Application Details
 const activeTab = ref('application-details');  
 
-const switchTab = (tabName) => {
+const switchTab = async (tabName) => {
+  if (
+    activeTab.value === 'edit-application' &&
+    tabName !== 'edit-application' &&
+    editFormRef.value?.saveAutoFields
+  ) {
+    await editFormRef.value.saveAutoFields();
+  }
   activeTab.value = tabName;
 };
 
+const toastMessage = ref('');
+
 const showToast = (message) => {
-  console.log(message);
+  toastMessage.value = message;
+  setTimeout(() => {
+    toastMessage.value = '';
+  }, 3000);
 };
 
 const detailsKey = ref(0);
@@ -61,10 +78,9 @@ const handleConfirmedUpdate = (msg) => {
         <div class="popup-header">
           <h1 class="company-name">{{ truncatedCompany }}</h1>
           <div class="action-links">
-            <a href="#" class="link-btn" @click="switchTab('application-details')" :class="{'active-tab': activeTab === 'application-details'}">Application Details</a><span class="separator"> | </span>
-            <a href="#" class="link-btn" @click="switchTab('edit-application')" :class="{'active-tab': activeTab === 'edit-application'}">Edit Application</a><span class="separator"> | </span>
-            <a href="#" class="link-btn">Delete Application</a><span class="separator"> | </span>
-            <a href="#" class="link-btn" @click="switchTab('insights')" :class="{'active-tab': activeTab === 'insights'}">Insights & Statistics</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click.prevent="switchTab('application-details')" :class="{'active-tab': activeTab === 'application-details'}">Application Details</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click.prevent="switchTab('edit-application')" :class="{'active-tab': activeTab === 'edit-application'}">Edit Application</a><span class="separator"> | </span>
+            <a href="#" class="link-btn" @click.prevent="switchTab('insights')" :class="{'active-tab': activeTab === 'insights'}">Insights & Statistics</a><span class="separator"> | </span>
             <a href="#" class="link-btn">Interview Questions</a>
           </div>
         </div>
@@ -76,29 +92,34 @@ const handleConfirmedUpdate = (msg) => {
               @passCompany="handleCompanyUpdate"
               :userId="userId"
               :key="detailsKey" 
+              :selectedCycle="selectedCycle"
             />
           </section>
           <section v-if="activeTab === 'edit-application'" class="application-info">
             <h2 class="application-details-title">Edit Application</h2>
             <EditApplicationForm
-              v-if="activeTab === 'edit-application'"
-              :appId="appId" 
+              ref="editFormRef"
+              :appId="appId"
               :userId="userId"
+              :selectedCycle="selectedCycle"
               @application-updated="handleConfirmedUpdate"
               @auto-save-update="showToast('Application Updated (Auto-Saved)')"
             />
 
           </section>
           <section v-if="activeTab === 'insights'" class="insights">
-            <h2 class="insights-title">Insights & Statistics</h2>
+            <h2 class="application-details-title">Insights & Statistics</h2>
             <Statistics 
               :appId="appId" 
               :userId="userId" 
+              :selectedCycle="selectedCycle"
             />
           </section>
         </div>
     </div>
   </div>
+  <div v-if="toastMessage" class="toast">{{ toastMessage }}</div>
+
 </template>
 
 <style scoped>
@@ -119,7 +140,9 @@ const handleConfirmedUpdate = (msg) => {
 }
 
 .insights-title {
-  padding-bottom: 12px;
+  padding: 12px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .company-name {
@@ -204,5 +227,17 @@ const handleConfirmedUpdate = (msg) => {
 
 .close-btn:hover {
   color: #475569;
+}
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background-color: #10b981;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  
 }
 </style>

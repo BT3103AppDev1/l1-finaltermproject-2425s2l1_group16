@@ -87,16 +87,17 @@
 			<router-link to="/login">Log in</router-link>
 		</p>
 	</div>
+
 </template>
 
 <script>
 import {
-	getAuth,
-	createUserWithEmailAndPassword,
-	updateProfile,
-	GoogleAuthProvider,
-	signInWithPopup,
-	getAdditionalUserInfo,
+    getAuth,
+    createUserWithEmailAndPassword,
+    updateProfile,
+    GoogleAuthProvider,
+    signInWithPopup,
+    getAdditionalUserInfo,
 } from "firebase/auth";
 
 import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -348,6 +349,7 @@ export default {
 			}
 		},
 	},
+
 };
 </script>
 
@@ -364,174 +366,174 @@ export default {
 }
 
 h2 {
-	font-size: 24px;
-	font-weight: 600;
-	color: #333;
-	margin-bottom: 10px;
-	text-align: left;
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+    text-align: left;
 }
 
 .subtitle {
-	font-size: 14px;
-	color: #666;
-	margin-bottom: 30px;
-	text-align: left;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 30px;
+    text-align: left;
 }
 
 .form-group {
-	margin-bottom: 20px;
+    margin-bottom: 20px;
 }
 
 label {
-	display: block;
-	margin-bottom: 8px;
-	font-weight: 600;
-	font-size: 14px;
-	color: #333;
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
 }
 
 input[type="email"],
 input[type="name"],
 input[type="password"] {
-	width: 100%;
-	padding: 12px 15px;
-	border: 1px solid #ccc;
-	border-radius: 4px;
-	box-sizing: border-box;
-	font-size: 14px;
-	background-color: #f8f9fa;
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 14px;
+    background-color: #f8f9fa;
 }
 
 input::placeholder {
-	color: #aaa;
+    color: #aaa;
 }
 
 input:focus {
-	outline: none;
-	border-color: #6c63ff;
-	box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
+    outline: none;
+    border-color: #6c63ff;
+    box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
 }
 
 .input-error {
-	border-color: #dc3545;
-	background-color: #fff8f8;
+    border-color: #dc3545;
+    background-color: #fff8f8;
 }
 
 .input-error:focus {
-	box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
 }
 
 .error-message,
 .info-message {
-	color: #dc3545;
-	font-size: 12px;
-	margin-top: 6px;
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 6px;
 }
 
 .info-message {
-	color: #666;
+    color: #666;
 }
 
 .general-error {
-	text-align: center;
-	margin-bottom: 15px;
-	color: #dc3545;
-	font-size: 13px;
-	font-weight: 500;
+    text-align: center;
+    margin-bottom: 15px;
+    color: #dc3545;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 .submit-btn {
-	background-color: #c24600;
-	color: white;
-	border: none;
-	padding: 12px 20px;
-	border-radius: 5px;
-	cursor: pointer;
-	font-size: 16px;
-	font-weight: 600;
-	width: 100%;
-	margin-top: 10px;
-	transition: background-color 0.2s ease;
+    background-color: #c24600;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    width: 100%;
+    margin-top: 10px;
+    transition: background-color 0.2s ease;
 }
 
 .submit-btn:hover {
-	background-color: #fc640d;
+    background-color: #fc640d;
 }
 
 .toggle-link {
-	text-align: center;
-	margin-top: 25px;
-	font-size: 14px;
-	color: #666;
+    text-align: center;
+    margin-top: 25px;
+    font-size: 14px;
+    color: #666;
 }
 
 .toggle-link a {
-	color: #c24600;
-	text-decoration: none;
-	font-weight: 600;
-	margin-left: 5px;
+    color: #c24600;
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 5px;
 }
 
 .toggle-link a:hover {
-	text-decoration: underline;
-	background-color: transparent;
+    text-decoration: underline;
+    background-color: transparent;
 }
 
 .divider {
-	text-align: center;
-	margin: 25px 0 20px 0;
-	font-size: 12px;
-	color: #888;
-	font-weight: 500;
-	text-transform: uppercase;
-	position: relative;
+    text-align: center;
+    margin: 25px 0 20px 0;
+    font-size: 12px;
+    color: #888;
+    font-weight: 500;
+    text-transform: uppercase;
+    position: relative;
 }
 
 .divider::before,
 .divider::after {
-	content: "";
-	display: inline-block;
-	width: 38%;
-	height: 1px;
-	background-color: #ddd;
-	vertical-align: middle;
+    content: "";
+    display: inline-block;
+    width: 38%;
+    height: 1px;
+    background-color: #ddd;
+    vertical-align: middle;
 }
 
 .divider::before {
-	margin-right: 10px;
+    margin-right: 10px;
 }
 
 .divider::after {
-	margin-left: 10px;
+    margin-left: 10px;
 }
 
 .google-signin-btn {
-	background-color: #ffffff; /* White background */
-	color: #444; /* Dark grey text */
-	border: 1px solid #ccc; /* Subtle border */
-	padding: 10px 15px;
-	border-radius: 5px;
-	cursor: pointer;
-	font-size: 14px;
-	font-weight: 600; /* Slightly bolder */
-	width: 100%;
-	margin: 0 auto 15px auto; /* Center and add margin below */
-	transition: background-color 0.2s ease, box-shadow 0.2s ease;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    background-color: #ffffff; /* White background */
+    color: #444; /* Dark grey text */
+    border: 1px solid #ccc; /* Subtle border */
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600; /* Slightly bolder */
+    width: 100%;
+    margin: 0 auto 15px auto; /* Center and add margin below */
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .google-signin-btn:hover {
-	background-color: #f8f8f8; /* Slight grey on hover */
-	border-color: #bbb;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: #f8f8f8; /* Slight grey on hover */
+    border-color: #bbb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .google-signin-btn img {
-	width: 18px;
-	height: 18px;
-	margin-right: 10px;
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
 }
 </style>
