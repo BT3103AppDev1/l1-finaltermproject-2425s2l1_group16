@@ -11,7 +11,9 @@
                     <h1 class="main-title">Welcome!</h1>
                 </div>
                 <div class="profile-icon">
-                    <font-awesome-icon icon="fa-solid fa-user-circle" />
+                    <router-link to="/profile" tag="div" class="profile-icon">
+    					<font-awesome-icon icon="fa-solid fa-user-circle" />
+        			</router-link>
                 </div>
             </div>
             <!-- for testing, please delete later -->
@@ -226,52 +228,67 @@
             <div class="modal-content">
                 <h3>Confirm Status Change</h3>
                 <p>
-                    You are moving
-                    <strong>{{ pendingDrop?.app.company }}</strong> to
-                    <strong>{{ pendingDrop?.to }}</strong
-                    ><br />
+                You are moving the application <strong style="font-weight: bold;">"{{ pendingDrop?.app.company }}"</strong>
+                to <strong style="font-weight: bold;">{{ pendingDrop?.to }}</strong>:
                 </p>
 
-                <div
-                    v-if="
-                        pendingDrop?.to === 'Interview' ||
-                        pendingDrop?.to === 'Assessment'
-                    "
-                >
-                    <label for="stageName">Enter Stage Name:</label>
-                    <input
-                        type="text"
-                        id="stageName"
-                        v-model="stageName"
-                        placeholder="Enter stage name"
-                    />
+                <div v-if="pendingDrop?.to === 'Interview'">
+                    <div class="input-group">
+                        <label for="stageName">Enter Stage Name:</label>
+                        <input
+                            type="text"
+                            id="stageName"
+                            v-model="stageName"
+                            placeholder="E.g., HR Interview"
+                            class="input-field"
+                            required
+                        />
+                    </div>
                 </div>
 
-                <div
-                    v-if="
-                        pendingDrop?.to !== 'Applied' &&
-                        pendingDrop?.to !== 'Turned Down'
-                    "
-                >
-                    <label for="responseDate">Select Response Date:</label>
-                    <input
-                        type="date"
-                        id="responseDate"
-                        v-model="responseDate"
-                        :max="maxDate"
-                        required
-                    />
+                <div v-if="pendingDrop?.to !== 'Applied' && pendingDrop?.to !== 'Turned Down'">
+                    <div class="input-group">
+                        <label for="responseDate">Select Response Date:</label>
+                        <input
+                            type="date"
+                            id="responseDate"
+                            v-model="responseDate"
+                            :max="maxDate"
+                            class="input-field"
+                            required
+                        />
+                    </div>
                 </div>
 
                 <div class="modal-actions">
-                    <button @click="confirmDropStatus">Confirm</button>
-                    <button @click="showDropConfirmModal = false">
+                    <button @click="confirmDropStatus" class="confirm-button">Confirm</button>
+                    <button @click="showDropConfirmModal = false" class="cancel-button">
                         Cancel
                     </button>
                 </div>
             </div>
         </div>
     </teleport>
+
+<teleport to="body">
+    <div
+      v-if="showAppDeleteModal"
+      class="modal-overlay"
+      @click.self="showAppDeleteModal = false"
+    >
+      <div class="modal-content">
+        <h3>Are you sure you want to delete this application?</h3>
+        <p>This action cannot be undone.</p>
+        <div class="modal-actions">
+          <button @click="performDelete" class="delete-button">Delete</button>
+          <button @click="showAppDeleteModal = false" class="cancel-button">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+</teleport>
+
 
     <teleport to="body">
         <div
@@ -2073,7 +2090,7 @@ export default {
             db,
             "Users",
             userId.value,
-            "application_folder",
+            selectedCycle.value,
             app.id
           );
           await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
@@ -2202,7 +2219,7 @@ export default {
         db,
         "Users",
         userId.value,
-        "application_folder",
+        selectedCycle.value,
         appId
       );
       const snapshot = await getDoc(appRef);
@@ -2226,7 +2243,7 @@ export default {
         db,
         "Users",
         userId.value,
-        "application_folder",
+        selectedCycle.value,
         newInterviewAppId.value
       );
       const snapshot = await getDoc(appRef);
@@ -2523,6 +2540,10 @@ export default {
     font-size: 40px;
     color: #333;
     cursor: pointer;
+}
+
+.profile-icon:hover {
+	background-color: #e0e0e0;
 }
 
 .sub-header {
