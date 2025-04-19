@@ -8,7 +8,7 @@
                         alt="InternTrack Logo"
                         class="logo-img"
                     />
-                    <h1 class="main-title">Summer Intern 2025</h1>
+                    <h1 class="main-title">{{ selectedCycle }}</h1>
                 </div>
                 <div class="profile-icon">
                     <font-awesome-icon icon="fa-solid fa-user-circle" />
@@ -289,6 +289,7 @@
             :show="showPopup"
             :appId="selectedAppId"
             :userId="userId"
+            :selectedCycle="selectedCycle"
             @close="closePopup"
         />
     </teleport>
@@ -339,19 +340,7 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { db } from "@/firebase";
-import {
-    collection,
-    getDocs,
-    doc,
-    updateDoc,
-    getDoc,
-    deleteDoc,
-    query,
-    where,
-    getFirestore,
-    setDoc,
-    writeBatch,
-} from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc, query, where, setDoc, writeBatch } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { DateTime } from "luxon";
 import AddApplicationForm from "@/components/AddApplicationForm.vue";

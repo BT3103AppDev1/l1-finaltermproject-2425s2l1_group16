@@ -58,19 +58,23 @@ notes: ''
 });
 
 const props = defineProps({
-userId: {
-  type: String,
-  required: true
-},
-appId: {
-  type: String,
-  required: true
-}
+  userId: {
+    type: String,
+    required: true
+  },
+  appId: {
+    type: String,
+    required: true
+  },
+  selectedCycle: {
+    type: String,
+    required: true,
+  },
 });
 
 const originalApp = ref({});
 
-const docPath = doc(db, 'Users', props.userId, 'application_folder', props.appId);
+const docPath = doc(db, 'Users', props.userId, props.selectedCycle, props.appId);
 
 onMounted(async () => {
 const snap = await getDoc(docPath);
