@@ -100,7 +100,7 @@
                         <h3>{{ statusLabels[status] }}</h3>
                         <div
                             v-for="(app, index) in collapsed[status] &&
-                            applications.length >= 5
+                            applications.length > 5
                                 ? applications.slice(0, 5)
                                 : applications"
                             :key="app.id"
@@ -163,7 +163,7 @@
                             </div>
                         </div>
                         <button
-                            v-if="applications.length >= 5"
+                            v-if="applications.length > 5"
                             @click="toggleCollapse(status)"
                             class="collapse-btn"
                         >
@@ -181,7 +181,7 @@
             @close="showForm = false"
             @application-added="handleApplicationAdded"
             :userId="userId"
-            :cycle="selectedCycle"
+            :currentCycle="selectedCycle"
         />
     </teleport>
 
@@ -481,71 +481,38 @@ export default {
         };
 
         const performDelete = async () => {
-            if (
-                !appToDelete.value ||
-                !appStatusToDelete.value ||
-                !selectedCycle.value
-            )
-                return;
+            if (!appToDelete.value || !appStatusToDelete.value || !selectedCycle.value) return;
 
             try {
-                const appRef = doc(
-                    db,
-                    "Users",
-                    userId.value,
-                    selectedCycle.value,
-                    appToDelete.value.id
-                );
+                const appRef = doc(db,"Users",userId.value,selectedCycle.value,appToDelete.value.id);
 
                 await deleteDoc(appRef);
 
-                const applicationsRef = collection(
-                    db,
-                    "Users",
-                    userId.value,
-                    selectedCycle.value
-                );
-
+                const applicationsRef = collection(db,"Users",userId.value,selectedCycle.value);
+                const querySnapshot = await getDocs(query(applicationsRef,where("status", "==", appStatusToDelete.value)));
 
                 // -1 of the rank of everything after that application
                 const deletedAppIndex = jobApplications.value[
                     appStatusToDelete.value
                 ].findIndex((app) => app.id === appToDelete.value.id);
 
-                jobApplications.value[appStatusToDelete.value] =
-                    jobApplications.value[appStatusToDelete.value].filter(
-                        (item) => item.id !== appToDelete.value.id
-                    );
-
-                    jobApplications.value[appStatusToDelete.value] = jobApplications.value[
-          appStatusToDelete.value
-        ].filter((item) => item.id !== appToDelete.value.id);
-
+                jobApplications.value[appStatusToDelete.value] = jobApplications.value[appStatusToDelete.value].filter(
+                    (item) => item.id !== appToDelete.value.id
+                );
 
                 // for rank update
-                for (
-                    let i = deletedAppIndex;
-                    i < jobApplications.value[appStatusToDelete.value].length;
-                    i++
-                ) {
-                    const app =
-                        jobApplications.value[appStatusToDelete.value][i];
-                    const appRef = doc(
-                        db,
-                        "Users",
-                        userId.value,
-                        selectedCycle.value,
-                        app.id
-                    );
+                for (let i = deletedAppIndex; i < jobApplications.value[appStatusToDelete.value].length; i++) {
+                    const app = jobApplications.value[appStatusToDelete.value][i];
+                    const appRef = doc(db, "Users", userId.value, selectedCycle.value, app.id);
                     await updateDoc(appRef, { rank: i });
                 }
 
                 jobApplications.value[appStatusToDelete.value] =
-                    jobApplications.value[appStatusToDelete.value].filter(
-                        (item) => item.id !== appToDelete.value.id
-                    );
+                jobApplications.value[appStatusToDelete.value].filter(
+                    (item) => item.id !== appToDelete.value.id
+                );
 
-                showDeleteModal.value = false;
+                showAppDeleteModal.value = false;
                 appToDelete.value = null;
                 appStatusToDelete.value = null;
             } catch (err) {
@@ -575,125 +542,112 @@ export default {
         });
 
         const fetchApplicationCycles = async () => {
-            if (userId.value) {
-                const userMetadataRef = doc(
-                    db,
-                    "Users",
-                    userId.value,
-                    "user_metadata",
-                    "cycles_list"
-                );
-                const docSnap = await getDoc(userMetadataRef);
-                if (docSnap.exists() && docSnap.data().cycles) {
-                    applicationCycles.value = docSnap.data().cycles;
-                } else {
-                    applicationCycles.value = [];
-                }
+        if (userId.value) {
+            const userMetadataRef = doc(
+            db,
+            "Users",
+            userId.value,
+            "user_metadata",
+            "cycles_list"
+            );
+            const docSnap = await getDoc(userMetadataRef);
+            if (docSnap.exists() && docSnap.data().cycles) {
+            applicationCycles.value = docSnap.data().cycles;
+            } else {
+            applicationCycles.value = [];
             }
+        }
         };
 
         const loadApplications = async (selectedCycle = null) => {
-            console.log();
-            if (!userId.value) {
-                console.log("User ID is not set. Waiting...");
-                return;
+        console.log();
+        if (!userId.value) {
+            console.log("User ID is not set. Waiting...");
+            return;
+        }
+
+        const applicationsRef = collection(
+            db,
+            "Users",
+            userId.value,
+            selectedCycle // Use the selected cycle as the subcollection name
+        );
+
+        const querySnapshot = await getDocs(applicationsRef);
+
+        jobApplications.value = {
+            Applied: [],
+            Assessment: [],
+            Interview: [],
+            Offered: [],
+            Rejected: [],
+            "Turned Down": [],
+        };
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const status = data.status;
+            const stages = data.stages;
+            console.log(stages);
+
+            let latestStatus = null;
+            let latestDate = null;
+
+            for (let [stage, stageDetails] of Object.entries(stages)) {
+            const stageDate =
+                stageDetails && stageDetails.date
+                ? DateTime.fromISO(stageDetails.date, {
+                    zone: "Asia/Singapore",
+                    })
+                : null;
+
+            if (stageDate && (!latestDate || stageDate > latestDate)) {
+                latestStatus = stage;
+                latestDate = stageDate;
+            }
             }
 
-            if (!selectedCycle) {
-                jobApplications.value = {
-                    Applied: [],
-                    Assessment: [],
-                    Interview: [],
-                    Offered: [],
-                    Rejected: [],
-                    "Turned Down": [],
-                };
-                return; // Don't load anything if no cycle is selected (or 'All Cycles' is active)
-            }
+            const formattedLastStatusDate = latestDate
+            ? latestDate.toLocaleString(DateTime.DATE_SHORT)
+            : "N/A";
 
-            const applicationsRef = collection(
-                db,
-                "Users",
-                userId.value,
-                selectedCycle // Use the selected cycle as the subcollection name
+            jobApplications.value[status].push({
+            id: doc.id,
+            company: data.company,
+            position: data.position,
+            status: data.status,
+            last_status_date: formattedLastStatusDate,
+            dateApplied: data.date_applied,
+            rank: data.rank ?? 0,
+            notes: data.notes,
+            cycle: selectedCycle, // Store the cycle for filtering if needed later
+            });
+        });
+
+        // list cards in each status according to their user-assigned rank
+        Object.keys(jobApplications.value).forEach((status) => {
+            jobApplications.value[status].sort(
+            (a, b) => (a.rank ?? 0) - (b.rank ?? 0)
             );
-
-            const querySnapshot = await getDocs(applicationsRef);
-
-            jobApplications.value = {
-                Applied: [],
-                Assessment: [],
-                Interview: [],
-                Offered: [],
-                Rejected: [],
-                "Turned Down": [],
-            };
-
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                const status = data.status;
-                const stages = data.stages;
-                console.log(stages);
-
-                let latestStatus = null;
-                let latestDate = null;
-
-                for (let [stage, stageDetails] of Object.entries(stages)) {
-                    const stageDate =
-                        stageDetails && stageDetails.date
-                            ? DateTime.fromISO(stageDetails.date, {
-                                  zone: "Asia/Singapore",
-                              })
-                            : null;
-
-                    if (stageDate && (!latestDate || stageDate > latestDate)) {
-                        latestStatus = stage;
-                        latestDate = stageDate;
-                    }
-                }
-
-                const formattedLastStatusDate = latestDate
-                    ? latestDate.toLocaleString(DateTime.DATE_SHORT)
-                    : "N/A";
-
-                jobApplications.value[status].push({
-                    id: doc.id,
-                    company: data.company,
-                    position: data.position,
-                    status: data.status,
-                    last_status_date: formattedLastStatusDate,
-                    dateApplied: data.date_applied,
-                    rank: data.rank ?? 0,
-                    // not sure if this is needed
-                    notes: data.notes,
-                    cycle: selectedCycle, // Store the cycle for filtering if needed later
-                });
-            });
-
-            // list cards in each status according to their user-assigned rank
-            Object.keys(jobApplications.value).forEach((status) => {
-                jobApplications.value[status].sort(
-                    (a, b) => (a.rank ?? 0) - (b.rank ?? 0)
-                );
-            });
+        });
         };
 
         const selectCycle = async (cycle) => {
-            selectedCycle.value = cycle;
-            console.log("Selected Cycle:", cycle);
-            loadApplications(cycle);
-            try {
-                const userMetadataRef = doc(
-                    db,
-                    "Users",
-                    userId.value,
-                    "user_metadata",
-                    "cycles_list"
-                );
-                await updateDoc(userMetadataRef, { lastSelectedCycle: cycle });
-            } catch (error) {
-                console.error("Error updating last selected cycle:", error);
-            }
+        selectedCycle.value = cycle;
+        console.log("Selected Cycle:", cycle);
+        loadApplications(cycle);
+        try {
+            const userMetadataRef = doc(
+            db,
+            "Users",
+            userId.value,
+            "user_metadata",
+            "cycles_list"
+            );
+            await updateDoc(userMetadataRef, { lastSelectedCycle: cycle });
+        } catch (error) {
+            console.error("Error updating last selected cycle:", error);
+        }
         };
 
         // Ref for showing the create new cycle prompt
@@ -702,46 +656,46 @@ export default {
 
         // Function to show the create new cycle prompt
         const showCreateNewCyclePrompt = () => {
-            const newCycleInput = prompt(
-                "Enter a name for the new application cycle:",
-                "Untitled Application Cycle"
-            );
-            if (newCycleInput) {
-                createNewCycle(newCycleInput);
-            }
+        const newCycleInput = prompt(
+            "Enter a name for the new application cycle:",
+            "Untitled Application Cycle"
+        );
+        if (newCycleInput) {
+            createNewCycle(newCycleInput);
+        }
         };
 
         // Function to create a new cycle (moved from the previous response)
         const createNewCycle = async (newCycleInput) => {
-            const newCycleName = newCycleInput
-                .trim()
-                .toLowerCase()
-                .replace(/\s+/g, "_");
-            if (applicationCycles.value.includes(newCycleName)) {
-                alert("A cycle with this name already exists.");
-                return;
-            }
-            try {
-                const userMetadataRef = doc(
-                    db,
-                    "Users",
-                    userId.value,
-                    "user_metadata",
-                    "cycles_list"
-                );
-                const docSnap = await getDoc(userMetadataRef);
-                let existingCyclesArray =
-                    docSnap.exists() && docSnap.data().cycles
-                        ? [...docSnap.data().cycles]
-                        : [];
-                existingCyclesArray.push(newCycleName);
-                await setDoc(userMetadataRef, { cycles: existingCyclesArray });
-                await fetchApplicationCycles(); // Refresh the sidebar list
-                selectCycle(newCycleName); // Automatically switch to the new cycle
-            } catch (error) {
-                console.error("Error creating new cycle:", error);
-                alert("Failed to create new cycle.");
-            }
+        const newCycleName = newCycleInput
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+        if (applicationCycles.value.includes(newCycleName)) {
+            alert("A cycle with this name already exists.");
+            return;
+        }
+        try {
+            const userMetadataRef = doc(
+            db,
+            "Users",
+            userId.value,
+            "user_metadata",
+            "cycles_list"
+            );
+            const docSnap = await getDoc(userMetadataRef);
+            let existingCyclesArray =
+            docSnap.exists() && docSnap.data().cycles
+                ? [...docSnap.data().cycles]
+                : [];
+            existingCyclesArray.push(newCycleName);
+            await setDoc(userMetadataRef, { cycles: existingCyclesArray });
+            await fetchApplicationCycles(); // Refresh the sidebar list
+            selectCycle(newCycleName); // Automatically switch to the new cycle
+        } catch (error) {
+            console.error("Error creating new cycle:", error);
+            alert("Failed to create new cycle.");
+        }
         };
 
         // Refs and methods for renaming
@@ -774,9 +728,9 @@ export default {
                 applicationCycles.value.includes(newCycleName)
             ) {
                 if (newCycleName === oldCycleName) {
-                    // Name hasn't changed
+                // Name hasn't changed
                 } else {
-                    alert("A cycle with this name already exists.");
+                alert("A cycle with this name already exists.");
                 }
                 cycleToRename.value = null;
                 newCycleNameInput.value = "";
@@ -866,820 +820,6 @@ export default {
                 alert("Failed to rename cycle: " + error.message);
             }
         };
-
-        const cycleToDelete = ref(null);
-
-        const confirmDeleteCycle = (cycle) => {
-            cycleToDelete.value = cycle;
-            showDeleteModal.value = true;
-            closeCycleSettingsModal();
-            console.log(
-                "Confirm Delete Cycle:",
-                cycleToDelete.value,
-                showDeleteModal.value
-            );
-        };
-
-        const performDeleteCycle = async () => {
-            if (!cycleToDelete.value) return;
-
-            try {
-                const userMetadataRef = doc(
-                    db,
-                    "Users",
-                    userId.value,
-                    "user_metadata",
-                    "cycles_list"
-                );
-                const docSnap = await getDoc(userMetadataRef);
-                if (docSnap.exists() && docSnap.data().cycles) {
-                    const updatedCycles = docSnap
-                        .data()
-                        .cycles.filter(
-                            (cycle) => cycle !== cycleToDelete.value
-                        );
-                    const lastSelected =
-                        docSnap.data().lastSelectedCycle ===
-                            cycleToDelete.value && updatedCycles.length > 0
-                            ? updatedCycles[0]
-                            : docSnap.data().lastSelectedCycle;
-                    await setDoc(userMetadataRef, {
-                        cycles: updatedCycles,
-                        lastSelectedCycle: lastSelected,
-                    });
-                    // Delete the entire subcollection for this cycle
-                    const applicationsRef = collection(
-                        db,
-                        "Users",
-                        userId.value,
-                        cycleToDelete.value
-                    );
-                    const querySnapshot = await getDocs(applicationsRef);
-                    const deletePromises = querySnapshot.docs.map((doc) =>
-                        deleteDoc(doc.ref)
-                    );
-                    await Promise.all(deletePromises);
-
-                    await fetchApplicationCycles(); // Refresh the sidebar
-                    selectedCycle.value =
-                        updatedCycles.length > 0 ? updatedCycles[0] : null;
-                    loadApplications(selectedCycle.value);
-                }
-                showDeleteModal.value = false;
-                cycleToDelete.value = null;
-            } catch (error) {
-                console.error("Error deleting cycle:", error);
-                alert("Failed to delete cycle.");
-            }
-        };
-
-        watch(userId, (newUserId) => {
-            if (newUserId) {
-                loadApplications();
-            }
-        });
-
-        onMounted(() => {
-            const auth = getAuth();
-
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    userId.value = user.uid;
-                    console.log("Logged in!", userId.value);
-                    await fetchApplicationCycles();
-                    const userMetadataRef = doc(
-                        db,
-                        "Users",
-                        userId.value,
-                        "user_metadata",
-                        "cycles_list"
-                    );
-                    const docSnap = await getDoc(userMetadataRef);
-                    if (
-                        docSnap.exists() &&
-                        docSnap.data().lastSelectedCycle &&
-                        applicationCycles.value.includes(
-                            docSnap.data().lastSelectedCycle
-                        )
-                    ) {
-                        selectedCycle.value = docSnap.data().lastSelectedCycle;
-                    } else if (applicationCycles.value.length > 0) {
-                        selectedCycle.value = applicationCycles.value[0]; // Optionally select the first cycle if no last selected or if the last selected is no longer valid
-                    } else {
-                        selectedCycle.value = null; // No cycles exist
-                    }
-                    loadApplications(selectedCycle.value);
-                } else {
-                    router.push("/login");
-                    console.log("Not logged in..");
-                }
-            });
-
-            // If user is already logged in on mount
-            if (getAuth().currentUser) {
-                userId.value = getAuth().currentUser.uid;
-                fetchApplicationCycles();
-                loadApplications(selectedCycle.value); // Load based on initial selectedCycle
-            }
-        });
-
-        const handleHorizontalScroll = (event) => {
-            const container = kanban.value;
-            if (!container) return;
-
-            if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
-                container.scrollLeft += event.deltaX;
-            }
-        };
-
-        const summaryStats = computed(() => {
-            if (!selectedCycle.value) {
-                return "";
-            }
-            const statusCounts = Object.keys(jobApplications.value).map(
-                (status) => {
-                    return `${jobApplications.value[status].length} ${statusLabels[status]}`;
-                }
-            );
-            return statusCounts.join(" | ");
-        });
-
-        const dragStart = (app, status, index) => {
-            draggedApplication.value = app;
-            sourceStatus.value = status;
-            sourceIndex.value = index;
-        };
-
-        const pendingDrop = ref(null);
-        const showDropConfirmModal = ref(false);
-
-        const statusChangeTime = ref(null);
-
-        const drop = async (newStatus, dropIndex = null) => {
-            if (!draggedApplication.value || !selectedCycle.value) return;
-
-            // shifting within the same status
-            if (sourceStatus.value === newStatus) {
-                const columnApps = jobApplications.value[newStatus];
-
-                // shifting to the same place, no shift
-                if (dropIndex === null) {
-                    draggedApplication.value = null;
-                    sourceStatus.value = null;
-                    sourceIndex.value = null;
-                    return;
-                }
-
-                const movedApp = columnApps.splice(sourceIndex.value, 1)[0];
-                columnApps.splice(dropIndex, 0, movedApp);
-
-                // shifting the ranks around within the same status
-                for (let i = 0; i < columnApps.length; i++) {
-                    const appRef = doc(
-                        db,
-                        "Users",
-                        userId.value,
-                        selectedCycle.value,
-                        columnApps[i].id
-                    );
-                    await updateDoc(appRef, { rank: i });
-                }
-
-                draggedApplication.value = null;
-                sourceStatus.value = null;
-                sourceIndex.value = null;
-
-                return;
-            }
-
-            // application is shifted to a new status
-            const statusUpdateDate = DateTime.now()
-                .setZone("Asia/Singapore")
-                .toISO();
-            statusChangeTime.value = statusUpdateDate;
-
-            pendingDrop.value = {
-                app: draggedApplication.value,
-                from: sourceStatus.value,
-                to: newStatus,
-                dropIndex,
-            };
-
-            showDropConfirmModal.value = true;
-
-            // Clear drag state
-            draggedApplication.value = null;
-            sourceStatus.value = null;
-        };
-
-        // for number of working days
-        const calculateWorkingDays = (startDate, endDate) => {
-            const start = DateTime.fromISO(startDate, {
-                zone: "Asia/Singapore",
-            }).startOf("day");
-            const end = DateTime.fromISO(endDate, {
-                zone: "Asia/Singapore",
-            }).startOf("day");
-
-            let currentDate = start;
-            let workingDays = 0;
-
-            while (currentDate <= end) {
-                // check if it's a weekday (not Sunday or Saturday)
-                if (currentDate.weekday !== 6 && currentDate.weekday !== 7) {
-                    workingDays++;
-                }
-                currentDate = currentDate.plus({ days: 1 });
-            }
-
-            return workingDays;
-        };
-
-        const responseDate = ref(
-            DateTime.now().setZone("Asia/Singapore").toISODate()
-        ); // default to today's date
-        const stageName = ref("");
-        const maxDate = ref(
-            DateTime.now().setZone("Asia/Singapore").toISODate()
-        );
-
-        await deleteDoc(appRef);
-
-        const applicationsRef = collection(
-          db,
-          "Users",
-          userId.value,
-          selectedCycle.value
-        );
-
-        // -1 of the rank of everything after that application
-        const deletedAppIndex = jobApplications.value[
-          appStatusToDelete.value
-        ].findIndex((app) => app.id === appToDelete.value.id);
-
-        jobApplications.value[appStatusToDelete.value] = jobApplications.value[
-          appStatusToDelete.value
-        ].filter((item) => item.id !== appToDelete.value.id);
-
-        // for rank update
-        for (
-          let i = deletedAppIndex;
-          i < jobApplications.value[appStatusToDelete.value].length;
-          i++
-        ) {
-          const app = jobApplications.value[appStatusToDelete.value][i];
-          const appRef = doc(
-            db,
-            "Users",
-            userId.value,
-            selectedCycle.value,
-            app.id
-          );
-          await updateDoc(appRef, { rank: i });
-        }
-
-        jobApplications.value[appStatusToDelete.value] = jobApplications.value[
-          appStatusToDelete.value
-        ].filter((item) => item.id !== appToDelete.value.id);
-
-        showAppDeleteModal.value = false;
-        appToDelete.value = null;
-        appStatusToDelete.value = null;
-      } catch (err) {
-        console.error("Failed to delete:", err);
-      }
-    };
-
-    const showCycleSettingsModal = ref(false);
-    const selectedCycleForSettings = ref(null);
-
-    const openCycleSettingsModal = (cycle) => {
-      selectedCycleForSettings.value = cycle;
-      showCycleSettingsModal.value = true;
-    };
-
-    const closeCycleSettingsModal = () => {
-      showCycleSettingsModal.value = false;
-      selectedCycleForSettings.value = null;
-    };
-
-    const applicationCycles = ref([]);
-    const selectedCycle = ref(null);
-    const displayCycles = computed(() => {
-      return applicationCycles.value.map((cycle) => cycle.replace(/_/g, " "));
-    });
-
-    const fetchApplicationCycles = async () => {
-      if (userId.value) {
-        const userMetadataRef = doc(
-          db,
-          "Users",
-          userId.value,
-          "user_metadata",
-          "cycles_list"
-        );
-        const docSnap = await getDoc(userMetadataRef);
-        if (docSnap.exists() && docSnap.data().cycles) {
-          applicationCycles.value = docSnap.data().cycles;
-        } else {
-          applicationCycles.value = [];
-        }
-      }
-    };
-
-    const loadApplications = async (selectedCycle = null) => {
-      console.log();
-      if (!userId.value) {
-        console.log("User ID is not set. Waiting...");
-        return;
-      }
-
-                        // "Applied" and "Turned Down" stages are not stages that the company responds
-                        if (stage !== "applied" && stage !== "turned down") {
-                            const dayOfWeek = stageDate.getDay();
-                            // only care about work days (Mon to Fri, dayOfWeek 1 to 5)
-                            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-                                responseDaysMap[dayOfWeek] =
-                                    (responseDaysMap[dayOfWeek] || 0) + 1;
-                            }
-                        }
-                    }
-                }
-
-                stagesWithDates.sort((a, b) => a.date - b.date);
-
-                for (let i = 0; i < stagesWithDates.length - 1; i++) {
-                    const currentStage = stagesWithDates[i];
-                    const nextStage = stagesWithDates[i + 1];
-                    console.log(stagesWithDates);
-
-                    totalWorkingDays += calculateWorkingDays(
-                        currentStage.date,
-                        nextStage.date
-                    );
-                }
-
-                // "Applied" and "Turned Down" stages are not stages that the company responds
-                if (to !== "Applied" && to !== "Turned Down") {
-                    // time taken to the new status?
-                    const latestDate =
-                        stagesWithDates[stagesWithDates.length - 1].date;
-                    const isoDate = DateTime.fromJSDate(latestDate)
-                        .setZone("Asia/Singapore")
-                        .toISO();
-                    console.log(isoDate);
-                    totalWorkingDays += calculateWorkingDays(
-                        isoDate,
-                        responseDateAtMidnightString
-                    );
-
-                    const responseDate = DateTime.fromISO(
-                        responseDateAtMidnightString,
-                        { zone: "Asia/Singapore" }
-                    );
-                    const dayOfWeek = responseDate.weekday;
-
-                    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-                        responseDaysMap[dayOfWeek] =
-                            (responseDaysMap[dayOfWeek] || 0) + 1;
-                    }
-                }
-
-                // makes updates["average_working_days"] = 0
-                if (totalWorkingDays <= 0) {
-                    updates["average_working_days"] = 0;
-                    // minus to account for the intervals between each stage transition
-                } else {
-                    updates["average_working_days"] = Math.round(
-                        (totalWorkingDays - stagesWithDates.length) /
-                            stagesWithDates.length
-                    );
-                }
-                updates["response_days_map"] = { ...responseDaysMap };
-                //
-
-                if (to === "Interview") {
-                    // change to "interview"
-                    const type = to.toLowerCase();
-
-                    const existingStages = Object.keys(stages).filter((stage) =>
-                        stage.startsWith(type)
-                    );
-
-                    // Extract numbers from the stage names, if they exist (e.g., "interview_1" => 1)
-                    const stageNumbers = existingStages
-                        .map((stage) => {
-                            const match = stage.match(
-                                new RegExp(`${type}_(\\d+)`)
-                            ); // Regex to match "interview_1"
-                            return match ? parseInt(match[1], 10) : 0;
-                        })
-                        .filter((num) => num > 0);
-
-                    // If no valid stages exist, default to 1 (for "interview_1"), otherwise take the max number + 1
-                    const nextNum =
-                        stageNumbers.length > 0
-                            ? Math.max(...stageNumbers) + 1
-                            : 1;
-
-                    // Create the new stage with the next available number (either "interview_1" or the next number)
-                    const newStage = {
-                        name: stageName.value,
-                        date: responseDateAtMidnightString,
-                    };
-                    if (to === "Interview") {
-                        newStage.isCompleted = false;
-                    }
-                    updates[`stages.${type}_${nextNum}`] = newStage;
-                } else {
-                    // For other statuses like "Applied", there's no applied_1, applied_2
-                    // Also, it does not make sense to use response date for Applied and Turned Down when response date is for a company
-                    if (to !== "Applied" && to !== "Turned Down") {
-                        updates[`stages.${to.toLowerCase()}`] = {
-                            date: responseDateAtMidnightString,
-                        };
-                    } else {
-                        updates[`stages.${to.toLowerCase()}`] = {
-                            date: update_date,
-                        };
-                    }
-                }
-
-                // Update Firestore
-                await updateDoc(sourceDocRef, updates);
-
-                // edit ranks of new status
-                const targetColumn = jobApplications.value[to];
-                for (let i = 0; i < targetColumn.length; i++) {
-                    const app = targetColumn[i];
-                    const appRef = doc(
-                        db,
-                        "Users",
-                        userId.value,
-                        selectedCycle.value,
-                        app.id
-                    );
-                    await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
-                }
-
-                // Remove the application from the old column
-                jobApplications.value[from] = jobApplications.value[
-                    from
-                ].filter((item) => item.id !== app.id);
-
-                jobApplications.value[from].forEach(async (item, index) => {
-                    const appRef = doc(
-                        db,
-                        "Users",
-                        userId.value,
-                        selectedCycle.value,
-                        item.id
-                    );
-                    await updateDoc(appRef, { rank: index });
-                });
-
-                // Ensure the new column is an array (fixes empty column issue)
-                if (!jobApplications.value[to]) {
-                    jobApplications.value[to] = [];
-                }
-
-                const targetIndex = pendingDrop.value.dropIndex ?? 0;
-
-                jobApplications.value[to].splice(targetIndex, 0, {
-                    ...app,
-                    status: to,
-                    last_status_date: formattedLastStatusDate,
-                });
-
-                for (let i = 0; i < jobApplications.value[to].length; i++) {
-                    const app = jobApplications.value[to][i];
-                    const appRef = doc(
-                        db,
-                        "Users",
-                        userId.value,
-                        selectedCycle.value,
-                        app.id
-                    );
-                    await updateDoc(appRef, { rank: i });
-                }
-
-                // clear inputs after confirmation
-                stageName.value = "";
-                responseDate.value = DateTime.now()
-                    .setZone("Asia/Singapore")
-                    .toISODate();
-
-                showDropConfirmModal.value = false;
-                pendingDrop.value = null;
-            } catch (err) {
-                console.error("Error confirming status change:", err);
-            }
-        };
-        return; // Don't load anything if no cycle is selected (or 'All Cycles' is active)
-      }
-
-      const applicationsRef = collection(
-        db,
-        "Users",
-        userId.value,
-        selectedCycle // Use the selected cycle as the subcollection name
-      );
-
-      const querySnapshot = await getDocs(applicationsRef);
-
-      jobApplications.value = {
-        Applied: [],
-        Assessment: [],
-        Interview: [],
-        Offered: [],
-        Rejected: [],
-        "Turned Down": [],
-      };
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const status = data.status;
-        const stages = data.stages;
-        console.log(stages);
-
-        let latestStatus = null;
-        let latestDate = null;
-
-        for (let [stage, stageDetails] of Object.entries(stages)) {
-          const stageDate =
-            stageDetails && stageDetails.date
-              ? DateTime.fromISO(stageDetails.date, {
-                  zone: "Asia/Singapore",
-                })
-              : null;
-
-          if (stageDate && (!latestDate || stageDate > latestDate)) {
-            latestStatus = stage;
-            latestDate = stageDate;
-          }
-        }
-
-        const formattedLastStatusDate = latestDate
-          ? latestDate.toLocaleString(DateTime.DATE_SHORT)
-          : "N/A";
-
-        jobApplications.value[status].push({
-          id: doc.id,
-          company: data.company,
-          position: data.position,
-          status: data.status,
-          last_status_date: formattedLastStatusDate,
-          dateApplied: data.date_applied,
-          rank: data.rank ?? 0,
-          // not sure if this is needed
-          notes: data.notes,
-          cycle: selectedCycle, // Store the cycle for filtering if needed later
-        });
-      });
-
-      // list cards in each status according to their user-assigned rank
-      Object.keys(jobApplications.value).forEach((status) => {
-        jobApplications.value[status].sort(
-          (a, b) => (a.rank ?? 0) - (b.rank ?? 0)
-        );
-      });
-    };
-
-    const selectCycle = async (cycle) => {
-      selectedCycle.value = cycle;
-      console.log("Selected Cycle:", cycle);
-      loadApplications(cycle);
-      try {
-        const userMetadataRef = doc(
-          db,
-          "Users",
-          userId.value,
-          "user_metadata",
-          "cycles_list"
-        );
-        await updateDoc(userMetadataRef, { lastSelectedCycle: cycle });
-      } catch (error) {
-        console.error("Error updating last selected cycle:", error);
-      }
-    };
-
-    // Ref for showing the create new cycle prompt
-    const showCreateNewCyclePromptFlag = ref(false);
-    const newCycleInputPrompt = ref("");
-
-    // Function to show the create new cycle prompt
-    const showCreateNewCyclePrompt = () => {
-      const newCycleInput = prompt(
-        "Enter a name for the new application cycle:",
-        "Untitled Application Cycle"
-      );
-      if (newCycleInput) {
-        createNewCycle(newCycleInput);
-      }
-    };
-
-    // Function to create a new cycle (moved from the previous response)
-    const createNewCycle = async (newCycleInput) => {
-      const newCycleName = newCycleInput
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "_");
-      if (applicationCycles.value.includes(newCycleName)) {
-        alert("A cycle with this name already exists.");
-        return;
-      }
-      try {
-        const userMetadataRef = doc(
-          db,
-          "Users",
-          userId.value,
-          "user_metadata",
-          "cycles_list"
-        );
-        const docSnap = await getDoc(userMetadataRef);
-        let existingCyclesArray =
-          docSnap.exists() && docSnap.data().cycles
-            ? [...docSnap.data().cycles]
-            : [];
-        existingCyclesArray.push(newCycleName);
-        await setDoc(userMetadataRef, { cycles: existingCyclesArray });
-        await fetchApplicationCycles(); // Refresh the sidebar list
-        selectCycle(newCycleName); // Automatically switch to the new cycle
-      } catch (error) {
-        console.error("Error creating new cycle:", error);
-        alert("Failed to create new cycle.");
-      }
-    };
-
-    // Refs and methods for renaming
-    const cycleToRename = ref(null);
-    const newCycleNameInput = ref("");
-
-    const startRenameCycle = (cycle) => {
-      cycleToRename.value = cycle;
-      newCycleNameInput.value = cycle; // Optionally pre-fill with the current name
-
-      const newName = prompt("Enter new name for cycle:", cycle);
-      if (newName && newName.trim() !== "") {
-        renameCycle(cycle, newName);
-      }
-
-      // Close the settings modal after action is complete
-      closeCycleSettingsModal();
-    };
-
-    const renameCycle = async (oldCycleName, newCycleInput) => {
-      if (!oldCycleName || !newCycleInput) return;
-
-      const newCycleName = newCycleInput
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "_");
-
-      if (
-        newCycleName === oldCycleName ||
-        applicationCycles.value.includes(newCycleName)
-      ) {
-        if (newCycleName === oldCycleName) {
-          // Name hasn't changed
-        } else {
-          alert("A cycle with this name already exists.");
-        }
-        cycleToRename.value = null;
-        newCycleNameInput.value = "";
-        return;
-      }
-
-      try {
-        // Initialize Firestore batch
-        const batch = writeBatch(db);
-
-        // First, copy all documents from the old collection to the new one
-        const oldCollectionRef = collection(
-          db,
-          "Users",
-          userId.value,
-          oldCycleName
-        );
-        const querySnapshot = await getDocs(oldCollectionRef);
-
-        // For each document in the old collection, create a new one in the new collection
-        querySnapshot.docs.forEach((docSnapshot) => {
-          const data = docSnapshot.data();
-          data.cycle = newCycleName;
-          const newDocRef = doc(
-            db,
-            "Users",
-            userId.value,
-            newCycleName,
-            docSnapshot.id
-          ); // Correct usage of doc
-          batch.set(newDocRef, data); // Add to batch
-        });
-
-        // Now update the cycles list metadata
-        const userMetadataRef = doc(
-          db,
-          "Users",
-          userId.value,
-          "user_metadata",
-          "cycles_list"
-        );
-        const docSnap = await getDoc(userMetadataRef);
-
-        // for searching filter function
-        const searchQuery = ref("");
-        const filteredApplications = computed(() => {
-            if (!searchQuery.value) {
-                return jobApplications.value;
-            } else {
-                const lowerCaseSearchQuery = searchQuery.value.toLowerCase();
-                return Object.keys(jobApplications.value).reduce(
-                    (acc, status) => {
-                        acc[status] = jobApplications.value[status].filter(
-                            (app) =>
-                                app.company
-                                    .toLowerCase()
-                                    .includes(lowerCaseSearchQuery) ||
-                                app.position
-                                    .toLowerCase()
-                                    .includes(lowerCaseSearchQuery)
-                        );
-                        return acc;
-                    },
-                    {}
-                );
-            }
-        });
-
-        // for adding in stages when in interview
-        const customStageName = ref("");
-        const showAddInterviewModal = ref(false);
-        const newInterviewAppId = ref(null);
-        const newInterviewDate = ref(DateTime.now().toISODate());
-
-        const computedInterviewKey = ref("");
-
-        const openAddInterviewModal = async (appId) => {
-            newInterviewAppId.value = appId;
-            newInterviewDate.value = DateTime.now().toISODate();
-
-            const appRef = doc(
-                db,
-                "Users",
-                userId.value,
-                selectedCycle.value,
-                appId
-            );
-            const snapshot = await getDoc(appRef);
-
-            if (!snapshot.exists()) return;
-
-            const data = snapshot.data();
-            const stages = data.stages || {};
-            const interviewKeys = Object.keys(stages).filter((key) =>
-                key.startsWith("interview_")
-            );
-
-          const lastSelected =
-            docSnap.data().lastSelectedCycle === oldCycleName
-              ? newCycleName
-              : docSnap.data().lastSelectedCycle;
-
-          batch.set(userMetadataRef, {
-            cycles: updatedCycles,
-            lastSelectedCycle: lastSelected,
-          }); // Update metadata in batch
-
-          // Add delete operations for the old collection documents
-          querySnapshot.docs.forEach((docSnapshot) => {
-            const docRefToDelete = doc(
-              db,
-              "Users",
-              userId.value,
-              oldCycleName,
-              docSnapshot.id
-            ); // Correct usage of doc
-            batch.delete(docRefToDelete); // Add delete to batch
-          });
-        }
-
-        // Commit all batched operations
-        await batch.commit();
-
-        await fetchApplicationCycles(); // Refresh the sidebar
-
-        if (selectedCycle.value === oldCycleName) {
-          selectCycle(newCycleName); // Switch to the renamed cycle
-        }
-
-        cycleToRename.value = null;
-        newCycleNameInput.value = "";
-      } catch (error) {
-        console.error("Error renaming cycle:", error);
-        alert("Failed to rename cycle: " + error.message);
-      }
-    };
 
     const cycleToDelete = ref(null);
 
@@ -2603,7 +1743,7 @@ button {
     /* hide scrolls */
     scrollbar-width: none;
     -ms-overflow-style: none;
-    min-height: 800px;
+    min-height: 700px;
 }
 
 /* gives the effect of hiding the highlights */
