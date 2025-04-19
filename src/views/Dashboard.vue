@@ -8,7 +8,7 @@
                         alt="InternTrack Logo"
                         class="logo-img"
                     />
-                    <h1 class="main-title">{{ selectedCycle }}</h1>
+                    <h1 class="main-title">Welcome!</h1>
                 </div>
                 <div class="profile-icon">
                     <font-awesome-icon icon="fa-solid fa-user-circle" />
@@ -263,6 +263,23 @@
     </teleport>
 
     <teleport to="body">
+        <div 
+            v-if="showAppDeleteModal" 
+            class="modal-overlay"
+            @click.self="showAppDeleteModal = false"
+        >
+            <div class="modal-content">
+                 <h3>Are you sure you want to delete this application?</h3>
+                 <p>This action cannot be undone.</p>
+                <div class="modal-actions">
+                    <button @click="performDelete" class="delete-button">Delete</button>
+                    <button @click="showAppDeleteModal = false" class="cancel-button">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </teleport>
+
+    <teleport to="body">
         <div
             v-if="showDeleteModal"
             class="modal-overlay"
@@ -406,13 +423,14 @@ export default {
         const sourceIndex = ref(null);
         const showForm = ref(false);
         const showDeleteModal = ref(false);
+        const showAppDeleteModal = ref(false);
         const appToDelete = ref(null);
         const appStatusToDelete = ref(null);
 
         const confirmDelete = (app, status) => {
             appToDelete.value = app;
             appStatusToDelete.value = status;
-            showDeleteModal.value = true;
+            showAppDeleteModal.value = true;
         };
 
         const performDelete = async () => {
@@ -439,12 +457,6 @@ export default {
                     "Users",
                     userId.value,
                     selectedCycle.value
-                );
-                const querySnapshot = await getDocs(
-                    query(
-                        applicationsRef,
-                        where("status", "==", appStatusToDelete.value)
-                    )
                 );
 
                 // -1 of the rank of everything after that application
@@ -480,7 +492,7 @@ export default {
                         (item) => item.id !== appToDelete.value.id
                     );
 
-                showDeleteModal.value = false;
+                showAppDeleteModal.value = false;
                 appToDelete.value = null;
                 appStatusToDelete.value = null;
             } catch (err) {
@@ -1520,6 +1532,7 @@ export default {
             handleApplicationAdded,
             confirmDelete,
             performDelete,
+            showAppDeleteModal,
             showDeleteModal,
             // pop-up of the application cards
             openPopup,
