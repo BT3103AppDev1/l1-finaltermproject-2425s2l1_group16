@@ -165,6 +165,10 @@ export default {
       type: String,
       required: true,
     },
+    selectedCycle: {
+      type: String,
+      required: true,
+    },
   },
   data() {
     return {
@@ -187,7 +191,7 @@ export default {
         const user = auth.currentUser;
         if (!user) return;
 
-        const appRef = doc(db, "Users", user.uid, "application_folder", this.appId);
+        const appRef = doc(db, "Users", user.uid, this.selectedCycle, this.appId);
         const appDoc = await getDoc(appRef);
         
         if (!appDoc.exists()) return;
@@ -205,14 +209,12 @@ export default {
           let questions;
 
           if (value.isCompleted && value.questions && value.questions.length > 0) {
-            // For completed stages, use the questions directly from Firestore
             questions = value.questions.map(q => ({
-              questionType: q.type || 'Technical', // Map the 'type' field to 'questionType'
+              questionType: q.type || 'Technical',
               question: q.question || '',
               description: q.description || ''
             }));
           } else {
-            // For incomplete stages, start with one empty question
             questions = [{
               questionType: "Technical",
               question: "",
@@ -331,7 +333,7 @@ export default {
         }
 
         let nextQuestionNumber = await this.getNextQuestionNumber();
-        const applicationRef = doc(db, "Users", user.uid, "application_folder", this.appId);
+        const applicationRef = doc(db, "Users", user.uid, this.selectedCycle, this.appId);
         const appDoc = await getDoc(applicationRef);
         const currentData = appDoc.data();
         const stages = { ...currentData.stages };
@@ -424,7 +426,7 @@ export default {
       const user = auth.currentUser;
       if (!user) return;
 
-      const appRef = doc(db, "Users", user.uid, "application_folder", this.appId);
+      const appRef = doc(db, "Users", user.uid, this.selectedCycle, this.appId);
       
       this.unsubscribe = onSnapshot(appRef, (doc) => {
         if (doc.exists()) {
@@ -479,7 +481,7 @@ export default {
           const user = auth.currentUser;
           if (!user) return;
 
-          const applicationRef = doc(db, "Users", user.uid, "application_folder", this.appId);
+          const applicationRef = doc(db, "Users", user.uid, this.selectedCycle, this.appId);
           const appDoc = await getDoc(applicationRef);
           const currentData = appDoc.data();
           const stages = { ...currentData.stages };

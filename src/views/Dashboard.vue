@@ -153,6 +153,7 @@
                                     :company="app.company"
                                     :role="app.position"
                                     :appId="app.id"
+                                    :selectedCycle="selectedCycle"
                                 />
                             </div>
                         </div>
