@@ -142,6 +142,10 @@ export default {
 
             await setDoc(newApplicationRef, newApplication);
 
+            // add to global collection for future querying
+            const allApplicationsRef = doc(collection(db, "AllApplications"), newApplicationRef.id);
+            await setDoc(allApplicationsRef, newApplication);
+
             emit("application-added", newApplication);
             emit("close");
         };

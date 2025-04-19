@@ -88,6 +88,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { db } from '@/firebase';
 import { doc, getDoc, collectionGroup, query, where, getDocs, collection } from 'firebase/firestore';
+import { DateTime } from 'luxon';
 import { use } from 'echarts/core';
 import VChart from 'vue-echarts';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -154,12 +155,15 @@ onMounted(async () => {
     current_stage.value = myData.status;
     company.value = myData.company;
 
+    const sixMonthsAgo = DateTime.now().minus({ months: 6 }).toISODate();
+
     // Query across all users
     // Will need to double-check when we have multiple application folders
     const q = query(
-        collectionGroup(db, "application_folder"),
+        collection(db, "AllApplications"),
         where("company", "==", company.value),
-        where("position", "==", position.value)
+        where("position", "==", position.value),
+        where("date_applied", ">=", sixMonthsAgo),
     );
 
     const querySnapshot = await getDocs(q);
@@ -201,8 +205,9 @@ onMounted(async () => {
     }
 
     const barQuery = query(
-        collectionGroup(db, "application_folder"),
-        where("company", "==", company.value)
+        collection(db, "AllApplications"),
+        where("company", "==", company.value),
+        where("date_applied", ">=", sixMonthsAgo),
     );
 
     const barQuerySnapshot = await getDocs(barQuery);

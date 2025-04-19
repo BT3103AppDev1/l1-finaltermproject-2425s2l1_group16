@@ -483,13 +483,17 @@ export default {
         const performDelete = async () => {
             if (!appToDelete.value || !appStatusToDelete.value || !selectedCycle.value) return;
 
+            const batch = writeBatch(db);
+
             try {
-                const appRef = doc(db,"Users",userId.value,selectedCycle.value,appToDelete.value.id);
+                const appRef = doc(db, "Users", userId.value, selectedCycle.value, appToDelete.value.id);
+                const allApplicationsRef = doc(collection(db, "AllApplications"), appToDelete.value.id);
+                // delete for future querying
+                batch.delete(appRef);
+                batch.delete(allApplicationsRef);
 
-                await deleteDoc(appRef);
-
-                const applicationsRef = collection(db,"Users",userId.value,selectedCycle.value);
-                const querySnapshot = await getDocs(query(applicationsRef,where("status", "==", appStatusToDelete.value)));
+                // Commit the batch for atomic execution
+                await batch.commit();
 
                 // -1 of the rank of everything after that application
                 const deletedAppIndex = jobApplications.value[
@@ -1221,6 +1225,10 @@ export default {
 
         // Update Firestore
         await updateDoc(sourceDocRef, updates);
+
+        // update the global collection for future querying
+        const allApplicationsRef = doc(collection(db, "AllApplications"), app.id);
+        await updateDoc(allApplicationsRef, updates);
 
         // edit ranks of new status
         const targetColumn = jobApplications.value[to];
