@@ -126,10 +126,7 @@
 							v-model="modalNewPassword"
 							required
 						/>
-						<p class="info-message">
-							* Min. 6 characters. Recommend uppercase, number,
-							special char.
-						</p>
+						<p class="info-message">* Min. 6 characters.</p>
 					</div>
 					<div class="form-group">
 						<label for="modalConfirmNewPassword"
@@ -185,7 +182,7 @@ import {
 	EmailAuthProvider,
 	reauthenticateWithCredential,
 } from "firebase/auth";
-import { getFirestore, doc, updateDoc } from "firebase/firestore";
+import { getFirestore, doc, updateDoc, getDoc } from "firebase/firestore";
 
 export default {
 	name: "UserProfilePage",
@@ -282,7 +279,7 @@ export default {
 			this.clearFeedback("name");
 			this.isNameUpdating = true;
 			const auth = getAuth();
-
+			const current_user = auth.currentUser;
 			try {
 				// Update Auth Profile
 				await updateProfile(auth.currentUser, {
@@ -291,6 +288,7 @@ export default {
 
 				// Update Firestore
 				const db = getFirestore();
+				const userDocRef = doc(db, "Users", current_user.uid);
 				const userDoc = await getDoc(userDocRef);
 				if (
 					userDoc.exists() &&
