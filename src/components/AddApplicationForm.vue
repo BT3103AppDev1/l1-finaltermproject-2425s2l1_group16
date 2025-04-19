@@ -55,7 +55,7 @@
 <script>
 import { ref, computed } from "vue";
 import { db } from "@/firebase";
-import { collection, doc, setDoc } from "firebase/firestore";
+import { collection, doc, setDoc, getDocs, query, where, updateDoc } from "firebase/firestore";
 import { DateTime } from "luxon";
 
 export default {
@@ -103,6 +103,18 @@ export default {
                 props.userId,
                 props.currentCycle
             );
+
+            const querySnapshot = await getDocs(query(applicationsRef, where("status", "==", "Applied")));
+            const appliedApplications = querySnapshot.docs.map(doc => doc.data());
+
+            const updatePromises = appliedApplications.map((data, index) => {
+                const docRef = querySnapshot.docs[index].ref;
+                const newRank = (data.rank || 0) + 1;
+                return updateDoc(docRef, { rank: newRank });
+            });
+
+            await Promise.all(updatePromises);
+
             const newApplicationRef = doc(applicationsRef);
             const dateAppliedISO = DateTime.fromISO(dateApplied.value).toISO();
 
@@ -129,6 +141,10 @@ export default {
             };
 
             await setDoc(newApplicationRef, newApplication);
+
+            // add to global collection for future querying
+            const allApplicationsRef = doc(collection(db, "AllApplications"), newApplicationRef.id);
+            await setDoc(allApplicationsRef, newApplication);
 
             emit("application-added", newApplication);
             emit("close");
