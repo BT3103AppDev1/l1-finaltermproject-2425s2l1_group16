@@ -90,7 +90,7 @@
           >
             <h3>{{ statusLabels[status] }}</h3>
             <div
-              v-for="(app, index) in applications"
+              v-for="(app, index) in (collapsed[status] && applications.length >=5 ? applications.slice(0,5):applications)"
               :key="app.id"
               class="task"
               draggable="true"
@@ -143,6 +143,13 @@
                 />
               </div>
             </div>
+            <button
+              v-if="applications.length >= 5"
+              @click="toggleCollapse(status)"
+              class="collapse-btn"
+            >
+              {{ collapsed[status] ? "Show More" : "Show Less" }}
+            </button>
           </div>
         </div>
       </div>
@@ -876,6 +883,20 @@ export default {
       }
     });
 
+    const collapsed = ref({
+      Applied: true,
+      Assessment: true,
+      Interview: true,
+      Offered: true,
+      Rejected: true,
+      "Turned Down": true,
+    });
+
+    const toggleCollapse = (status) => {
+      // Toggle the collapse state for the given status
+      collapsed.value[status] = !collapsed.value[status];
+    };
+    
     onMounted(() => {
       const auth = getAuth();
 
@@ -1552,6 +1573,9 @@ export default {
       openAddInterviewModal,
       addInterviewSubStage,
       customStageName,
+      // for collapsed button 
+      collapsed,
+      toggleCollapse
     };
   },
   methods: {
@@ -1965,4 +1989,20 @@ button {
   font-size: 16px;
   color: #555;
 }
+
+.collapse-btn {
+  background-color: #c24600;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+  margin-top: 10px;
+}
+
+.collapse-btn:hover {
+  background-color: #fc640d;
+}
+
 </style>
