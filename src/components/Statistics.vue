@@ -131,12 +131,16 @@ const props = defineProps({
   appId: {
     type: String,
     required: true
+  },
+  selectedCycle: {
+    type: String,
+    required: true
   }
 });
 
 onMounted(async () => {
     // users' own application_folder, need to change it to the actual application folder they are at
-    const docPath = doc(db, "Users", props.userId, "application_folder", props.appId);
+    const docPath = doc(db, "Users", props.userId, props.selectedCycle, props.appId);
 
     const myDocSnap = await getDoc(docPath);
 

@@ -3,6 +3,7 @@ import Statistics from "../components/Statistics.vue";
 import ApplicationDetails from "../components/ApplicationDetails.vue";
 import EditApplicationForm from "../components/EditApplicationForm.vue";
 import EditApplicationStatus from "../components/EditApplicationStatus.vue";
+import InterviewQuestions from "../components/InterviewQuestions.vue";
 import { ref, computed } from "vue";
 
 const props = defineProps({
@@ -139,7 +140,15 @@ const handleStatusUpdate = (message) => {
                         :class="{ 'active-tab': activeTab === 'insights' }"
                         >Insights & Statistics</a
                     ><span class="separator"> | </span>
-                    <a href="#" class="link-btn">Interview Questions</a>
+                    <a
+                        href="#"
+                        class="link-btn"
+                        @click.prevent="switchTab('interview-questions')"
+                        :class="{
+                            'active-tab': activeTab === 'interview-questions',
+                        }"
+                        >Interview Questions</a
+                    >
                 </div>
             </div>
             <div class="box">
@@ -198,7 +207,24 @@ const handleStatusUpdate = (message) => {
                     <h2 class="application-details-title">
                         Insights & Statistics
                     </h2>
-                    <Statistics :appId="appId" :userId="userId" />
+                    <Statistics
+                        :appId="appId"
+                        :userId="userId"
+                        :selectedCycle="props.cycle"
+                    />
+                </section>
+                <section
+                    v-if="activeTab === 'interview-questions'"
+                    class="application-info"
+                >
+                    <h2 class="application-details-title">
+                        Interview Questions
+                    </h2>
+                    <InterviewQuestions
+                        :appId="appId"
+                        :userId="userId"
+                        :selectedCycle="props.cycle"
+                    />
                 </section>
             </div>
         </div>

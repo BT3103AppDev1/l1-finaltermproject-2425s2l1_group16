@@ -20,15 +20,24 @@
 
 			<div class="form-group">
 				<label for="password">Password</label>
-				<input
-					type="password"
-					id="password"
-					v-model="password"
-					placeholder="Enter Password"
-					required
-					:class="{ 'input-error': passwordError }"
-					@input="clearErrors('password')"
-				/>
+				<div class="password-wrapper">
+					<input
+						:type="passwordFieldType"
+						id="password"
+						v-model="password"
+						placeholder="Enter Password"
+						required
+						:class="{ 'input-error': passwordError }"
+						@input="clearErrors('password')"
+					/>
+					<span
+						class="password-toggle-icon"
+						@click="togglePasswordVisibility"
+					>
+						{{ isPasswordVisible ? "Hide" : "Show" }}
+					</span>
+				</div>
+
 				<p v-if="passwordError" class="error-message">
 					{{ passwordError }}
 				</p>
@@ -37,6 +46,19 @@
 			<p v-if="generalError" class="error-message general-error">
 				{{ generalError }}
 			</p>
+			<p v-if="resetEmailSent" class="success-message general-feedback">
+				Password reset email sent! Please check your inbox (and spam
+				folder).
+			</p>
+
+			<div class="extra-links">
+				<a
+					href="#"
+					@click.prevent="forgotPassword"
+					class="forgot-password-link"
+					>Forgot Password?</a
+				>
+			</div>
 
 			<button type="submit" class="submit-btn">Log In</button>
 		</form>
@@ -48,11 +70,15 @@
 			Sign in with Google
 		</button>
 
+		<!-- Feedback Messages -->
 		<p v-if="googleError" class="error-message general-error">
 			{{ googleError }}
 		</p>
 
-		<button @click="signOutUser" class="signout-btn">Sign Out</button>
+		<p v-if="resetError" class="error-message general-feedback">
+			{{ resetError }}
+		</p>
+		<!-- <button @click="signOutUser" class="signout-btn">Sign Out</button> -->
 
 		<p class="toggle-link">
 			<span>Don't have an account?</span>
@@ -67,7 +93,8 @@ import {
 	signInWithEmailAndPassword,
 	GoogleAuthProvider,
 	signInWithPopup,
-	signOut,
+	sendPasswordResetEmail,
+	// signOut,
 } from "firebase/auth";
 
 export default {
@@ -80,15 +107,23 @@ export default {
 			passwordError: "",
 			generalError: "",
 			googleError: "",
+			isPasswordVisible: false,
+			passwordFieldType: "password",
+			resetEmailSent: false,
+			resetError: "",
 		};
 	},
 	methods: {
 		clearErrors(field = null) {
+			// Clear specific field errors
 			if (field === "email" || !field) this.emailError = "";
 			if (field === "password" || !field) this.passwordError = "";
+			// Clear general errors
 			if (!field) {
 				this.generalError = "";
-				this.googleError = ""; //Clear both errors
+				this.googleError = "";
+				this.resetError = "";
+				this.resetEmailSent = false;
 			} else if (field === "google") {
 				this.googleError = ""; // Clear only google error
 			}
@@ -161,7 +196,6 @@ export default {
 				const user = result.user;
 
 				console.log("Google Sign-In Successful:", user.displayName);
-				// You might want to clear the email/password form fields here too
 				this.clearForm();
 				this.$router.push("/dashboard"); // Redirect after successful Google login
 			} catch (error) {
@@ -225,19 +259,64 @@ export default {
 			}
 		},
 
-		async signOutUser() {
+		togglePasswordVisibility() {
+			this.isPasswordVisible = !this.isPasswordVisible;
+			this.passwordFieldType = this.isPasswordVisible
+				? "text"
+				: "password";
+		},
+
+		async forgotPassword() {
+			this.clearErrors(); // Clear previous messages
+
+			if (!this.email) {
+				this.resetError = "Please enter your email address first.";
+				return;
+			}
+			// Basic email format check (optional, Firebase does it too)
+			if (!/\S+@\S+\.\S+/.test(this.email)) {
+				this.resetError = "Please enter a valid email address.";
+				return;
+			}
+
 			const auth = getAuth();
-			this.clearErrors(); // Clear any existing errors
 			try {
-				await signOut(auth);
-				console.log("User signed out successfully.");
-				this.clearForm(); // Clear form fields after sign out
-				this.$router.push("/login"); // Redirect to login page
+				console.log(`Sending password reset email to: ${this.email}`);
+				await sendPasswordResetEmail(auth, this.email);
+				this.resetEmailSent = true; // Show success message
+				this.resetError = ""; // Clear any previous error
 			} catch (error) {
-				console.error("Sign out error:", error);
-				this.generalError = "Failed to sign out. Please try again.";
+				console.error(
+					"Password Reset Error:",
+					error.code,
+					error.message
+				);
+				this.resetEmailSent = false; // Hide success message
+				if (error.code === "auth/user-not-found") {
+					this.resetError =
+						"No account found with this email address.";
+				} else if (error.code === "auth/invalid-email") {
+					this.resetError = "Please enter a valid email address.";
+				} else {
+					this.resetError =
+						"Failed to send password reset email. Please try again.";
+				}
 			}
 		},
+
+		// async signOutUser() {
+		// 	const auth = getAuth();
+		// 	this.clearErrors(); // Clear any existing errors
+		// 	try {
+		// 		await signOut(auth);
+		// 		console.log("User signed out successfully.");
+		// 		this.clearForm(); // Clear form fields after sign out
+		// 		this.$router.push("/login"); // Redirect to login page
+		// 	} catch (error) {
+		// 		console.error("Sign out error:", error);
+		// 		this.generalError = "Failed to sign out. Please try again.";
+		// 	}
+		// },
 	},
 };
 </script>
@@ -282,7 +361,8 @@ label {
 }
 
 input[type="email"],
-input[type="password"] {
+input[type="password"],
+input[type="text"] {
 	width: 100%;
 	padding: 12px 15px;
 	border: 1px solid #ccc;
@@ -309,6 +389,12 @@ input:focus {
 
 .input-error:focus {
 	box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+}
+
+.success-message {
+	color: green;
+	font-size: 12px;
+	margin-top: 6px;
 }
 
 .error-message {
@@ -437,5 +523,39 @@ input:focus {
 	width: 18px;
 	height: 18px;
 	margin-right: 10px;
+}
+
+.password-wrapper {
+	position: relative;
+	width: 100%;
+}
+
+.password-toggle-icon {
+	position: absolute;
+	top: 50%;
+	right: 12px; /* Adjust as needed */
+	transform: translateY(-50%);
+	cursor: pointer;
+	color: #555; /* Icon color */
+	font-size: 0.8em; /* Adjust size if using text */
+	user-select: none; /* Prevent text selection */
+	font-weight: 600;
+}
+.password-toggle-icon:hover {
+	color: #000;
+}
+
+.extra-links {
+	text-align: right; /* Align link to the right */
+	margin-top: -10px; /* Adjust spacing relative to password field */
+	margin-bottom: 20px; /* Add space before login button */
+}
+.forgot-password-link {
+	font-size: 13px;
+	color: #007bff; /* Link color */
+	text-decoration: none;
+}
+.forgot-password-link:hover {
+	text-decoration: underline;
 }
 </style>

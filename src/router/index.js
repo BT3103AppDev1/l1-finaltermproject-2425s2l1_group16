@@ -33,7 +33,12 @@ const router = createRouter({
 			name: "registration",
 			component: () => import("../views/Register.vue"),
 		},
-		// Not Found page
+		{
+			path: "/profile",
+			name: "profile",
+			component: () => import("../views/Profile.vue"),
+		},
+      		// Not Found page
 		{
 			path: "/:pathMatch(.*)*",
 			name: "NotFound",
@@ -41,5 +46,6 @@ const router = createRouter({
 		}
 	],
 });
-  
+
 export default router;
+
