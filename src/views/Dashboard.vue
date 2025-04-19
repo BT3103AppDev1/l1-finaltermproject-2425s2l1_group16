@@ -114,7 +114,7 @@
                                     ) {
                                         return;
                                     }
-                                    openPopup(app.id);
+                                    openPopup(app.id, app.cycle);
                                 }
                             "
                         >
@@ -168,7 +168,7 @@
             @close="showForm = false"
             @application-added="handleApplicationAdded"
             :userId="userId"
-            :currentCycle="selectedCycle"
+            :cycle="selectedCycle"
         />
     </teleport>
 
@@ -289,49 +289,69 @@
             :show="showPopup"
             :appId="selectedAppId"
             :userId="userId"
+            :cycle="selectedAppCycle"
             @close="closePopup"
+            @reload-applications="loadApplications"
+        >
+        </ApplicationCard>
         />
     </teleport>
 
     <teleport to="body">
-    <div v-if="showAddInterviewModal" class="modal-overlay" @click.self="showAddInterviewModal = false">
-        <div class="modal-content">
-          <h3>Add New Interview Stage</h3>
-          <div class="input-group">
-              <label>Interview Key:</label>
-              <input
-                  type="text"
-                  :value="`Interview Number: ${computedInterviewKey.split('_')[1]}`"
-                  disabled
-                  class="input-field"
-              />
-          </div>
-          <div class="input-group">
-              <label for="customStageName">Interview Name:</label>
-              <input
-                  type="text"
-                  id="customStageName"
-                  v-model="customStageName"
-                  placeholder="e.g. HR Interview"
-                  class="input-field"
-              />
-          </div>
-          <div class="input-group">
-              <label for="newInterviewDate">Select Date:</label>
-              <input
-                  type="date"
-                  id="newInterviewDate"
-                  v-model="newInterviewDate"
-                  class="input-field"
-                  :max="maxDate"
-              />
-          </div>
-          <div class="modal-actions">
-              <button class="confirm-button" @click="addInterviewSubStage">Confirm</button>
-              <button class="cancel-button" @click="showAddInterviewModal = false">Cancel</button>
-          </div>
-      </div>
-    </div>
+        <div
+            v-if="showAddInterviewModal"
+            class="modal-overlay"
+            @click.self="showAddInterviewModal = false"
+        >
+            <div class="modal-content">
+                <h3>Add New Interview Stage</h3>
+                <div class="input-group">
+                    <label>Interview Key:</label>
+                    <input
+                        type="text"
+                        :value="`Interview Number: ${
+                            computedInterviewKey.split('_')[1]
+                        }`"
+                        disabled
+                        class="input-field"
+                    />
+                </div>
+                <div class="input-group">
+                    <label for="customStageName">Interview Name:</label>
+                    <input
+                        type="text"
+                        id="customStageName"
+                        v-model="customStageName"
+                        placeholder="e.g. HR Interview"
+                        class="input-field"
+                    />
+                </div>
+                <div class="input-group">
+                    <label for="newInterviewDate">Select Date:</label>
+                    <input
+                        type="date"
+                        id="newInterviewDate"
+                        v-model="newInterviewDate"
+                        class="input-field"
+                        :max="maxDate"
+                    />
+                </div>
+                <div class="modal-actions">
+                    <button
+                        class="confirm-button"
+                        @click="addInterviewSubStage"
+                    >
+                        Confirm
+                    </button>
+                    <button
+                        class="cancel-button"
+                        @click="showAddInterviewModal = false"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
     </teleport>
 </template>
 
@@ -383,15 +403,21 @@ export default {
         const router = useRouter();
         const selectedAppId = ref(null);
         const showPopup = ref(false);
+        const selectedAppCycle = ref(null);
 
-        const openPopup = (appId) => {
+        const openPopup = (appId, cycle) => {
+            console.log("openPopup selected cycle:", cycle); // Log the cycle received for this app
             selectedAppId.value = appId;
+            selectedAppCycle.value = cycle;
             showPopup.value = true;
+            console.log("showPopup.value is now:", showPopup.value);
         };
 
         const closePopup = () => {
             showPopup.value = false;
             selectedAppId.value = null;
+            selectedAppCycle.value = null;
+            loadApplications(selectedCycle.value);
         };
 
         const jobApplications = ref({
@@ -1008,6 +1034,7 @@ export default {
                 app: draggedApplication.value,
                 from: sourceStatus.value,
                 to: newStatus,
+                dropIndex,
             };
 
             showDropConfirmModal.value = true;
@@ -1228,7 +1255,7 @@ export default {
                         db,
                         "Users",
                         userId.value,
-                        "application_folder",
+                        selectedCycle.value,
                         app.id
                     );
                     await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
@@ -1255,13 +1282,25 @@ export default {
                     jobApplications.value[to] = [];
                 }
 
-                // Add the application to the new column (force reactivity)
-                jobApplications.value[to].unshift({
+                const targetIndex = pendingDrop.value.dropIndex ?? 0;
+
+                jobApplications.value[to].splice(targetIndex, 0, {
                     ...app,
                     status: to,
                     last_status_date: formattedLastStatusDate,
-                    rank: 0,
                 });
+
+                for (let i = 0; i < jobApplications.value[to].length; i++) {
+                    const app = jobApplications.value[to][i];
+                    const appRef = doc(
+                        db,
+                        "Users",
+                        userId.value,
+                        selectedCycle.value,
+                        app.id
+                    );
+                    await updateDoc(appRef, { rank: i });
+                }
 
                 // clear inputs after confirmation
                 stageName.value = "";
@@ -1364,7 +1403,7 @@ export default {
                 db,
                 "Users",
                 userId.value,
-                "application_folder",
+                selectedCycle.value,
                 appId
             );
             const snapshot = await getDoc(appRef);
@@ -1388,7 +1427,7 @@ export default {
                 db,
                 "Users",
                 userId.value,
-                "application_folder",
+                selectedCycle.value,
                 newInterviewAppId.value
             );
             const snapshot = await getDoc(appRef);
@@ -1512,9 +1551,9 @@ export default {
         // prevent scroll up and down when modal is open
         watch(showAddInterviewModal, (newVal) => {
             if (newVal) {
-                document.body.style.overflow = 'hidden';
+                document.body.style.overflow = "hidden";
             } else {
-                document.body.style.overflow = '';
+                document.body.style.overflow = "";
             }
         });
 
@@ -1537,6 +1576,7 @@ export default {
             closePopup,
             showPopup,
             selectedAppId,
+            selectedAppCycle,
             // drop confirmation functionality
             drop,
             confirmDropStatus,

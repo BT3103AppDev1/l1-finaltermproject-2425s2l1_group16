@@ -1,171 +1,183 @@
 <template>
-  <form class="edit-application-form">
-    <div class="form-group">
-      <label>Company Name</label>
-      <input type="text" v-model="localApp.company" disabled />
-    </div>
+    <form class="edit-application-form">
+        <div class="form-group">
+            <label>Company Name</label>
+            <input type="text" v-model="localApp.company" disabled />
+        </div>
 
-    <div class="form-group">
-      <label>Job Role</label>
-      <input type="text" v-model="localApp.position" disabled />
-    </div>
-    
-    <div class="form-group">
-      <label>Portal Username</label>
-      <input type="text" v-model="localApp.username" />
-    </div>
+        <div class="form-group">
+            <label>Job Role</label>
+            <input type="text" v-model="localApp.position" disabled />
+        </div>
 
-    <div class="form-group">
-      <label>Portal Password</label>
-      <input :type="showPassword ? 'text' : 'password'" v-model="localApp.password" />
-      <button type="button" class="toggle-btn" @click="showPassword = !showPassword">
-        {{ showPassword ? 'Hide' : 'Show' }}
-      </button>
-    </div>
+        <div class="form-group">
+            <label>Portal Username</label>
+            <input type="text" v-model="localApp.username" />
+        </div>
 
-    <button type="button" class="update-btn" @click="confirmUpdate">Confirm Update</button>
+        <div class="form-group">
+            <label>Portal Password</label>
+            <input
+                :type="showPassword ? 'text' : 'password'"
+                v-model="localApp.password"
+            />
+            <button
+                type="button"
+                class="toggle-btn"
+                @click="showPassword = !showPassword"
+            >
+                {{ showPassword ? "Hide" : "Show" }}
+            </button>
+        </div>
 
-    <hr />
+        <button type="button" class="update-btn" @click="confirmUpdate">
+            Confirm Update
+        </button>
 
-    <div class="form-group">
-      <label>Job Description</label>
-      <textarea rows="3" v-model="localApp.description"></textarea>
-    </div>
+        <hr />
 
-    <div class="form-group">
-      <label>Personal Notes</label>
-      <textarea rows="3" v-model="localApp.notes"></textarea>
-    </div>
-  </form>
+        <div class="form-group">
+            <label>Job Description</label>
+            <textarea rows="3" v-model="localApp.description"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Personal Notes</label>
+            <textarea rows="3" v-model="localApp.notes"></textarea>
+        </div>
+    </form>
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from 'vue';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@/firebase';
+import { ref, reactive, watch, onMounted } from "vue";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/firebase";
 
-const emit = defineEmits(['showToast', 'application-updated']);
+const emit = defineEmits(["showToast", "application-updated"]);
 
 const showPassword = ref(false);
 
 const localApp = reactive({
-company: '',
-position: '',
-username: '',
-password: '',
-description: '',
-notes: ''
+    company: "",
+    position: "",
+    username: "",
+    password: "",
+    description: "",
+    notes: "",
 });
 
 const props = defineProps({
-userId: {
-  type: String,
-  required: true
-},
-appId: {
-  type: String,
-  required: true
-}
+    userId: {
+        type: String,
+        required: true,
+    },
+    appId: {
+        type: String,
+        required: true,
+    },
+    cycle: {
+        type: String,
+        required: true,
+    },
 });
 
 const originalApp = ref({});
 
-const docPath = doc(db, 'Users', props.userId, 'application_folder', props.appId);
+const docPath = doc(db, "Users", props.userId, props.cycle, props.appId);
 
 onMounted(async () => {
-const snap = await getDoc(docPath);
-if (snap.exists()) {
-  const data = snap.data();
-  Object.assign(localApp, data);
-  originalApp.value = { ...data };
-}
+    const snap = await getDoc(docPath);
+    if (snap.exists()) {
+        const data = snap.data();
+        Object.assign(localApp, data);
+        originalApp.value = { ...data };
+    }
 });
 
 const confirmUpdate = async () => {
-const updates = {};
-['company', 'position', 'username', 'password'].forEach((field) => {
-  if (localApp[field] !== originalApp.value[field]) {
-    updates[field] = localApp[field];
-  }
-});
+    const updates = {};
+    ["company", "position", "username", "password"].forEach((field) => {
+        if (localApp[field] !== originalApp.value[field]) {
+            updates[field] = localApp[field];
+        }
+    });
 
-if (Object.keys(updates).length > 0) {
-  await updateDoc(docPath, updates);
-  Object.assign(originalApp.value, updates);
-  emit('showToast', 'Application Updated');
-  emit('application-updated', 'Application Updated (Confirmed)');
-}
+    if (Object.keys(updates).length > 0) {
+        await updateDoc(docPath, updates);
+        Object.assign(originalApp.value, updates);
+        emit("showToast", "Application Updated");
+        emit("application-updated", "Application Updated (Confirmed)");
+    }
 };
 
 //auto save details
 const saveAutoFields = async () => {
-const updates = {};
-if (localApp.description !== originalApp.value.description) {
-  updates.description = localApp.description;
-}
-if (localApp.notes !== originalApp.value.notes) {
-  updates.notes = localApp.notes;
-}
+    const updates = {};
+    if (localApp.description !== originalApp.value.description) {
+        updates.description = localApp.description;
+    }
+    if (localApp.notes !== originalApp.value.notes) {
+        updates.notes = localApp.notes;
+    }
 
-if (Object.keys(updates).length > 0) {
-  await updateDoc(docPath, updates);
-  Object.assign(originalApp.value, updates);
-  emit('showToast', 'Application Updated');
-  emit('application-updated');
-}
+    if (Object.keys(updates).length > 0) {
+        await updateDoc(docPath, updates);
+        Object.assign(originalApp.value, updates);
+        emit("showToast", "Application Updated");
+        emit("application-updated");
+    }
 };
 
 defineExpose({ saveAutoFields });
-
 </script>
 
 <style scoped>
 .edit-application-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 12px;
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
 }
 
 .form-group label {
-  font-weight: bold;
-  margin-bottom: 4px;
+    font-weight: bold;
+    margin-bottom: 4px;
 }
 
 input,
 textarea {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 1rem;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
 }
 
 .update-btn {
-  padding: 10px;
-  background-color: #c24600;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+    padding: 10px;
+    background-color: #c24600;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
 }
 
 .update-btn:hover {
-  background-color: #fc640d;
+    background-color: #fc640d;
 }
 
 .toggle-btn {
-  background: none;
-  border: none;
-  color: #c24600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  margin-top: 6px;
-  width: fit-content;
+    background: none;
+    border: none;
+    color: #c24600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    margin-top: 6px;
+    width: fit-content;
 }
 </style>
