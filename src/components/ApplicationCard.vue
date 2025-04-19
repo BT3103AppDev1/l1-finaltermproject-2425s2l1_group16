@@ -2,6 +2,7 @@
 import Statistics from '../components/Statistics.vue'
 import ApplicationDetails from '../components/ApplicationDetails.vue'
 import EditApplicationForm from '../components/EditApplicationForm.vue'
+import InterviewQuestions from '../components/InterviewQuestions.vue'
 import { ref, computed } from 'vue';
 
 defineProps({
@@ -81,7 +82,7 @@ const handleConfirmedUpdate = (msg) => {
             <a href="#" class="link-btn" @click.prevent="switchTab('application-details')" :class="{'active-tab': activeTab === 'application-details'}">Application Details</a><span class="separator"> | </span>
             <a href="#" class="link-btn" @click.prevent="switchTab('edit-application')" :class="{'active-tab': activeTab === 'edit-application'}">Edit Application</a><span class="separator"> | </span>
             <a href="#" class="link-btn" @click.prevent="switchTab('insights')" :class="{'active-tab': activeTab === 'insights'}">Insights & Statistics</a><span class="separator"> | </span>
-            <a href="#" class="link-btn">Interview Questions</a>
+            <a href="#" class="link-btn" @click.prevent="switchTab('interview-questions')" :class="{'active-tab': activeTab === 'interview-questions'}">Interview Questions</a>
           </div>
         </div>
         <div class="box">
@@ -105,13 +106,20 @@ const handleConfirmedUpdate = (msg) => {
               @application-updated="handleConfirmedUpdate"
               @auto-save-update="showToast('Application Updated (Auto-Saved)')"
             />
-
           </section>
           <section v-if="activeTab === 'insights'" class="insights">
             <h2 class="application-details-title">Insights & Statistics</h2>
             <Statistics 
               :appId="appId" 
               :userId="userId" 
+              :selectedCycle="selectedCycle"
+            />
+          </section>
+          <section v-if="activeTab === 'interview-questions'" class="application-info">
+            <h2 class="application-details-title">Interview Questions</h2>
+            <InterviewQuestions 
+              :appId="appId"
+              :userId="userId"
               :selectedCycle="selectedCycle"
             />
           </section>
