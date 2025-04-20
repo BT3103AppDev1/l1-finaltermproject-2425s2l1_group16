@@ -16,8 +16,8 @@ export async function resetPoints() {
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
 
-  const savedMonth = data.lastResetMonth;
-  const savedYear = data.lastResetYear;
+  const savedMonth = data.lastResetPointsMonth;
+  const savedYear = data.lastResetPointsYear;
 
   if (currentMonth != savedMonth || currentYear != savedYear) {
     await updateDoc(userRef, {

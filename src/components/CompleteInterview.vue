@@ -1,11 +1,11 @@
 <template>
   <div class="complete-interview-page">
-    <button 
-      @click.prevent="checkAndOpenModal" 
+    <button
+      @click.prevent="checkAndOpenModal"
       class="complete-button"
-      :class="{ 'disabled': allRoundsCompleted }"
+      :class="{ disabled: allRoundsCompleted }"
     >
-      {{ allRoundsCompleted ? 'All Rounds Documented' : 'Complete Interview' }}
+      {{ allRoundsCompleted ? "All Rounds Documented" : "Complete Interview" }}
     </button>
 
     <div v-if="isModalOpen" class="modal" @mousedown.self="closeModal">
@@ -32,9 +32,9 @@
           >
             ← Previous Round
           </button>
-          <button 
+          <button
             v-if="currentRoundIndex !== 0"
-            @click="removeRound" 
+            @click="removeRound"
             class="delete-round-button"
           >
             Delete Round
@@ -51,7 +51,7 @@
         <!-- Current Round Info -->
         <div class="round-info" v-if="currentRound">
           <div class="round-header">
-            <div style="flex: 2;">
+            <div style="flex: 2">
               <label class="round-label">Stage Name</label>
               <input
                 type="text"
@@ -61,7 +61,7 @@
                 disabled
               />
             </div>
-            <div style="flex: 1;">
+            <div style="flex: 1">
               <label class="round-label">Stage Date</label>
               <input
                 type="date"
@@ -74,7 +74,8 @@
 
           <!-- Question entries for current round -->
           <div v-if="currentRound.isCompleted" class="completed-round-message">
-            This round has been completed. Questions are displayed for reference only.
+            This round has been completed. Questions are displayed for reference
+            only.
           </div>
           <div
             v-for="(entry, index) in currentRound.questions"
@@ -82,8 +83,8 @@
             class="question-entry"
           >
             <label :for="'questionType' + index">Question Type*</label>
-            <select 
-              v-model="entry.questionType" 
+            <select
+              v-model="entry.questionType"
               :id="'questionType' + index"
               :disabled="currentRound.isCompleted"
             >
@@ -119,9 +120,9 @@
           </div>
 
           <!-- Add question button - only show for incomplete rounds -->
-          <button 
+          <button
             v-if="!currentRound.isCompleted"
-            @click="addQuestion" 
+            @click="addQuestion"
             class="add-button"
           >
             <span class="plus-icon">+</span> Add Another Question
@@ -129,9 +130,9 @@
         </div>
 
         <div class="modal-actions">
-          <button 
+          <button
             v-if="!currentRound.isCompleted"
-            @click="handleSubmit" 
+            @click="handleSubmit"
             class="submit-button"
           >
             Submit
@@ -154,7 +155,7 @@ import {
   increment,
   getDoc,
   onSnapshot,
-  deleteDoc
+  deleteDoc,
 } from "firebase/firestore";
 import { Filter } from "bad-words";
 import { getAuth } from "firebase/auth";
@@ -185,7 +186,7 @@ export default {
       currentRoundIndex: 0,
       interviewRounds: [],
       allRoundsCompleted: false,
-      unsubscribe: null
+      unsubscribe: null,
     };
   },
   computed: {
@@ -200,48 +201,64 @@ export default {
         const user = auth.currentUser;
         if (!user) return;
 
-        const appRef = doc(db, "Users", user.uid, this.selectedCycle, this.appId);
+        const appRef = doc(
+          db,
+          "Users",
+          user.uid,
+          this.selectedCycle,
+          this.appId
+        );
         const appDoc = await getDoc(appRef);
-        
+
         if (!appDoc.exists()) return;
 
         const stages = appDoc.data().stages || {};
         const interviewStages = Object.entries(stages)
-          .filter(([key]) => key.startsWith('interview_'))
+          .filter(([key]) => key.startsWith("interview_"))
           .sort((a, b) => {
-            const aNum = parseInt(a[0].split('_')[1]);
-            const bNum = parseInt(b[0].split('_')[1]);
+            const aNum = parseInt(a[0].split("_")[1]);
+            const bNum = parseInt(b[0].split("_")[1]);
             return aNum - bNum;
           });
 
         this.interviewRounds = interviewStages.map(([key, value]) => {
           let questions;
 
-          if (value.isCompleted && value.questions && value.questions.length > 0) {
-            questions = value.questions.map(q => ({
-              questionType: q.type || 'Technical',
-              question: q.question || '',
-              description: q.description || ''
+          if (
+            value.isCompleted &&
+            value.questions &&
+            value.questions.length > 0
+          ) {
+            questions = value.questions.map((q) => ({
+              questionType: q.type || "Technical",
+              question: q.question || "",
+              description: q.description || "",
             }));
           } else {
-            questions = [{
-              questionType: "Technical",
-              question: "",
-              description: "",
-            }];
+            questions = [
+              {
+                questionType: "Technical",
+                question: "",
+                description: "",
+              },
+            ];
           }
 
           return {
             stageKey: key,
-            roundNumber: parseInt(key.split('_')[1]),
-            roundName: value.name || `Interview ${key.split('_')[1]}`,
-            date: value.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+            roundNumber: parseInt(key.split("_")[1]),
+            roundName: value.name || `Interview ${key.split("_")[1]}`,
+            date:
+              value.date?.split("T")[0] ||
+              new Date().toISOString().split("T")[0],
             isCompleted: value.isCompleted || false,
-            questions
+            questions,
           };
         });
 
-        this.allRoundsCompleted = this.interviewRounds.every(round => round.isCompleted);
+        this.allRoundsCompleted = this.interviewRounds.every(
+          (round) => round.isCompleted
+        );
 
         if (this.allRoundsCompleted) {
           console.log("All interview rounds have been documented");
@@ -253,13 +270,15 @@ export default {
     async checkAndOpenModal(event) {
       event.stopPropagation();
       await this.loadInterviewRounds();
-      
+
       if (this.interviewRounds.length === 0) {
         alert("No interview rounds found for this application.");
         return;
       }
 
-      const incompleteIndex = this.interviewRounds.findIndex(round => !round.isCompleted);
+      const incompleteIndex = this.interviewRounds.findIndex(
+        (round) => !round.isCompleted
+      );
       if (incompleteIndex !== -1) {
         this.currentRoundIndex = incompleteIndex;
       }
@@ -302,10 +321,13 @@ export default {
       try {
         // Validate only incomplete rounds that have questions filled
         for (const round of this.interviewRounds) {
-          if (!round.isCompleted) {  // Only validate incomplete rounds
+          if (!round.isCompleted) {
+            // Only validate incomplete rounds
             for (const entry of round.questions) {
               if (!entry.question || !entry.questionType) {
-                alert(`Please fill in all required fields marked with * in ${round.roundName}`);
+                alert(
+                  `Please fill in all required fields marked with * in ${round.roundName}`
+                );
                 return;
               }
             }
@@ -321,7 +343,8 @@ export default {
         // Quality check only questions from incomplete rounds
         const filter = new Filter();
         for (const round of this.interviewRounds) {
-          if (!round.isCompleted) {  // Only check incomplete rounds
+          if (!round.isCompleted) {
+            // Only check incomplete rounds
             for (const entry of round.questions) {
               if (filter.isProfane(entry.question)) {
                 alert("Please refrain from using any profanities");
@@ -337,7 +360,13 @@ export default {
         }
 
         let nextQuestionNumber = await this.getNextQuestionNumber();
-        const applicationRef = doc(db, "Users", user.uid, this.selectedCycle, this.appId);
+        const applicationRef = doc(
+          db,
+          "Users",
+          user.uid,
+          this.selectedCycle,
+          this.appId
+        );
         const appDoc = await getDoc(applicationRef);
         const currentData = appDoc.data();
         const stages = { ...currentData.stages };
@@ -345,7 +374,8 @@ export default {
 
         // Save questions only from incomplete rounds
         for (const round of this.interviewRounds) {
-          if (!round.isCompleted) {  // Only process incomplete rounds
+          if (!round.isCompleted) {
+            // Only process incomplete rounds
             const savedQuestions = [];
 
             for (const entry of round.questions) {
@@ -364,7 +394,7 @@ export default {
                 upvoteCount: 0,
                 reportCount: 0,
                 roundNumber: round.roundNumber,
-                stageKey: round.stageKey
+                stageKey: round.stageKey,
               };
 
               // Add the question document
@@ -374,7 +404,7 @@ export default {
 
               savedQuestions.push({
                 id: docId,
-                ...questionData
+                ...questionData,
               });
 
               nextQuestionNumber++;
@@ -384,29 +414,36 @@ export default {
             updatedStages[round.stageKey] = {
               ...stages[round.stageKey],
               isCompleted: true,
-              questions: savedQuestions
+              questions: savedQuestions,
             };
           }
         }
 
         // Update the application document with all stages
         await updateDoc(applicationRef, {
-          stages: updatedStages
+          stages: updatedStages,
+        });
+
+        // Award points since user passed quality checks
+        const appRef = doc(db, "Users", user.uid);
+        await updateDoc(appRef, {
+          contribution_pts: increment(5),
         });
 
         alert("Questions have been submitted successfully!");
         this.closeModal();
-
       } catch (error) {
         console.error("Error in handleSubmit:", error);
-        alert(`Error submitting questions: ${error.message}. Please try again.`);
+        alert(
+          `Error submitting questions: ${error.message}. Please try again.`
+        );
       }
     },
     countWords(text) {
       if (!text) return 0;
       text = text.trim();
       let wordList = text.split(/\s/);
-      return wordList.filter(word => word !== "").length;
+      return wordList.filter((word) => word !== "").length;
     },
     async getNextQuestionNumber() {
       const querySnapshot = await getDocs(collection(db, "InterviewQuestions"));
@@ -431,61 +468,81 @@ export default {
       if (!user) return;
 
       const appRef = doc(db, "Users", user.uid, this.selectedCycle, this.appId);
-      
+
       this.unsubscribe = onSnapshot(appRef, (doc) => {
         if (doc.exists()) {
           const stages = doc.data().stages || {};
           const interviewStages = Object.entries(stages)
-            .filter(([key]) => key.startsWith('interview_'))
+            .filter(([key]) => key.startsWith("interview_"))
             .sort((a, b) => {
-              const aNum = parseInt(a[0].split('_')[1]);
-              const bNum = parseInt(b[0].split('_')[1]);
+              const aNum = parseInt(a[0].split("_")[1]);
+              const bNum = parseInt(b[0].split("_")[1]);
               return aNum - bNum;
             });
 
           this.interviewRounds = interviewStages.map(([key, value]) => {
             let questions;
 
-            if (value.isCompleted && value.questions && value.questions.length > 0) {
+            if (
+              value.isCompleted &&
+              value.questions &&
+              value.questions.length > 0
+            ) {
               // For completed stages, use the questions directly from Firestore
-              questions = value.questions.map(q => ({
-                questionType: q.type || 'Technical', // Map the 'type' field to 'questionType'
-                question: q.question || '',
-                description: q.description || ''
+              questions = value.questions.map((q) => ({
+                questionType: q.type || "Technical", // Map the 'type' field to 'questionType'
+                question: q.question || "",
+                description: q.description || "",
               }));
             } else {
               // For incomplete stages, start with one empty question
-              questions = [{
-                questionType: "Technical",
-                question: "",
-                description: "",
-              }];
+              questions = [
+                {
+                  questionType: "Technical",
+                  question: "",
+                  description: "",
+                },
+              ];
             }
 
             return {
               stageKey: key,
-              roundNumber: parseInt(key.split('_')[1]),
-              roundName: value.name || `Interview ${key.split('_')[1]}`,
-              date: value.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+              roundNumber: parseInt(key.split("_")[1]),
+              roundName: value.name || `Interview ${key.split("_")[1]}`,
+              date:
+                value.date?.split("T")[0] ||
+                new Date().toISOString().split("T")[0],
               isCompleted: value.isCompleted || false,
-              questions
+              questions,
             };
           });
 
-          this.allRoundsCompleted = this.interviewRounds.every(round => round.isCompleted);
+          this.allRoundsCompleted = this.interviewRounds.every(
+            (round) => round.isCompleted
+          );
         }
       });
     },
     async removeRound() {
       if (!this.currentRound || this.currentRoundIndex === 0) return;
-      
-      if (confirm(`Are you sure you want to remove ${this.currentRound.roundName}? This action cannot be undone.`)) {
+
+      if (
+        confirm(
+          `Are you sure you want to remove ${this.currentRound.roundName}? This action cannot be undone.`
+        )
+      ) {
         try {
           const auth = getAuth();
           const user = auth.currentUser;
           if (!user) return;
 
-          const applicationRef = doc(db, "Users", user.uid, this.selectedCycle, this.appId);
+          const applicationRef = doc(
+            db,
+            "Users",
+            user.uid,
+            this.selectedCycle,
+            this.appId
+          );
           const appDoc = await getDoc(applicationRef);
           const currentData = appDoc.data();
           const stages = { ...currentData.stages };
@@ -519,15 +576,15 @@ export default {
           alert("Failed to remove round. Please try again.");
         }
       }
-    }
+    },
   },
   mounted() {
     this.setupRealtimeListener();
-    this.$watch('isModalOpen', (newVal) => {
+    this.$watch("isModalOpen", (newVal) => {
       if (newVal) {
-        document.body.style.overflow = 'hidden';  // Disable scrolling
+        document.body.style.overflow = "hidden"; // Disable scrolling
       } else {
-        document.body.style.overflow = '';  // Enable scrolling again
+        document.body.style.overflow = ""; // Enable scrolling again
       }
     });
   },
@@ -536,7 +593,7 @@ export default {
     if (this.unsubscribe) {
       this.unsubscribe();
     }
-  }
+  },
 };
 </script>
 
