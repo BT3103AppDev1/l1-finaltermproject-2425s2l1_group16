@@ -14,57 +14,88 @@
           :key="question.id"
           class="question-item"
         >
-          <div class="question-type">{{ question.type }}</div>
-          <div class="question-text">{{ question.question }}</div>
-          <div class="question-actions">
-            <div class="main-buttons">
-              <button @click="increment_upvote(question.id)" class="action-btn">
-                <font-awesome-icon :icon="['far', 'thumbs-up']" />
-                {{ question.upvoteCount }}
-              </button>
-              <button @click="openReportPopup(question.id)" class="action-btn">
-                <font-awesome-icon :icon="['far', 'flag']" />
-              </button>
-            </div>
-
-            <!-- Report Popup -->
-            <div
-              v-if="showPopup && currentQuestionId === question.id"
-              class="popup-overlay"
-            >
-              <div class="popup-content">
-                <p>Report Question</p>
-                <div
-                  v-for="(reason, index) in reasons"
-                  :key="index"
-                  class="radio-option"
+          <div
+            v-if="
+              ['Technical', 'Current Affairs'].includes(question.type) &&
+              contribution_pts < 9
+            "
+            class="locked-overlay"
+          >
+            Earn 10 contribution points to unlock this
+            {{ question.type }} question.
+          </div>
+          <div
+            class="question-inner"
+            :class="{
+              blurred:
+                ['Technical', 'Current Affairs'].includes(question.type) &&
+                contribution_pts < 9,
+            }"
+          >
+            <div class="question-type">{{ question.type }}</div>
+            <div class="question-text">{{ question.question }}</div>
+            <div class="question-actions">
+              <div class="main-buttons">
+                <button
+                  @click="increment_upvote(question.id)"
+                  class="action-btn"
                 >
-                  <input
-                    type="radio"
-                    :id="'reason-' + index"
-                    name="report"
-                    :value="reason"
-                    v-model="selectedReason"
+                  <font-awesome-icon :icon="['far', 'thumbs-up']" />
+                  {{ question.upvoteCount }}
+                </button>
+                <button
+                  @click="openReportPopup(question.id)"
+                  class="action-btn"
+                >
+                  <font-awesome-icon
+                    :icon="
+                      question.reportedByCurrentUser
+                        ? ['fas', 'flag']
+                        : ['far', 'flag']
+                    "
                   />
-                  <label :for="'reason-' + index">{{ reason }}</label>
-                </div>
-                <br />
-                <div v-if="selectedReason" class="textarea-section">
-                  <p>Kindly explain the reason for your report</p>
-                  <textarea
-                    v-model="reasonText"
-                    placeholder="Type your reason here..."
-                    rows="4"
-                  ></textarea>
-                </div>
-                <div class="popup-buttons">
-                  <button @click="showPopup = false">Cancel</button>
-                  <button
-                    :disabled="!selectedReason"
-                    @click="increment_report(currentQuestionId)"
+                </button>
+              </div>
+
+              <!-- Report Popup -->
+              <div
+                v-if="showPopup && currentQuestionId === question.id"
+                class="popup-overlay"
+              >
+                <div class="popup-content">
+                  <p>Report Question</p>
+                  <div
+                    v-for="(reason, index) in reasons"
+                    :key="index"
+                    class="radio-option"
                   >
-                    Report
-                  </button>
+                    <input
+                      type="radio"
+                      :id="'reason-' + index"
+                      name="report"
+                      :value="reason"
+                      v-model="selectedReason"
+                    />
+                    <label :for="'reason-' + index">{{ reason }}</label>
+                  </div>
+                  <br />
+                  <div v-if="selectedReason" class="textarea-section">
+                    <p>Kindly explain the reason for your report</p>
+                    <textarea
+                      v-model="reasonText"
+                      placeholder="Type your reason here..."
+                      rows="4"
+                    ></textarea>
+                  </div>
+                  <div class="popup-buttons">
+                    <button @click="showPopup = false">Cancel</button>
+                    <button
+                      :disabled="!selectedReason"
+                      @click="increment_report(currentQuestionId)"
+                    >
+                      Report
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -160,7 +191,8 @@ const fetchQuestions = async () => {
     const q = query(
       questionsRef,
       where("company", "==", company.value),
-      where("role", "==", role.value)
+      where("role", "==", role.value),
+      where("status", "==", "Checked")
     );
     const querySnapshot = await getDocs(q);
 
@@ -191,6 +223,9 @@ const fetchQuestions = async () => {
       );
       const reportSnapshot = await getDocs(reportCollection);
       question.reportCount = reportSnapshot.size;
+      question.reportedByCurrentUser = reportSnapshot.docs.some(
+        (doc) => doc.id === auth.currentUser.uid
+      );
     }
   } catch (error) {
     console.error("Error fetching questions:", error);
@@ -278,7 +313,8 @@ const increment_report = async (questionId) => {
     });
 
     // Check if report count exceeds threshold
-    if (reportCollectionRef.count >= 9) {
+    const reportSnapshots = await getDocs(reportCollectionRef);
+    if (reportSnapshots.size >= 9) {
       const questionRef = doc(db, "InterviewQuestions", currentQuestions);
       await updateDoc(questionRef, {
         status: "Removed",
@@ -296,6 +332,15 @@ const increment_report = async (questionId) => {
     selectedReason.value = null;
     reasonText.value = null;
     toast.success("Report submitted successfully");
+
+    //update to show that report has been made 
+    const reportedQuestion = questions.value.find(
+      (q) => q.id === currentQuestions
+    );
+    if (reportedQuestion) {
+      reportedQuestion.reportedByCurrentUser = true;
+    }
+
   } catch (error) {
     console.error("Error submitting report:", error);
     toast.error("Failed to submit report");
@@ -317,7 +362,8 @@ onMounted(() => {
 <style scoped>
 .interview-questions-container {
   padding: 12px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
 }
 
 .questions-title {
@@ -346,6 +392,7 @@ onMounted(() => {
   padding: 16px;
   border: 1px solid #e2e8f0;
   margin-bottom: 16px;
+  position: relative;
 }
 
 .question-type {
@@ -368,6 +415,39 @@ onMounted(() => {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #e2e8f0;
+}
+
+.question-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.question-inner {
+  position: relative;
+}
+
+.blurred {
+  filter: blur(5px);
+  pointer-events: none;
+  user-select: none;
+}
+.locked-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+  z-index: 10;
+  pointer-events: none;
+  padding: 16px;
+  backdrop-filter: blur(2px);
 }
 
 .main-buttons {
