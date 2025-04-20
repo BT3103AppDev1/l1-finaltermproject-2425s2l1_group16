@@ -214,6 +214,20 @@ const fetchQuestions = async () => {
       const upvoteSnapshot = await getDocs(upvoteCollection);
       question.upvoteCount = upvoteSnapshot.size;
 
+      //sort based on category
+      const categoryOrder = {
+        General: 0,
+        Behavioral: 1,
+        "Current Affairs": 2,
+        Technical: 3,
+      };
+
+      questions.value.sort((a, b) => {
+        const aOrder = categoryOrder[a.type] ?? 999;
+        const bOrder = categoryOrder[b.type] ?? 999;
+        return aOrder - bOrder;
+      });
+
       // Get report count
       const reportCollection = collection(
         db,
@@ -333,14 +347,13 @@ const increment_report = async (questionId) => {
     reasonText.value = null;
     toast.success("Report submitted successfully");
 
-    //update to show that report has been made 
+    //update to show that report has been made
     const reportedQuestion = questions.value.find(
       (q) => q.id === currentQuestions
     );
     if (reportedQuestion) {
       reportedQuestion.reportedByCurrentUser = true;
     }
-
   } catch (error) {
     console.error("Error submitting report:", error);
     toast.error("Failed to submit report");
