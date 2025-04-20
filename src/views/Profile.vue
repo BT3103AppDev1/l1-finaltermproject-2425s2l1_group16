@@ -63,7 +63,7 @@
 			@click.self="closeNameModal"
 		>
 			<div class="modal-content">
-				<h3>Update Display Name</h3>
+				<h2>Update Display Name</h2>
 				<div class="form-group">
 					<label for="modalDisplayName">New Name:</label>
 					<input
@@ -77,7 +77,7 @@
 					{{ nameSuccess }}
 				</p>
 				<div class="modal-actions">
-					<button @click="closeNameModal" class="btn btn-secondary">
+					<button @click="closeNameModal" class="btn cancel-button">
 						Cancel
 					</button>
 					<button
@@ -87,7 +87,7 @@
 							!modalNewDisplayName ||
 							modalNewDisplayName === currentDisplayName
 						"
-						class="btn btn-primary"
+						class="btn save-button"
 					>
 						<span v-if="isNameUpdating">Saving...</span>
 						<span v-else>Save Name</span>
@@ -102,7 +102,7 @@
 			@click.self="closePasswordModal"
 		>
 			<div class="modal-content">
-				<h3>Change Password</h3>
+				<h2>Change Password</h2>
 				<form @submit.prevent="submitPasswordChange">
 					<p class="info-message">
 						Requires current password for security.
@@ -149,7 +149,7 @@
 						<button
 							type="button"
 							@click="closePasswordModal"
-							class="btn btn-secondary"
+							class="btn cancel-button"
 						>
 							Cancel
 						</button>
@@ -161,7 +161,7 @@
 								!modalNewPassword ||
 								!modalConfirmNewPassword
 							"
-							class="btn btn-primary"
+							class="btn save-button"
 						>
 							<span v-if="isPasswordUpdating">Changing...</span>
 							<span v-else>Change Password</span>
@@ -170,6 +170,11 @@
 				</form>
 			</div>
 		</div>
+		<div class="logout-section">
+	<button class="logout-button" @click="handleLogout">
+		Log Out
+	</button>
+</div>
 	</div>
 </template>
 
@@ -181,6 +186,7 @@ import {
 	updatePassword,
 	EmailAuthProvider,
 	reauthenticateWithCredential,
+	signOut,
 } from "firebase/auth";
 import { getFirestore, doc, updateDoc, getDoc } from "firebase/firestore";
 
@@ -411,9 +417,25 @@ export default {
 			this.generalError = ""; // Also clear general on specific interaction
 			this.generalSuccess = "";
 		},
+
+		handleLogout() {
+			this.signOutUser();
+		},
+
+		async signOutUser() {
+			const auth = getAuth();
+			try {
+				await signOut(auth);
+				console.log("User signed out successfully.");
+				this.$router.push("/login");
+			} catch (error) {
+				console.error("Sign out error:", error);
+			}
+		},
 	},
 	mounted() {
 		this.fetchUserProfile();
+		this.$emit("initial-name", this.currentDisplayName);
 	},
 };
 </script>
@@ -558,9 +580,6 @@ h2 {
 	border-bottom: none;
 }
 
-.modal-content .form-group {
-	margin-bottom: 15px;
-}
 .modal-content label {
 	display: block;
 	margin-bottom: 6px;
@@ -590,6 +609,10 @@ h2 {
 	margin-top: 3px;
 }
 
+.info-message {
+	margin-bottom: 10px;
+}
+
 .modal-actions {
 	display: flex;
 	justify-content: flex-end;
@@ -608,27 +631,18 @@ h2 {
 	font-weight: 600;
 	transition: background-color 0.2s ease, opacity 0.2s ease;
 }
+
 .btn:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
 }
-.btn-primary {
-	background-color: #007bff;
-	color: white;
-}
+
 .btn-primary:hover:not(:disabled) {
 	background-color: #0056b3;
 }
-.btn-secondary {
-	background-color: #6c757d;
-	color: white;
-}
+
 .btn-secondary:hover:not(:disabled) {
 	background-color: #5a6268;
-}
-.btn-sm {
-	font-size: 0.8em;
-	padding: 6px 12px;
 }
 
 /* Back Button */
@@ -643,11 +657,54 @@ h2 {
 	border: none;
 	font-size: 1em;
 	cursor: pointer;
-	padding: 6px 10px;
 	border-radius: 5px;
 	transition: background-color 0.2s;
 }
+
 .back-button:hover {
 	background-color: #f0f0f0;
+}
+
+.save-button {
+	width: 140px;
+    padding: 8px 0;
+    border: none;
+    border-radius: 5px;
+    background-color: #c24600;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+}
+
+.save-button:hover {
+	background: #fc640d;
+}
+
+.cancel-button {
+    width: 140px;
+    background-color: #e2e8f0;
+    color: #334155;
+}
+
+.logout-section {
+	margin-top: 30px;
+	text-align: center;
+}
+
+.logout-button {
+	padding: 10px 20px;
+	background-color: #ef4444;
+	color: white;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	font-weight: bold;
+	transition: background-color 0.2s ease;
+	width: 100%;
+}
+
+.logout-button:hover {
+	background-color: #dc2626;
 }
 </style>

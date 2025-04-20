@@ -1,6 +1,6 @@
 <template>
   <div class="interview-questions-container">
-    <h2 class="questions-title">{{ company }} - {{ role }}</h2>
+    <h2 class="questions-title">{{ company }}: {{ role }}</h2>
     
     <div class="questions-list">
       <div v-if="!questions.length" class="no-questions">
@@ -274,7 +274,7 @@ onMounted(() => {
 
 <style scoped>
 .interview-questions-container {
-  padding: 20px;
+  padding: 12px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
