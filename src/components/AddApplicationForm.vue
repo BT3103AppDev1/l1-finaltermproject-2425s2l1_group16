@@ -9,8 +9,8 @@
                 <label>Position:</label>
                 <input type="text" v-model="position" required />
 
-                <label>Job Description (or add later!):</label>
-                <textarea v-model="notes"></textarea>
+                <label>Job Description (or add one later!):</label>
+                <textarea v-model="description"></textarea>
 
                 <label>Date Applied:</label>
                 <input
@@ -70,7 +70,7 @@ export default {
         console.log("Current Cycle Prop in AddForm:", props.currentCycle);
         const company = ref("");
         const position = ref("");
-        const notes = ref("");
+        const description = ref("");
         const dateApplied = ref(
             DateTime.now().setZone("Asia/Singapore").toISODate()
         );
@@ -116,7 +116,7 @@ export default {
                 position: position.value,
                 date_applied: dateAppliedISO,
                 status: "Applied",
-                notes: notes.value,
+                description: description.value,
                 last_updated: dateAppliedISO,
                 last_status_date: DateTime.fromISO(
                     dateApplied.value
@@ -144,7 +144,7 @@ export default {
         return {
             company,
             position,
-            notes,
+            description,
             dateApplied,
             maxDate,
             submitApplication,
@@ -170,7 +170,7 @@ export default {
     background: white;
     padding: 20px;
     border-radius: 8px;
-    width: 400px;
+    width: 700px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -194,6 +194,8 @@ textarea {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    resize: none;
+    height: 200px;
 }
 
 .buttons {

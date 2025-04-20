@@ -4,7 +4,7 @@
             <div class="header">
                 <div class="logo-title-wrapper">
                     <img
-                        src="../assets/logo-placeholder.png"
+                        src="../assets/jobtrack-logo.png"
                         alt="InternTrack Logo"
                         class="logo-img"
                     />
@@ -1799,8 +1799,8 @@ export default {
 }
 
 .logo-img {
-    height: 50px;
-    width: 50px;
+    height: 80px;
+    width: 80px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid #c24600;

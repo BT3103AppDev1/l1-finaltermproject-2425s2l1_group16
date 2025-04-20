@@ -2,7 +2,7 @@
   <div class="interview-questions-container">
     <div class="question-header">
       <h2 class="questions-title">{{ company }}: {{ role }}</h2>
-      <p class="questions-text">Points: {{ contribution_pts }}</p>
+      <p class="questions-text">Contribution Points: {{ contribution_pts }}</p>
     </div>
     <div class="questions-list">
       <div v-if="!questions.length" class="no-questions">

@@ -6,40 +6,43 @@
         </div>
 
         <div class="detail-item">
-            <label>Job Role:</label>
+            <label>Role Applied:</label>
             <input type="text" v-model="localApp.position" disabled />
         </div>
 
         <div class="detail-item">
-            <label>Status Date:</label>
-            <input type="date" v-model="localApp.statusDate" disabled />
+            <label>Last Status Date: </label>
+            <input type="text" v-model="localApp.last_status_date" disabled />
         </div>
 
         <div class="detail-item">
-            <label>Pending Deadline:</label>
-            <input type="date" v-model="localApp.deadline" disabled />
+            <label>Job Portal URL:</label>
+            <input type="text" v-model="localApp.url" disabled />
         </div>
 
-        <div class="detail-item">
-            <label>Portal Username:</label>
-            <input type="text" v-model="localApp.username" disabled />
-        </div>
+        <div class="job-portal-fields">
+            <div class="detail-item half-width">
+                <label>Job Portal Username:</label>
+                <input type="text" v-model="localApp.username" disabled />
+            </div>
 
-        <div class="detail-item">
-            <label>Portal Password:</label>
-            <div class="password-wrapper">
-                <input
-                    :type="showPassword ? 'text' : 'password'"
-                    v-model="localApp.password"
-                    disabled
-                />
-                <button
-                    type="button"
-                    class="toggle-btn"
-                    @click="showPassword = !showPassword"
-                >
-                    {{ showPassword ? "Hide" : "Show" }}
-                </button>
+            <div class="detail-item half-width">
+                <label>Job Portal Password:</label>
+                <div class="password-wrapper">
+                    <input
+                        :type="showPassword ? 'text' : 'password'"
+                        v-model="localApp.password"
+                        disabled
+                        class="password-input"
+                    />
+                    <button
+                        type="button"
+                        class="toggle-btn"
+                        @click="showPassword = !showPassword"
+                    >
+                        {{ showPassword ? "Hide" : "Show" }}
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -55,6 +58,10 @@
         <div class="detail-item">
             <label>Personal Notes:</label>
             <textarea rows="3" v-model="localApp.notes" disabled></textarea>
+        </div>
+
+        <div class="detail-item">
+            <label>Application Journey:</label>
         </div>
 
         <div class="node-timeline">
@@ -88,18 +95,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
 import { useToast } from "vue-toastification";
-import {
-    doc,
-    getDoc,
-    getDocs,
-    updateDoc,
-    deleteDoc,
-    setDoc,
-    collection,
-    increment,
-    query,
-    where,
-} from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { getAuth } from "firebase/auth";
 
@@ -115,12 +111,13 @@ const localApp = reactive({
     company: "",
     position: "",
     status: "",
-    statusDate: "",
-    deadline: "",
+    last_status_date: "",
+    url: "",
     username: "",
     password: "",
     description: "",
     notes: "",
+    stage_sequence: []
 });
 
 const props = defineProps({
@@ -142,18 +139,6 @@ const docPath = doc(db, "Users", props.userId, props.cycle, props.appId);
 
 const emit = defineEmits();
 
-onMounted(async () => {
-    const docSnap = await getDoc(docPath);
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        Object.assign(localApp, data);
-        // emit company name to Parent (ApplicationCard.vue)
-        emit("passCompany", localApp.company);
-    } else {
-        console.error("No such document!");
-    }
-});
-
 //stages node
 const stages = ref({});
 
@@ -172,24 +157,14 @@ onMounted(async () => {
 const sortedStages = computed(() => {
     const entries = Object.entries(stages.value || {});
 
-    return entries.sort((a, b) => {
-        // Extract stage type and number
-        const [aKey, aValue] = a;
-        const [bKey, bValue] = b;
+    return localApp.stage_sequence.map(stageKey => {
+        const stageDetails = entries.find(([key]) => key === stageKey);
 
-        // If both are interview stages, sort by number
-        if (aKey.startsWith("interview_") && bKey.startsWith("interview_")) {
-            const aNum = parseInt(aKey.split("_")[1]);
-            const bNum = parseInt(bKey.split("_")[1]);
-            return aNum - bNum;
+        if (stageDetails) {
+            return stageDetails;
         }
 
-        // If only one is an interview stage, maintain relative position
-        if (aKey.startsWith("interview_")) return 1;
-        if (bKey.startsWith("interview_")) return -1;
-
-        // For non-interview stages, sort by date
-        return new Date(aValue.date) - new Date(bValue.date);
+        return [stageKey, { name: stageKey, date: '' }];
     });
 });
 
@@ -243,7 +218,6 @@ const formatDate = (dateStr) => {
 }
 
 .detail-item input,
-.detail-item textarea,
 .detail-item select {
     padding: 8px;
     border: 1px solid #e2e8f0;
@@ -253,30 +227,38 @@ const formatDate = (dateStr) => {
     color: #334155;
 }
 
-.password-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+textarea {
+    resize: none;
+    height: 120px;
+    background-color: #f1f5f9;
+    padding: 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #334155;
 }
 
 .toggle-btn {
     background: none;
     border: none;
-    color: #3b82f6;
+    color: #c24600;
     font-size: 0.875rem;
     cursor: pointer;
-    padding: 4px 8px;
+    margin-left: 2px;
+    margin-top: 8px;
     transition: color 0.2s ease;
 }
 
 .toggle-btn:hover {
-    color: #1d4ed8;
+    color: #fc640d;
 }
 
 .node-timeline {
     display: flex;
+    justify-content: center;
+    align-items: center;
     flex-direction: row;
-    gap: 12px;
+    gap: 35px;
     margin-top: 12px;
     padding-left: 10px;
     position: relative;
@@ -304,8 +286,7 @@ const formatDate = (dateStr) => {
     flex-direction: column;
     font-size: 0.95rem;
     color: navy;
-    text-align: left;
-    margin-left: 24px;
+    text-align: center;
 }
 
 .node-date {
@@ -341,5 +322,23 @@ const formatDate = (dateStr) => {
 }
 .node-default .node-circle {
     background-color: black;
+}
+
+.job-portal-fields {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+}
+
+.job-portal-fields .detail-item {
+    flex: 1;
+}
+
+.job-portal-fields .half-width {
+    width: 100%;
+}
+
+.password-input {
+    width: 100%;
 }
 </style>

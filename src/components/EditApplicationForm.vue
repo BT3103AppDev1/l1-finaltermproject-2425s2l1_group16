@@ -1,33 +1,48 @@
 <template>
     <form class="edit-application-form">
         <div class="form-group">
-            <label>Company Name</label>
-            <input type="text" v-model="localApp.company" disabled />
+            <label>Company Name:</label>
+            <input type="text" v-model="localApp.company" class="locked-fields" disabled />
         </div>
 
         <div class="form-group">
-            <label>Job Role</label>
-            <input type="text" v-model="localApp.position" disabled />
+            <label>Role Applied:</label>
+            <input type="text" v-model="localApp.position" class="locked-fields" disabled />
         </div>
 
         <div class="form-group">
-            <label>Portal Username</label>
-            <input type="text" v-model="localApp.username" />
+            <label>Last Status Date:</label>
+            <input type="text" v-model="localApp.last_status_date" class="locked-fields" disabled />
         </div>
 
         <div class="form-group">
-            <label>Portal Password</label>
-            <input
-                :type="showPassword ? 'text' : 'password'"
-                v-model="localApp.password"
-            />
-            <button
-                type="button"
-                class="toggle-btn"
-                @click="showPassword = !showPassword"
-            >
-                {{ showPassword ? "Hide" : "Show" }}
-            </button>
+            <label>Job Portal URL:</label>
+            <input type="text" v-model="localApp.url" />
+        </div>
+
+        <div class="job-portal-fields">
+            <div class="form-group half-width">
+                <label>Job Portal Username:</label>
+                <input type="text" v-model="localApp.username" />
+            </div>
+
+            <div class="form-group half-width">
+                <label>Job Portal Password:</label>
+                <div>
+                    <input
+                        :type="showPassword ? 'text' : 'password'"
+                        v-model="localApp.password"
+                        class="password-input"
+                    />
+                    <button
+                        type="button"
+                        class="toggle-btn"
+                        @click="showPassword = !showPassword"
+                    >
+                        {{ showPassword ? "Hide" : "Show" }}
+                    </button>
+                </div>
+            </div>
         </div>
 
         <button type="button" class="update-btn" @click="confirmUpdate">
@@ -60,10 +75,12 @@ const showPassword = ref(false);
 const localApp = reactive({
     company: "",
     position: "",
+    url: "",
     username: "",
     password: "",
     description: "",
     notes: "",
+    last_status_date: ""
 });
 
 const props = defineProps({
@@ -96,7 +113,7 @@ onMounted(async () => {
 
 const confirmUpdate = async () => {
     const updates = {};
-    ["company", "position", "username", "password"].forEach((field) => {
+    ["url", "username", "password"].forEach((field) => {
         if (localApp[field] !== originalApp.value[field]) {
             updates[field] = localApp[field];
         }
@@ -145,16 +162,22 @@ defineExpose({ saveAutoFields });
 }
 
 .form-group label {
-    font-weight: bold;
-    margin-bottom: 4px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #334155;
 }
 
 input,
 textarea {
     padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
     font-size: 1rem;
+}
+
+textarea {
+    resize: none;
+    height: 120px;
 }
 
 .update-btn {
@@ -164,6 +187,7 @@ textarea {
     border: none;
     border-radius: 6px;
     cursor: pointer;
+    font-weight: bold;
 }
 
 .update-btn:hover {
@@ -176,8 +200,37 @@ textarea {
     color: #c24600;
     font-size: 0.875rem;
     cursor: pointer;
-    padding: 4px 8px;
-    margin-top: 6px;
-    width: fit-content;
+    margin-left: 2px;
+    margin-top: 8px;
+    transition: color 0.2s ease;
+}
+
+.toggle-btn:hover {
+    color: #fc640d;
+}
+
+.locked-fields {
+    border-radius: 8px;
+    font-size: 1rem;
+    background-color: #f1f5f9;
+    color: #334155;
+}
+
+.job-portal-fields {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+}
+
+.job-portal-fields .form-group {
+    flex: 1;
+}
+
+.job-portal-fields .half-width {
+    width: 100%;
+}
+
+.password-input {
+    width: 100%;
 }
 </style>
