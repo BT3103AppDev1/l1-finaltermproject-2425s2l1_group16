@@ -519,6 +519,13 @@ export default {
   },
   mounted() {
     this.setupRealtimeListener();
+    this.$watch('isModalOpen', (newVal) => {
+      if (newVal) {
+        document.body.style.overflow = 'hidden';  // Disable scrolling
+      } else {
+        document.body.style.overflow = '';  // Enable scrolling again
+      }
+    });
   },
   beforeUnmount() {
     // Clean up the listener when the component is destroyed
