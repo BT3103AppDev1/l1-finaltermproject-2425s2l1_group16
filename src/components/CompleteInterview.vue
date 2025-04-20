@@ -4,7 +4,6 @@
       @click.prevent="checkAndOpenModal" 
       class="complete-button"
       :class="{ 'disabled': allRoundsCompleted }"
-      :disabled="allRoundsCompleted"
     >
       {{ allRoundsCompleted ? 'All Rounds Documented' : 'Complete Interview' }}
     </button>
@@ -20,6 +19,11 @@
         </p>
 
         <!-- Round Navigation -->
+        <div class="round-indicator-wrapper">
+          <p class="round-indicator-text">
+            Round {{ currentRoundIndex + 1 }} of {{ interviewRounds.length }}
+          </p>
+        </div>
         <div class="round-navigation">
           <button
             @click="previousRound"
@@ -47,19 +51,25 @@
         <!-- Current Round Info -->
         <div class="round-info" v-if="currentRound">
           <div class="round-header">
-            <input
-              type="text"
-              v-model="currentRound.roundName"
-              placeholder="Round Name"
-              class="round-name-input"
-              disabled
-            />
-            <input
-              type="date"
-              v-model="currentRound.date"
-              class="round-date-input"
-              disabled
-            />
+            <div style="flex: 2;">
+              <label class="round-label">Stage Name</label>
+              <input
+                type="text"
+                v-model="currentRound.roundName"
+                placeholder="Round Name"
+                class="round-name-input"
+                disabled
+              />
+            </div>
+            <div style="flex: 1;">
+              <label class="round-label">Stage Date</label>
+              <input
+                type="date"
+                v-model="currentRound.date"
+                class="round-date-input"
+                disabled
+              />
+            </div>
           </div>
 
           <!-- Question entries for current round -->
@@ -78,7 +88,6 @@
               :disabled="currentRound.isCompleted"
             >
               <option value="Technical">Technical</option>
-              <option value="Behavioral">Behavioral</option>
               <option value="General">General</option>
               <option value="Current Affairs">Current Affairs</option>
             </select>
@@ -88,7 +97,7 @@
               type="text"
               v-model="entry.question"
               :id="'question' + index"
-              placeholder="How would you make a circle?"
+              placeholder="E.g., How would you make a circle?"
               :disabled="currentRound.isCompleted"
             />
 
@@ -249,11 +258,6 @@ export default {
         alert("No interview rounds found for this application.");
         return;
       }
-      
-      if (this.allRoundsCompleted) {
-        alert("All interview rounds have been documented.");
-        return;
-      }
 
       const incompleteIndex = this.interviewRounds.findIndex(round => !round.isCompleted);
       if (incompleteIndex !== -1) {
@@ -324,7 +328,7 @@ export default {
                 return;
               }
 
-              if (this.countWords(entry.question) <= 5) {
+              if (this.countWords(entry.question) < 5) {
                 alert("Your question must be at least 5 words long");
                 return;
               }
@@ -545,8 +549,9 @@ export default {
 
 .complete-button {
   padding: 6px 12px;
-  font-size: 13px;
-  background-color: #cb4e00;
+  font-size: 12px;
+  font-weight: bold;
+  background-color: #c24600;
   color: white;
   border: none;
   border-radius: 4px;
@@ -557,12 +562,11 @@ export default {
 }
 
 .complete-button:hover {
-  background-color: #863200;
+  background-color: #fc640d;
 }
 
 .complete-button.disabled {
   background-color: #cccccc;
-  cursor: not-allowed;
 }
 
 .modal {
@@ -604,14 +608,14 @@ export default {
 .modal-description {
   font-size: 16px;
   color: #666;
-  margin-bottom: 32px;
+  margin-bottom: 16px;
   line-height: 1.6;
 }
 
 .question-entry {
   border: 1px solid #e0e0e0;
   padding: 24px;
-  margin: 20px 0;
+  margin-bottom: 20px;
   border-radius: 8px;
   background-color: #fafafa;
   position: relative;
@@ -646,14 +650,13 @@ textarea:focus {
 }
 
 textarea {
-  height: 120px;
-  resize: vertical;
+  height: 150px;
+  resize: none;
 }
 
 .add-button {
   width: 100%;
   padding: 16px;
-  margin: 24px 0 8px 0;
   background-color: #f0f9f0;
   color: #4caf50;
   border: 2px dashed #4caf50;
@@ -697,36 +700,32 @@ textarea {
 }
 
 .submit-button {
-  background-color: #4caf50;
+  background-color: #c24600;
   color: white;
   border: none;
 }
 
 .submit-button:hover {
-  background-color: #45a049;
+  background: #fc640d;
 }
 
 .cancel-button {
-  background-color: #f44336;
-  color: white;
+  background-color: #e2e8f0;
+  color: #334155;
   border: none;
-}
-
-.cancel-button:hover {
-  background-color: #d32f2f;
 }
 
 .remove-button {
   position: absolute;
   top: 16px;
-  right: 16px;
+  right: 25px;
   background-color: #f44336;
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   transition: background-color 0.2s ease;
 }
 
@@ -786,7 +785,13 @@ textarea {
 .round-header {
   display: flex;
   gap: 16px;
-  margin-bottom: 24px;
+}
+
+.round-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #444;
 }
 
 .round-name-input {
@@ -835,5 +840,16 @@ textarea:disabled {
   color: #666;
   cursor: not-allowed;
   border-color: #ddd;
+}
+
+.round-indicator-wrapper {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.round-indicator-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
 }
 </style>

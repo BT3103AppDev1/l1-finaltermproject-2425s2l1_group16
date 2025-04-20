@@ -8,7 +8,7 @@
       </div>
       <div v-else>
         <div v-for="question in questions" :key="question.id" class="question-item">
-          <div class="question-type">Technical</div>
+          <div class="question-type">{{ question.type}}</div>
           <div class="question-text">{{ question.question }}</div>
           <div class="question-actions">
             <div class="main-buttons">

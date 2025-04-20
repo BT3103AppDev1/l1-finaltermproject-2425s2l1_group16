@@ -33,18 +33,18 @@
 
                 <div class="buttons">
                     <button
-                        class="cancel-button"
-                        type="button"
-                        @click="$emit('close')"
-                    >
-                        Cancel
-                    </button>
-                    <button
                         class="add-button"
                         type="submit"
                         :disabled="!currentCycle"
                     >
                         Add
+                    </button>
+                    <button
+                        class="cancel-button"
+                        type="button"
+                        @click="$emit('close')"
+                    >
+                        Cancel
                     </button>
                 </div>
             </form>
