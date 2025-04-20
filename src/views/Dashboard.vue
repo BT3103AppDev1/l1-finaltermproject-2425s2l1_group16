@@ -320,8 +320,6 @@
             :cycle="selectedAppCycle"
             @close="closePopup"
             @reload-applications="loadApplications"
-        >
-        </ApplicationCard>
         />
     </teleport>
 
@@ -334,10 +332,10 @@
             <div class="modal-content">
                 <h3>Add New Interview Stage</h3>
                 <div class="input-group">
-                    <label>Interview Key:</label>
+                    <label>Round Number:</label>
                     <input
                         type="text"
-                        :value="`Interview Number: ${
+                        :value="`Interview Round ${
                             computedInterviewKey.split('_')[1]
                         }`"
                         disabled
@@ -352,6 +350,7 @@
                         v-model="customStageName"
                         placeholder="e.g. HR Interview"
                         class="input-field"
+                        required
                     />
                 </div>
                 <div class="input-group">
@@ -564,76 +563,76 @@ export default {
         };
 
         const loadApplications = async (selectedCycle = null) => {
-        console.log();
-        if (!userId.value) {
-            console.log("User ID is not set. Waiting...");
-            return;
-        }
-
-        const applicationsRef = collection(
-            db,
-            "Users",
-            userId.value,
-            selectedCycle // Use the selected cycle as the subcollection name
-        );
-
-        const querySnapshot = await getDocs(applicationsRef);
-
-        jobApplications.value = {
-            Applied: [],
-            Assessment: [],
-            Interview: [],
-            Offered: [],
-            Rejected: [],
-            "Turned Down": [],
-        };
-
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            const status = data.status;
-            const stages = data.stages;
-            console.log(stages);
-
-            let latestStatus = null;
-            let latestDate = null;
-
-            for (let [stage, stageDetails] of Object.entries(stages)) {
-            const stageDate =
-                stageDetails && stageDetails.date
-                ? DateTime.fromISO(stageDetails.date, {
-                    zone: "Asia/Singapore",
-                    })
-                : null;
-
-            if (stageDate && (!latestDate || stageDate > latestDate)) {
-                latestStatus = stage;
-                latestDate = stageDate;
-            }
+            console.log(selectedCycle);
+            if (!userId.value) {
+                console.log("User ID is not set. Waiting...");
+                return;
             }
 
-            const formattedLastStatusDate = latestDate
-            ? latestDate.toLocaleString(DateTime.DATE_SHORT)
-            : "N/A";
-
-            jobApplications.value[status].push({
-            id: doc.id,
-            company: data.company,
-            position: data.position,
-            status: data.status,
-            last_status_date: formattedLastStatusDate,
-            dateApplied: data.date_applied,
-            rank: data.rank ?? 0,
-            notes: data.notes,
-            cycle: selectedCycle, // Store the cycle for filtering if needed later
-            });
-        });
-
-        // list cards in each status according to their user-assigned rank
-        Object.keys(jobApplications.value).forEach((status) => {
-            jobApplications.value[status].sort(
-            (a, b) => (a.rank ?? 0) - (b.rank ?? 0)
+            const applicationsRef = collection(
+                db,
+                "Users",
+                userId.value,
+                selectedCycle // Use the selected cycle as the subcollection name
             );
-        });
+
+            const querySnapshot = await getDocs(applicationsRef);
+
+            jobApplications.value = {
+                Applied: [],
+                Assessment: [],
+                Interview: [],
+                Offered: [],
+                Rejected: [],
+                "Turned Down": [],
+            };
+
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const status = data.status;
+                const stages = data.stages;
+                console.log(stages);
+
+                let latestStatus = null;
+                let latestDate = null;
+
+                for (let [stage, stageDetails] of Object.entries(stages)) {
+                const stageDate =
+                    stageDetails && stageDetails.date
+                    ? DateTime.fromISO(stageDetails.date, {
+                        zone: "Asia/Singapore",
+                        })
+                    : null;
+
+                if (stageDate && (!latestDate || stageDate > latestDate)) {
+                    latestStatus = stage;
+                    latestDate = stageDate;
+                }
+                }
+
+                const formattedLastStatusDate = latestDate
+                ? latestDate.toLocaleString(DateTime.DATE_SHORT)
+                : "N/A";
+
+                jobApplications.value[status].push({
+                id: doc.id,
+                company: data.company,
+                position: data.position,
+                status: data.status,
+                last_status_date: formattedLastStatusDate,
+                dateApplied: data.date_applied,
+                rank: data.rank ?? 0,
+                notes: data.notes,
+                cycle: selectedCycle, // Store the cycle for filtering if needed later
+                });
+            });
+
+            // list cards in each status according to their user-assigned rank
+            Object.keys(jobApplications.value).forEach((status) => {
+                jobApplications.value[status].sort(
+                (a, b) => (a.rank ?? 0) - (b.rank ?? 0)
+                );
+            });
         };
 
         const selectCycle = async (cycle) => {
@@ -1878,8 +1877,9 @@ button {
 
 .modal-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 10px;
+    margin-top: 20px;
 }
 
 .modal-actions button {
