@@ -88,8 +88,8 @@
               :id="'questionType' + index"
               :disabled="currentRound.isCompleted"
             >
-              <option value="Technical">Technical</option>
               <option value="General">General</option>
+              <option value="Technical">Technical</option>
               <option value="Current Affairs">Current Affairs</option>
             </select>
 
@@ -424,6 +424,12 @@ export default {
 
         // Update the application document with all stages
         await updateDoc(applicationRef, {
+          stages: updatedStages,
+        });
+
+        // update global app
+        const allApplicationsRef = doc(collection(db, "AllApplications"),this.appId);
+        await updateDoc(allApplicationsRef,  {
           stages: updatedStages,
         });
 
