@@ -1,10 +1,9 @@
 <template>
   <div class="interview-questions-container">
     <div class="question-header">
-      <h2 class="questions-title">{{ company }} - {{ role }}</h2>
+      <h2 class="questions-title">{{ company }}: {{ role }}</h2>
       <p class="questions-text">Points: {{ contribution_pts }}</p>
     </div>
-
     <div class="questions-list">
       <div v-if="!questions.length" class="no-questions">
         No interview questions found for this application.
@@ -317,9 +316,8 @@ onMounted(() => {
 
 <style scoped>
 .interview-questions-container {
-  padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  padding: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .questions-title {

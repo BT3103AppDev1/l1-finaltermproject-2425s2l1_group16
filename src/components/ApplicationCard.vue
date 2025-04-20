@@ -189,9 +189,7 @@ const handleStatusUpdate = (message) => {
                     v-if="activeTab === 'edit-status'"
                     class="application-info"
                 >
-                    <h2 class="application-details-title">
-                        Edit Application Status
-                    </h2>
+                    <h2 class="application-details-title">Edit Status</h2>
                     <EditApplicationStatus
                         :appId="appId"
                         :userId="userId"
@@ -300,7 +298,7 @@ const handleStatusUpdate = (message) => {
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     margin: 10px;
-    max-height: 610px;
+    height: 610px;
     overflow-y: auto; /* ensures it's scrollable */
 }
 

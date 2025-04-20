@@ -8,18 +8,13 @@
                         alt="InternTrack Logo"
                         class="logo-img"
                     />
-                    <h1 class="main-title">Welcome!</h1>
+                    <h1 class="main-title">Welcome {{ currentUser?.displayName || 'User' }}!</h1>
                 </div>
                 <div class="profile-icon">
                     <router-link to="/profile" tag="div" class="profile-icon">
     					<font-awesome-icon icon="fa-solid fa-user-circle" />
         			</router-link>
                 </div>
-            </div>
-            <!-- for testing, please delete later -->
-            <div class="sub-header">
-                <p>For testing only: Welcome {{ userId }}!</p>
-                <button @click="signOutUser">Log Out</button>
             </div>
             <div class="sub-header">
                 <p>{{ summaryStats }}</p>
@@ -304,8 +299,8 @@
                 </h3>
                 <p>This action cannot be undone.</p>
                 <div class="modal-actions">
-                    <button @click="performDeleteCycle">Delete</button>
-                    <button @click="showDeleteModal = false">Cancel</button>
+                    <button @click="performDeleteCycle" class="delete-button">Delete</button>
+                    <button @click="showDeleteModal = false" class="cancel-button">Cancel</button>
                 </div>
             </div>
         </div>
@@ -398,7 +393,7 @@ import {
   setDoc,
   writeBatch,
 } from "firebase/firestore";
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { DateTime } from "luxon";
 import AddApplicationForm from "@/components/AddApplicationForm.vue";
 import ApplicationCard from "@/components/ApplicationCard.vue";
@@ -412,19 +407,6 @@ export default {
     },
 
     setup() {
-        // for logout (testing)
-        const signOutUser = async () => {
-            const auth = getAuth();
-            try {
-                await signOut(auth);
-                console.log("User signed out successfully.");
-                userId.value = null;
-                router.push("/login");
-            } catch (error) {
-                console.error("Sign out error:", error);
-            }
-        };
-
         const userId = ref(null);
         const router = useRouter();
         const selectedAppId = ref(null);
@@ -908,11 +890,14 @@ export default {
       collapsed.value[status] = !collapsed.value[status];
     };
 
+    const currentUser = ref(null);
+
     onMounted(() => {
       const auth = getAuth();
 
       onAuthStateChanged(auth, async (user) => {
         if (user) {
+          currentUser.value = user; 
           userId.value = user.uid;
           console.log("Logged in!", userId.value);
           await fetchApplicationCycles();
@@ -1208,6 +1193,8 @@ export default {
             newStage.isCompleted = false;
           }
           updates[`stages.${type}_${nextNum}`] = newStage;
+          appData.stage_sequence.push(`${type}_${nextNum}`);
+          updates["stage_sequence"] = appData.stage_sequence;
         } else {
           // For other statuses like "Applied", there's no applied_1, applied_2
           // Also, it does not make sense to use response date for Applied and Turned Down when response date is for a company
@@ -1220,6 +1207,8 @@ export default {
               date: update_date,
             };
           }
+          appData.stage_sequence.push(to.toLowerCase());
+          updates["stage_sequence"] = appData.stage_sequence;;
         }
 
         // Update Firestore
@@ -1483,14 +1472,23 @@ export default {
             )
           : 0;
 
+      const data = snapshot.data();
+      const stageSequence = data.stage_sequence || [];
+      stageSequence.push(computedInterviewKey.value);
+
       const updates = {
         [`stages.${computedInterviewKey.value}`]: newStage,
         last_status_date: dateInShort,
         average_working_days: averageWorkingDays,
         response_days_map: { ...responseDaysMap },
+        stage_sequence: stageSequence,
       };
 
       await updateDoc(appRef, updates);
+
+      // global update!
+      const allApplicationsRef = doc(collection(db, "AllApplications"), newInterviewAppId.value);
+      await updateDoc(allApplicationsRef, updates);
 
       console.log(`Added ${computedInterviewKey.value}`);
 
@@ -1516,56 +1514,55 @@ export default {
       }
     });
 
-        return {
-            // testing
-            signOutUser,
-            userId,
-            router,
-            jobApplications,
-            statusLabels,
-            dragStart,
-            drop,
-            showForm,
-            handleApplicationAdded,
-            confirmDelete,
-            performDelete,
-            showAppDeleteModal,
-            showDeleteModal,
-            // pop-up of the application cards
-            openPopup,
-            closePopup,
-            showPopup,
-            selectedAppId,
-            selectedAppCycle,
-            // drop confirmation functionality
-            drop,
-            confirmDropStatus,
-            pendingDrop,
-            showDropConfirmModal,
-            // show time
-            statusChangeTime,
-            // for working days calculation
-            calculateWorkingDays,
-            // for user-input dates and stageName
-            responseDate,
-            maxDate,
-            stageName,
-            // for summary stats
-            summaryStats,
-            // for scrolling when draggin apps
-            kanban,
-            handleAutoScroll,
-            handleHorizontalScroll,
-            // for filtering
-            searchQuery,
-            filteredApplications,
-            // application cycles
-            applicationCycles,
-            selectedCycle,
-            selectCycle,
-            showCreateNewCyclePrompt,
+    return {
+        currentUser,
+        userId,
+        router,
+        jobApplications,
+        statusLabels,
+        dragStart,
+        drop,
+        showForm,
+        handleApplicationAdded,
+        confirmDelete,
+        performDelete,
+        showAppDeleteModal,
+        showDeleteModal,
+        // pop-up of the application cards
+        openPopup,
+        closePopup,
+        showPopup,
+        selectedAppId,
+        selectedAppCycle,
+        // drop confirmation functionality
+        drop,
+        confirmDropStatus,
+        pendingDrop,
+        showDropConfirmModal,
+        // show time
+        statusChangeTime,
+        // for working days calculation
+        calculateWorkingDays,
+        // for user-input dates and stageName
+        responseDate,
+        maxDate,
+        stageName,
+        // for summary stats
+        summaryStats,
+        // for scrolling when draggin apps
+        kanban,
+        handleAutoScroll,
+        handleHorizontalScroll,
+        // for filtering
+        searchQuery,
+        filteredApplications,
+        // application cycles
+        applicationCycles,
+        selectedCycle,
+        selectCycle,
+        showCreateNewCyclePrompt,
 
-            //rename cycles
+        //rename cycles
       cycleToRename,
       newCycleNameInput,
       startRenameCycle,
@@ -1690,7 +1687,7 @@ export default {
 }
 
 .profile-icon:hover {
-	background-color: #e0e0e0;
+	background-color: white;
 }
 
 .sub-header {
@@ -2024,5 +2021,9 @@ button {
 
 .collapse-btn:hover {
     background-color: #fc640d;
+}
+
+.settings-options {
+    margin-left: -10px;
 }
 </style>

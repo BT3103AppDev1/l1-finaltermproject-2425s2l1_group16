@@ -9,13 +9,7 @@
                 <label>Position:</label>
                 <input type="text" v-model="position" required />
 
-                <label>Location (Optional):</label>
-                <input type="text" v-model="location" />
-
-                <label>Salary (Optional):</label>
-                <input type="text" v-model="salary" />
-
-                <label>Notes (Optional):</label>
+                <label>Job Description (or add later!):</label>
                 <textarea v-model="notes"></textarea>
 
                 <label>Date Applied:</label>
@@ -76,8 +70,6 @@ export default {
         console.log("Current Cycle Prop in AddForm:", props.currentCycle);
         const company = ref("");
         const position = ref("");
-        const location = ref("");
-        const salary = ref("");
         const notes = ref("");
         const dateApplied = ref(
             DateTime.now().setZone("Asia/Singapore").toISODate()
@@ -135,8 +127,7 @@ export default {
                         date: dateAppliedISO,
                     },
                 },
-                location: location.value || null,
-                salary: salary.value || null,
+                stage_sequence: ["applied"],
                 cycle: props.currentCycle,
             };
 
@@ -153,8 +144,6 @@ export default {
         return {
             company,
             position,
-            location,
-            salary,
             notes,
             dateApplied,
             maxDate,

@@ -1,30 +1,31 @@
 <template>
     <form class="edit-status-form">
-        <h3>Edit Application Status</h3>
         <div
             v-for="(stage, index) in editableStagesArray"
             :key="index"
             class="status-stage"
         >
-            <label>Stage Name</label>
-            <input type="text" v-model="stage.name" />
-            <label>Date</label>
-            <input type="date" v-model="stage.date" />
-            <button type="button" @click="removeStage(index)">Remove</button>
+            <div class="input-group">
+                <label>Stage Name</label>
+                <input type="text" v-model="stage.name" />
+            </div>
+            <div class="input-group">
+                <label>Date</label>
+                <input type="date" v-model="stage.date" />
+            </div>
+            <button type="button" @click="removeStage(index)" class="remove-button">Remove</button>
         </div>
         <br />
         <div>
-            <button type="button" @click="addStage">Add Stage</button>
-            <button type="button" @click="cancelEdit" class="cancel-btn">
-                Reset
-            </button>
-            <button
-                type="button"
-                @click="saveStatusTimeline"
-                class="save-status-btn"
-            >
-                Save Status
-            </button>
+            <button type="button" @click="addStage" class="add-btn">+ Add Stage</button>
+            <div class="form-actions">
+                <button type="button" @click="cancelEdit" class="cancel-btn">
+                    Reset
+                </button>
+                <button type="button" @click="saveStatusTimeline" class="save-status-btn">
+                    Save Status
+                </button>
+            </div>
         </div>
     </form>
 </template>
@@ -34,9 +35,10 @@ import { ref, onMounted } from "vue";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { DateTime } from "luxon";
+import { useToast } from 'vue-toastification'
 
 const emit = defineEmits(["showToast", "status-updated"]);
-
+const toast = useToast()
 const editableStagesArray = ref([]);
 const originalStagesMap = ref({});
 const terminalStatuses = ["Rejected", "Turned Down"];
@@ -102,7 +104,7 @@ const addStage = () => {
 
 const removeStage = (index) => {
     if (editableStagesArray.value[index].name.toLowerCase() === "applied") {
-        alert("You cannot remove the 'Applied' stage.");
+        toast.error("You cannot remove the 'Applied' stage.");
         return;
     }
     editableStagesArray.value.splice(index, 1);
@@ -117,7 +119,7 @@ const saveStatusTimeline = async () => {
             new Date(editableStagesArray.value[i].date) >
                 new Date(editableStagesArray.value[i + 1].date)
         ) {
-            alert("Error: Illogical date sequence in status timeline.");
+            toast.error("Error: Illogical date sequence in status timeline.");
             return;
         }
     }
@@ -135,7 +137,7 @@ const saveStatusTimeline = async () => {
 
     // Check if the current latest status is terminal and the user is adding or modifying further stages
     if (terminalStatuses.includes(currentLatestStageName)) {
-        alert(
+        toast.error(
             `Error: Cannot add or modify stages after a terminal status "${currentLatestStageName}".`
         );
         return;
@@ -154,7 +156,7 @@ const saveStatusTimeline = async () => {
         isSettingToApplied &&
         Object.keys(originalStagesMap.value).length > 1
     ) {
-        alert(
+        toast.error(
             "Error: Cannot set a stage back to 'Applied' after the application has progressed beyond it."
         );
         return;
@@ -243,12 +245,14 @@ h3 {
 
 .status-stage {
     display: flex;
+    flex-wrap: wrap;
     gap: 16px;
     align-items: center;
     margin-bottom: 12px;
     border: 1px solid #eee;
-    padding: 10px;
+    padding: 12px;
     border-radius: 6px;
+    background-color: #fafafa;
 }
 
 .status-stage label {
@@ -278,35 +282,80 @@ h3 {
     background-color: #d32f2f;
 }
 
-.cancel-btn {
-    padding: 10px 16px;
-    background-color: #6c757d; /* Grey background */
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    position: absolute;
-    bottom: 12px; /* Place it 12px from the bottom */
-    right: 120px; /* Place it 120px from the right, which is to the left of the Save Status button */
+.input-group {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-width: 160px;
 }
 
-.cancel-btn:hover {
-    background-color: #5a6268; /* Darker grey on hover */
+.input-group label {
+	font-weight: 600;
+	margin-bottom: 4px;
+	font-size: 0.9rem;
+}
+
+.input-group input {
+	padding: 8px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	font-size: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.cancel-btn {
+  padding: 10px 16px;
+  background-color: #e2e8f0;
+  color: #334155;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 120px;
 }
 
 .save-status-btn {
-    padding: 10px 10px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    position: absolute; /* Position the button absolutely within the form */
-    bottom: 12px; /* Place it 12px from the bottom of the container */
-    right: 12px; /* Place it 12px from the right of the container */
+  padding: 10px 16px;
+  background-color: #c24600;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 120px;
 }
 
 .save-status-btn:hover {
-    background-color: #218838;
+  background-color: #fc640d;
+}
+
+.remove-button {
+    padding: 8px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+    margin-top: 25px;
+}
+
+.add-btn {
+    width: 100%;
+    padding: 16px;
+    background-color: #f0f9f0;
+    color: #4caf50;
+    border: 2px dashed #4caf50;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
 }
 </style>
