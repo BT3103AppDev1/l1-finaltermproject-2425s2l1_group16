@@ -157,8 +157,6 @@ onMounted(async () => {
 
     const sixMonthsAgo = DateTime.now().minus({ months: 6 }).toISODate();
 
-    // Query across all users
-    // Will need to double-check when we have multiple application folders
     const q = query(
         collection(db, "AllApplications"),
         where("company", "==", company.value),
@@ -177,7 +175,7 @@ onMounted(async () => {
         "Turned Down": 0,
     };
 
-    const uniquePieUsers = new Set();
+    let pieUsers = 0;
     let totalResponseTime = 0;
     let totalUsers = 0;
 
@@ -186,8 +184,7 @@ onMounted(async () => {
         if (status in stats) stats[status]++;
 
         const application = doc.data();
-        const parentPath = doc.ref.parent.parent?.path;
-        if (parentPath) uniquePieUsers.add(parentPath);
+        pieUsers++;
 
         if (application.average_working_days) {
             totalResponseTime += application.average_working_days;
@@ -195,7 +192,7 @@ onMounted(async () => {
         }
     });
 
-    totalPieUsers.value = uniquePieUsers.size;
+    totalPieUsers.value = pieUsers;
 
     if (totalUsers > 9) {
         response_time.value = Math.round(totalResponseTime / totalUsers);
@@ -211,7 +208,7 @@ onMounted(async () => {
     );
 
     const barQuerySnapshot = await getDocs(barQuery);
-    const uniqueBarUsers = new Set();
+    let barUsers = 0;
 
     barQuerySnapshot.forEach(doc => {
         const application = doc.data();
@@ -220,12 +217,11 @@ onMounted(async () => {
             for (let day in daysMap) {
                 responseDaysMap.value[day] = (responseDaysMap.value[day] || 0) + daysMap[day];
             }
-            const parentPath = doc.ref.parent.parent?.path;
-            if (parentPath) uniqueBarUsers.add(parentPath);
+            barUsers++;
         }
     });
 
-    totalBarUsers.value = uniqueBarUsers.size;
+    totalBarUsers.value = barUsers;
 
     number_applied.value = stats.Applied;
     number_assessment.value = stats.Assessment;
