@@ -86,7 +86,6 @@ const handleStatusUpdate = (message) => {
     console.log("Application updated:", message);
     // Emit an event to the Dashboard to reload applications
     emit("close"); // Close the popup, which will trigger a reload in Dashboard
-    showToastMessage(message);
 };
 </script>
 
