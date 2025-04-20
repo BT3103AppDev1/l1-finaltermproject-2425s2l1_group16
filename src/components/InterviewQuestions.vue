@@ -1,57 +1,101 @@
 <template>
   <div class="interview-questions-container">
-    <h2 class="questions-title">{{ company }} - {{ role }}</h2>
-    
+    <div class="question-header">
+      <h2 class="questions-title">{{ company }}: {{ role }}</h2>
+      <p class="questions-text">Points: {{ contribution_pts }}</p>
+    </div>
     <div class="questions-list">
       <div v-if="!questions.length" class="no-questions">
         No interview questions found for this application.
       </div>
       <div v-else>
-        <div v-for="question in questions" :key="question.id" class="question-item">
-          <div class="question-type">Technical</div>
-          <div class="question-text">{{ question.question }}</div>
-          <div class="question-actions">
-            <div class="main-buttons">
-              <button @click="increment_upvote(question.id)" class="action-btn">
-                <font-awesome-icon :icon="['far', 'thumbs-up']" />
-                {{ question.upvoteCount }}
-              </button>
-              <button @click="openReportPopup(question.id)" class="action-btn">
-                <font-awesome-icon :icon="['far', 'flag']" />
-              </button>
-            </div>
-
-            <!-- Report Popup -->
-            <div v-if="showPopup && currentQuestionId === question.id" class="popup-overlay">
-              <div class="popup-content">
-                <p>Report Question</p>
-                <div v-for="(reason, index) in reasons" :key="index" class="radio-option">
-                  <input
-                    type="radio"
-                    :id="'reason-' + index"
-                    name="report"
-                    :value="reason"
-                    v-model="selectedReason"
+        <div
+          v-for="question in questions"
+          :key="question.id"
+          class="question-item"
+        >
+          <div
+            v-if="
+              ['Technical', 'Current Affairs'].includes(question.type) &&
+              contribution_pts < 9
+            "
+            class="locked-overlay"
+          >
+            Earn 10 contribution points to unlock this
+            {{ question.type }} question.
+          </div>
+          <div
+            class="question-inner"
+            :class="{
+              blurred:
+                ['Technical', 'Current Affairs'].includes(question.type) &&
+                contribution_pts < 9,
+            }"
+          >
+            <div class="question-type">{{ question.type }}</div>
+            <div class="question-text">{{ question.question }}</div>
+            <div class="question-actions">
+              <div class="main-buttons">
+                <button
+                  @click="increment_upvote(question.id)"
+                  class="action-btn"
+                >
+                  <font-awesome-icon :icon="['far', 'thumbs-up']" />
+                  {{ question.upvoteCount }}
+                </button>
+                <button
+                  @click="openReportPopup(question.id)"
+                  class="action-btn"
+                >
+                  <font-awesome-icon
+                    :icon="
+                      question.reportedByCurrentUser
+                        ? ['fas', 'flag']
+                        : ['far', 'flag']
+                    "
                   />
-                  <label :for="'reason-' + index">{{ reason }}</label>
-                </div>
-                <br />
-                <div v-if="selectedReason" class="textarea-section">
-                  <p>Kindly explain the reason for your report</p>
-                  <textarea
-                    v-model="reasonText"
-                    placeholder="Type your reason here..."
-                    rows="4"
-                  ></textarea>
-                </div>
-                <div class="popup-buttons">
-                  <button @click="showPopup = false">Cancel</button>
-                  <button
-                    :disabled="!selectedReason"
-                    @click="increment_report(currentQuestionId)"
+                </button>
+              </div>
+
+              <!-- Report Popup -->
+              <div
+                v-if="showPopup && currentQuestionId === question.id"
+                class="popup-overlay"
+              >
+                <div class="popup-content">
+                  <p>Report Question</p>
+                  <div
+                    v-for="(reason, index) in reasons"
+                    :key="index"
+                    class="radio-option"
                   >
-                    Report
-                  </button>
+                    <input
+                      type="radio"
+                      :id="'reason-' + index"
+                      name="report"
+                      :value="reason"
+                      v-model="selectedReason"
+                    />
+                    <label :for="'reason-' + index">{{ reason }}</label>
+                  </div>
+                  <br />
+                  <div v-if="selectedReason" class="textarea-section">
+                    <p>Kindly explain the reason for your report</p>
+                    <textarea
+                      v-model="reasonText"
+                      placeholder="Type your reason here..."
+                      rows="4"
+                    ></textarea>
+                  </div>
+                  <div class="popup-buttons">
+                    <button @click="showPopup = false">Cancel</button>
+                    <button
+                      :disabled="!selectedReason"
+                      @click="increment_report(currentQuestionId)"
+                    >
+                      Report
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -63,48 +107,49 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { db } from '@/firebase'
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  doc, 
+import { ref, onMounted } from "vue";
+import { db } from "@/firebase";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
   getDoc,
   setDoc,
   deleteDoc,
   updateDoc,
-  increment 
-} from 'firebase/firestore'
-import { getAuth } from 'firebase/auth'
-import { useToast } from 'vue-toastification'
+  increment,
+} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { useToast } from "vue-toastification";
 
 const props = defineProps({
   appId: {
     type: String,
-    required: true
+    required: true,
   },
   userId: {
     type: String,
-    required: true
+    required: true,
   },
   selectedCycle: {
     type: String,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
-const toast = useToast()
-const questions = ref([])
-const company = ref('')
-const role = ref('')
-const auth = getAuth()
-const showPopup = ref(false)
-const selectedReason = ref(null)
-const currentQuestionId = ref(null)
-const reasonText = ref(null)
-const report_counter = ref(0)
+const toast = useToast();
+const questions = ref([]);
+const company = ref("");
+const role = ref("");
+const auth = getAuth();
+const showPopup = ref(false);
+const selectedReason = ref(null);
+const currentQuestionId = ref(null);
+const reasonText = ref(null);
+const report_counter = ref(0);
+const contribution_pts = ref(0);
 
 const reasons = [
   "Sexual content",
@@ -112,102 +157,146 @@ const reasons = [
   "Hateful or abusive content",
   "Harassment or bullying",
   "Misinformation",
-  "Spam or misleading"
-]
+  "Spam or misleading",
+];
 
 const loadApplicationDetails = async () => {
   try {
-    const appRef = doc(db, 'Users', props.userId, props.selectedCycle, props.appId)
-    const appDoc = await getDoc(appRef)
+    const appRef = doc(
+      db,
+      "Users",
+      props.userId,
+      props.selectedCycle,
+      props.appId
+    );
+    const appDoc = await getDoc(appRef);
     if (appDoc.exists()) {
-      const data = appDoc.data()
-      company.value = data.company
-      role.value = data.position
-      await fetchQuestions()
+      const data = appDoc.data();
+      company.value = data.company;
+      role.value = data.position;
+      await fetchQuestions();
     }
+    //display contribution points
+    const pointsRef = doc(db, "Users", props.userId);
+    const pointsDoc = await getDoc(pointsRef);
+    contribution_pts.value = pointsDoc.data().contribution_pts;
   } catch (error) {
-    console.error('Error loading application details:', error)
+    console.error("Error loading application details:", error);
   }
-}
+};
 
 const fetchQuestions = async () => {
   try {
-    const questionsRef = collection(db, "InterviewQuestions")
+    const questionsRef = collection(db, "InterviewQuestions");
     const q = query(
       questionsRef,
       where("company", "==", company.value),
-      where("role", "==", role.value)
-    )
-    const querySnapshot = await getDocs(q)
+      where("role", "==", role.value),
+      where("status", "==", "Checked")
+    );
+    const querySnapshot = await getDocs(q);
 
     questions.value = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
       upvoteCount: 0,
-      reportCount: 0
-    }))
+      reportCount: 0,
+    }));
 
     // Get upvote and report counts for each question
     for (const question of questions.value) {
-      const upvoteCollection = collection(db, "InterviewQuestions", question.id, "upvote")
-      const upvoteSnapshot = await getDocs(upvoteCollection)
-      question.upvoteCount = upvoteSnapshot.size
+      const upvoteCollection = collection(
+        db,
+        "InterviewQuestions",
+        question.id,
+        "upvote"
+      );
+      const upvoteSnapshot = await getDocs(upvoteCollection);
+      question.upvoteCount = upvoteSnapshot.size;
+
+      //sort based on category
+      const categoryOrder = {
+        General: 0,
+        Behavioral: 1,
+        "Current Affairs": 2,
+        Technical: 3,
+      };
+
+      questions.value.sort((a, b) => {
+        const aOrder = categoryOrder[a.type] ?? 999;
+        const bOrder = categoryOrder[b.type] ?? 999;
+        return aOrder - bOrder;
+      });
 
       // Get report count
-      const reportDoc = await getDoc(doc(db, "InterviewQuestions", question.id, "report", "insights_me"))
-      if (reportDoc.exists()) {
-        const reportData = reportDoc.data()
-        question.reportCount = reportData.username ? reportData.username.length : 0
-      }
+      const reportCollection = collection(
+        db,
+        "InterviewQuestions",
+        question.id,
+        "report"
+      );
+      const reportSnapshot = await getDocs(reportCollection);
+      question.reportCount = reportSnapshot.size;
+      question.reportedByCurrentUser = reportSnapshot.docs.some(
+        (doc) => doc.id === auth.currentUser.uid
+      );
     }
   } catch (error) {
-    console.error('Error fetching questions:', error)
-    toast.error('Failed to load interview questions')
+    console.error("Error fetching questions:", error);
+    toast.error("Failed to load interview questions");
   }
-}
+};
 
 const increment_upvote = async (questionId) => {
   try {
-    const currentUser = auth.currentUser.uid
-    const upvoteRef = doc(db, "InterviewQuestions", questionId, "upvote", currentUser)
-    const docSnap = await getDoc(upvoteRef)
+    const currentUser = auth.currentUser.uid;
+    const upvoteRef = doc(
+      db,
+      "InterviewQuestions",
+      questionId,
+      "upvote",
+      currentUser
+    );
+    const docSnap = await getDoc(upvoteRef);
 
     if (docSnap.exists()) {
       // Remove upvote
-      await deleteDoc(upvoteRef)
-      const question = questions.value.find(q => q.id === questionId)
+      await deleteDoc(upvoteRef);
+      const question = questions.value.find((q) => q.id === questionId);
       if (question) {
-        question.upvoteCount = Math.max(0, question.upvoteCount - 1)
+        question.upvoteCount = Math.max(0, question.upvoteCount - 1);
       }
     } else {
       // Add upvote
       await setDoc(upvoteRef, {
         timestamp: new Date(),
-        userId: currentUser
-      })
+        userId: currentUser,
+      });
 
       // Update contribution points
-      const pointsRef = doc(db, "Users", currentUser)
-      await updateDoc(pointsRef, {
-        contribution_pts: increment(1)
-      })
-
-      const question = questions.value.find(q => q.id === questionId)
-      if (question) {
-        question.upvoteCount++
+      const quesRef = doc(db, "InterviewQuestions", questionId);
+      const quesSnap = await getDoc(quesRef);
+      const authorOfQues = quesSnap.data().userID;
+      if (authorOfQues != currentUser) {
+        const pointsRef = doc(db, "Users", authorOfQues);
+        await updateDoc(pointsRef, {
+          contribution_pts: increment(1),
+        });
       }
-      
-      toast.success('1 point has been added into your account!')
+
+      const question = questions.value.find((q) => q.id === questionId);
+      if (question) {
+        question.upvoteCount++;
+      }
     }
   } catch (error) {
-    console.error('Error updating upvote:', error)
-    toast.error('Failed to update upvote')
+    console.error("Error updating upvote:", error);
   }
-}
+};
 
 const increment_report = async (questionId) => {
-  let currentUser = auth.currentUser.uid
-  let currentQuestions = questionId
+  let currentUser = auth.currentUser.uid;
+  let currentQuestions = questionId;
 
   try {
     // Reference to the report collection
@@ -216,17 +305,17 @@ const increment_report = async (questionId) => {
       "InterviewQuestions",
       currentQuestions,
       "report"
-    )
+    );
 
     // Get existing document
-    const userReporRef = doc(reportCollectionRef, currentUser)
-    const reportDoc = await getDoc(userReporRef)
+    const userReporRef = doc(reportCollectionRef, currentUser);
+    const reportDoc = await getDoc(userReporRef);
 
     if (reportDoc.exists()) {
-      toast.error("You have already reported this question")
-      showPopup.value = false
-      selectedReason.value = null
-      return
+      toast.error("You have already reported this question");
+      showPopup.value = false;
+      selectedReason.value = null;
+      return;
     }
 
     // Update document
@@ -234,48 +323,60 @@ const increment_report = async (questionId) => {
       reasonCategory: selectedReason.value,
       username: currentUser,
       reasonText: reasonText.value,
-      lastUpdated: new Date()
-    })
+      lastUpdated: new Date(),
+    });
 
     // Check if report count exceeds threshold
-    if (reportCollectionRef.count >= 9) {
-      const questionRef = doc(db, "InterviewQuestions", currentQuestions)
+    const reportSnapshots = await getDocs(reportCollectionRef);
+    if (reportSnapshots.size >= 9) {
+      const questionRef = doc(db, "InterviewQuestions", currentQuestions);
       await updateDoc(questionRef, {
-        status: "Removed"
-      })
+        status: "Removed",
+      });
 
-      const questionIndex = questions.value.findIndex(q => q.id === currentQuestions)
+      const questionIndex = questions.value.findIndex(
+        (q) => q.id === currentQuestions
+      );
       if (questionIndex !== -1) {
-        questions.value.splice(questionIndex, 1)
+        questions.value.splice(questionIndex, 1);
       }
     }
 
-    showPopup.value = false
-    selectedReason.value = null
-    reasonText.value = null
-    toast.success("Report submitted successfully")
+    showPopup.value = false;
+    selectedReason.value = null;
+    reasonText.value = null;
+    toast.success("Report submitted successfully");
+
+    //update to show that report has been made
+    const reportedQuestion = questions.value.find(
+      (q) => q.id === currentQuestions
+    );
+    if (reportedQuestion) {
+      reportedQuestion.reportedByCurrentUser = true;
+    }
   } catch (error) {
-    console.error("Error submitting report:", error)
-    toast.error("Failed to submit report")
+    console.error("Error submitting report:", error);
+    toast.error("Failed to submit report");
   }
-}
+};
 
 const openReportPopup = (questionId) => {
-  currentQuestionId.value = questionId
-  selectedReason.value = null
-  reasonText.value = null
-  showPopup.value = true
-}
+  currentQuestionId.value = questionId;
+  selectedReason.value = null;
+  reasonText.value = null;
+  showPopup.value = true;
+};
 
 onMounted(() => {
-  loadApplicationDetails()
-})
+  loadApplicationDetails();
+});
 </script>
 
 <style scoped>
 .interview-questions-container {
-  padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  padding: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
 }
 
 .questions-title {
@@ -304,11 +405,12 @@ onMounted(() => {
   padding: 16px;
   border: 1px solid #e2e8f0;
   margin-bottom: 16px;
+  position: relative;
 }
 
 .question-type {
   font-size: 0.875rem;
-  color: #4CAF50;
+  color: #4caf50;
   font-weight: 600;
   margin-bottom: 8px;
 }
@@ -326,6 +428,39 @@ onMounted(() => {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #e2e8f0;
+}
+
+.question-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.question-inner {
+  position: relative;
+}
+
+.blurred {
+  filter: blur(5px);
+  pointer-events: none;
+  user-select: none;
+}
+.locked-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+  z-index: 10;
+  pointer-events: none;
+  padding: 16px;
+  backdrop-filter: blur(2px);
 }
 
 .main-buttons {
@@ -430,4 +565,10 @@ onMounted(() => {
   cursor: not-allowed;
   opacity: 0.7;
 }
-</style> 
+
+.question-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+</style>

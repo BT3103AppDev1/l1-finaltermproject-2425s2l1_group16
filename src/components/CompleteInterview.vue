@@ -1,12 +1,11 @@
 <template>
   <div class="complete-interview-page">
-    <button 
-      @click.prevent="checkAndOpenModal" 
+    <button
+      @click.prevent="checkAndOpenModal"
       class="complete-button"
-      :class="{ 'disabled': allRoundsCompleted }"
-      :disabled="allRoundsCompleted"
+      :class="{ disabled: allRoundsCompleted }"
     >
-      {{ allRoundsCompleted ? 'All Rounds Documented' : 'Complete Interview' }}
+      {{ allRoundsCompleted ? "All Rounds Documented" : "Complete Interview" }}
     </button>
 
     <div v-if="isModalOpen" class="modal" @mousedown.self="closeModal">
@@ -20,6 +19,11 @@
         </p>
 
         <!-- Round Navigation -->
+        <div class="round-indicator-wrapper">
+          <p class="round-indicator-text">
+            Round {{ currentRoundIndex + 1 }} of {{ interviewRounds.length }}
+          </p>
+        </div>
         <div class="round-navigation">
           <button
             @click="previousRound"
@@ -28,9 +32,9 @@
           >
             ← Previous Round
           </button>
-          <button 
+          <button
             v-if="currentRoundIndex !== 0"
-            @click="removeRound" 
+            @click="removeRound"
             class="delete-round-button"
           >
             Delete Round
@@ -47,24 +51,31 @@
         <!-- Current Round Info -->
         <div class="round-info" v-if="currentRound">
           <div class="round-header">
-            <input
-              type="text"
-              v-model="currentRound.roundName"
-              placeholder="Round Name"
-              class="round-name-input"
-              disabled
-            />
-            <input
-              type="date"
-              v-model="currentRound.date"
-              class="round-date-input"
-              disabled
-            />
+            <div style="flex: 2">
+              <label class="round-label">Stage Name</label>
+              <input
+                type="text"
+                v-model="currentRound.roundName"
+                placeholder="Round Name"
+                class="round-name-input"
+                disabled
+              />
+            </div>
+            <div style="flex: 1">
+              <label class="round-label">Stage Date</label>
+              <input
+                type="date"
+                v-model="currentRound.date"
+                class="round-date-input"
+                disabled
+              />
+            </div>
           </div>
 
           <!-- Question entries for current round -->
           <div v-if="currentRound.isCompleted" class="completed-round-message">
-            This round has been completed. Questions are displayed for reference only.
+            This round has been completed. Questions are displayed for reference
+            only.
           </div>
           <div
             v-for="(entry, index) in currentRound.questions"
@@ -72,13 +83,12 @@
             class="question-entry"
           >
             <label :for="'questionType' + index">Question Type*</label>
-            <select 
-              v-model="entry.questionType" 
+            <select
+              v-model="entry.questionType"
               :id="'questionType' + index"
               :disabled="currentRound.isCompleted"
             >
               <option value="Technical">Technical</option>
-              <option value="Behavioral">Behavioral</option>
               <option value="General">General</option>
               <option value="Current Affairs">Current Affairs</option>
             </select>
@@ -88,7 +98,7 @@
               type="text"
               v-model="entry.question"
               :id="'question' + index"
-              placeholder="How would you make a circle?"
+              placeholder="E.g., How would you make a circle?"
               :disabled="currentRound.isCompleted"
             />
 
@@ -110,9 +120,9 @@
           </div>
 
           <!-- Add question button - only show for incomplete rounds -->
-          <button 
+          <button
             v-if="!currentRound.isCompleted"
-            @click="addQuestion" 
+            @click="addQuestion"
             class="add-button"
           >
             <span class="plus-icon">+</span> Add Another Question
@@ -120,9 +130,9 @@
         </div>
 
         <div class="modal-actions">
-          <button 
+          <button
             v-if="!currentRound.isCompleted"
-            @click="handleSubmit" 
+            @click="handleSubmit"
             class="submit-button"
           >
             Submit
@@ -145,10 +155,13 @@ import {
   increment,
   getDoc,
   onSnapshot,
-  deleteDoc
+  deleteDoc,
 } from "firebase/firestore";
 import { Filter } from "bad-words";
 import { getAuth } from "firebase/auth";
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
 
 export default {
   name: "CompleteInterview",
@@ -176,7 +189,7 @@ export default {
       currentRoundIndex: 0,
       interviewRounds: [],
       allRoundsCompleted: false,
-      unsubscribe: null
+      unsubscribe: null,
     };
   },
   computed: {
@@ -191,48 +204,64 @@ export default {
         const user = auth.currentUser;
         if (!user) return;
 
-        const appRef = doc(db, "Users", user.uid, this.selectedCycle, this.appId);
+        const appRef = doc(
+          db,
+          "Users",
+          user.uid,
+          this.selectedCycle,
+          this.appId
+        );
         const appDoc = await getDoc(appRef);
-        
+
         if (!appDoc.exists()) return;
 
         const stages = appDoc.data().stages || {};
         const interviewStages = Object.entries(stages)
-          .filter(([key]) => key.startsWith('interview_'))
+          .filter(([key]) => key.startsWith("interview_"))
           .sort((a, b) => {
-            const aNum = parseInt(a[0].split('_')[1]);
-            const bNum = parseInt(b[0].split('_')[1]);
+            const aNum = parseInt(a[0].split("_")[1]);
+            const bNum = parseInt(b[0].split("_")[1]);
             return aNum - bNum;
           });
 
         this.interviewRounds = interviewStages.map(([key, value]) => {
           let questions;
 
-          if (value.isCompleted && value.questions && value.questions.length > 0) {
-            questions = value.questions.map(q => ({
-              questionType: q.type || 'Technical',
-              question: q.question || '',
-              description: q.description || ''
+          if (
+            value.isCompleted &&
+            value.questions &&
+            value.questions.length > 0
+          ) {
+            questions = value.questions.map((q) => ({
+              questionType: q.type || "Technical",
+              question: q.question || "",
+              description: q.description || "",
             }));
           } else {
-            questions = [{
-              questionType: "Technical",
-              question: "",
-              description: "",
-            }];
+            questions = [
+              {
+                questionType: "Technical",
+                question: "",
+                description: "",
+              },
+            ];
           }
 
           return {
             stageKey: key,
-            roundNumber: parseInt(key.split('_')[1]),
-            roundName: value.name || `Interview ${key.split('_')[1]}`,
-            date: value.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+            roundNumber: parseInt(key.split("_")[1]),
+            roundName: value.name || `Interview ${key.split("_")[1]}`,
+            date:
+              value.date?.split("T")[0] ||
+              new Date().toISOString().split("T")[0],
             isCompleted: value.isCompleted || false,
-            questions
+            questions,
           };
         });
 
-        this.allRoundsCompleted = this.interviewRounds.every(round => round.isCompleted);
+        this.allRoundsCompleted = this.interviewRounds.every(
+          (round) => round.isCompleted
+        );
 
         if (this.allRoundsCompleted) {
           console.log("All interview rounds have been documented");
@@ -244,18 +273,15 @@ export default {
     async checkAndOpenModal(event) {
       event.stopPropagation();
       await this.loadInterviewRounds();
-      
+
       if (this.interviewRounds.length === 0) {
         alert("No interview rounds found for this application.");
         return;
       }
-      
-      if (this.allRoundsCompleted) {
-        alert("All interview rounds have been documented.");
-        return;
-      }
 
-      const incompleteIndex = this.interviewRounds.findIndex(round => !round.isCompleted);
+      const incompleteIndex = this.interviewRounds.findIndex(
+        (round) => !round.isCompleted
+      );
       if (incompleteIndex !== -1) {
         this.currentRoundIndex = incompleteIndex;
       }
@@ -298,10 +324,13 @@ export default {
       try {
         // Validate only incomplete rounds that have questions filled
         for (const round of this.interviewRounds) {
-          if (!round.isCompleted) {  // Only validate incomplete rounds
+          if (!round.isCompleted) {
+            // Only validate incomplete rounds
             for (const entry of round.questions) {
               if (!entry.question || !entry.questionType) {
-                alert(`Please fill in all required fields marked with * in ${round.roundName}`);
+                toast.error(
+                  `Please fill in all required fields marked with * in ${round.roundName}`
+                );
                 return;
               }
             }
@@ -317,15 +346,16 @@ export default {
         // Quality check only questions from incomplete rounds
         const filter = new Filter();
         for (const round of this.interviewRounds) {
-          if (!round.isCompleted) {  // Only check incomplete rounds
+          if (!round.isCompleted) {
+            // Only check incomplete rounds
             for (const entry of round.questions) {
               if (filter.isProfane(entry.question)) {
-                alert("Please refrain from using any profanities");
+                toast.error("Please refrain from using any profanities");
                 return;
               }
 
-              if (this.countWords(entry.question) <= 5) {
-                alert("Your question must be at least 5 words long");
+              if (this.countWords(entry.question) < 5) {
+                toast.error("Your question must be at least 5 words long");
                 return;
               }
             }
@@ -333,7 +363,13 @@ export default {
         }
 
         let nextQuestionNumber = await this.getNextQuestionNumber();
-        const applicationRef = doc(db, "Users", user.uid, this.selectedCycle, this.appId);
+        const applicationRef = doc(
+          db,
+          "Users",
+          user.uid,
+          this.selectedCycle,
+          this.appId
+        );
         const appDoc = await getDoc(applicationRef);
         const currentData = appDoc.data();
         const stages = { ...currentData.stages };
@@ -341,7 +377,8 @@ export default {
 
         // Save questions only from incomplete rounds
         for (const round of this.interviewRounds) {
-          if (!round.isCompleted) {  // Only process incomplete rounds
+          if (!round.isCompleted) {
+            // Only process incomplete rounds
             const savedQuestions = [];
 
             for (const entry of round.questions) {
@@ -360,7 +397,7 @@ export default {
                 upvoteCount: 0,
                 reportCount: 0,
                 roundNumber: round.roundNumber,
-                stageKey: round.stageKey
+                stageKey: round.stageKey,
               };
 
               // Add the question document
@@ -370,7 +407,7 @@ export default {
 
               savedQuestions.push({
                 id: docId,
-                ...questionData
+                ...questionData,
               });
 
               nextQuestionNumber++;
@@ -380,29 +417,36 @@ export default {
             updatedStages[round.stageKey] = {
               ...stages[round.stageKey],
               isCompleted: true,
-              questions: savedQuestions
+              questions: savedQuestions,
             };
           }
         }
 
         // Update the application document with all stages
         await updateDoc(applicationRef, {
-          stages: updatedStages
+          stages: updatedStages,
         });
 
-        alert("Questions have been submitted successfully!");
-        this.closeModal();
+        // Award points since user passed quality checks
+        const appRef = doc(db, "Users", user.uid);
+        await updateDoc(appRef, {
+          contribution_pts: increment(5),
+        });
 
+        toast.success("Questions submitted successfully! You have earned 5 points!")
+        this.closeModal();
       } catch (error) {
         console.error("Error in handleSubmit:", error);
-        alert(`Error submitting questions: ${error.message}. Please try again.`);
+        alert(
+          `Error submitting questions: ${error.message}. Please try again.`
+        );
       }
     },
     countWords(text) {
       if (!text) return 0;
       text = text.trim();
       let wordList = text.split(/\s/);
-      return wordList.filter(word => word !== "").length;
+      return wordList.filter((word) => word !== "").length;
     },
     async getNextQuestionNumber() {
       const querySnapshot = await getDocs(collection(db, "InterviewQuestions"));
@@ -427,61 +471,81 @@ export default {
       if (!user) return;
 
       const appRef = doc(db, "Users", user.uid, this.selectedCycle, this.appId);
-      
+
       this.unsubscribe = onSnapshot(appRef, (doc) => {
         if (doc.exists()) {
           const stages = doc.data().stages || {};
           const interviewStages = Object.entries(stages)
-            .filter(([key]) => key.startsWith('interview_'))
+            .filter(([key]) => key.startsWith("interview_"))
             .sort((a, b) => {
-              const aNum = parseInt(a[0].split('_')[1]);
-              const bNum = parseInt(b[0].split('_')[1]);
+              const aNum = parseInt(a[0].split("_")[1]);
+              const bNum = parseInt(b[0].split("_")[1]);
               return aNum - bNum;
             });
 
           this.interviewRounds = interviewStages.map(([key, value]) => {
             let questions;
 
-            if (value.isCompleted && value.questions && value.questions.length > 0) {
+            if (
+              value.isCompleted &&
+              value.questions &&
+              value.questions.length > 0
+            ) {
               // For completed stages, use the questions directly from Firestore
-              questions = value.questions.map(q => ({
-                questionType: q.type || 'Technical', // Map the 'type' field to 'questionType'
-                question: q.question || '',
-                description: q.description || ''
+              questions = value.questions.map((q) => ({
+                questionType: q.type || "Technical", // Map the 'type' field to 'questionType'
+                question: q.question || "",
+                description: q.description || "",
               }));
             } else {
               // For incomplete stages, start with one empty question
-              questions = [{
-                questionType: "Technical",
-                question: "",
-                description: "",
-              }];
+              questions = [
+                {
+                  questionType: "Technical",
+                  question: "",
+                  description: "",
+                },
+              ];
             }
 
             return {
               stageKey: key,
-              roundNumber: parseInt(key.split('_')[1]),
-              roundName: value.name || `Interview ${key.split('_')[1]}`,
-              date: value.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+              roundNumber: parseInt(key.split("_")[1]),
+              roundName: value.name || `Interview ${key.split("_")[1]}`,
+              date:
+                value.date?.split("T")[0] ||
+                new Date().toISOString().split("T")[0],
               isCompleted: value.isCompleted || false,
-              questions
+              questions,
             };
           });
 
-          this.allRoundsCompleted = this.interviewRounds.every(round => round.isCompleted);
+          this.allRoundsCompleted = this.interviewRounds.every(
+            (round) => round.isCompleted
+          );
         }
       });
     },
     async removeRound() {
       if (!this.currentRound || this.currentRoundIndex === 0) return;
-      
-      if (confirm(`Are you sure you want to remove ${this.currentRound.roundName}? This action cannot be undone.`)) {
+
+      if (
+        confirm(
+          `Are you sure you want to remove ${this.currentRound.roundName}? This action cannot be undone.`
+        )
+      ) {
         try {
           const auth = getAuth();
           const user = auth.currentUser;
           if (!user) return;
 
-          const applicationRef = doc(db, "Users", user.uid, this.selectedCycle, this.appId);
+          const applicationRef = doc(
+            db,
+            "Users",
+            user.uid,
+            this.selectedCycle,
+            this.appId
+          );
           const appDoc = await getDoc(applicationRef);
           const currentData = appDoc.data();
           const stages = { ...currentData.stages };
@@ -515,15 +579,15 @@ export default {
           alert("Failed to remove round. Please try again.");
         }
       }
-    }
+    },
   },
   mounted() {
     this.setupRealtimeListener();
-    this.$watch('isModalOpen', (newVal) => {
+    this.$watch("isModalOpen", (newVal) => {
       if (newVal) {
-        document.body.style.overflow = 'hidden';  // Disable scrolling
+        document.body.style.overflow = "hidden"; // Disable scrolling
       } else {
-        document.body.style.overflow = '';  // Enable scrolling again
+        document.body.style.overflow = ""; // Enable scrolling again
       }
     });
   },
@@ -532,7 +596,7 @@ export default {
     if (this.unsubscribe) {
       this.unsubscribe();
     }
-  }
+  },
 };
 </script>
 
@@ -545,8 +609,9 @@ export default {
 
 .complete-button {
   padding: 6px 12px;
-  font-size: 13px;
-  background-color: #cb4e00;
+  font-size: 12px;
+  font-weight: bold;
+  background-color: #c24600;
   color: white;
   border: none;
   border-radius: 4px;
@@ -557,12 +622,11 @@ export default {
 }
 
 .complete-button:hover {
-  background-color: #863200;
+  background-color: #fc640d;
 }
 
 .complete-button.disabled {
   background-color: #cccccc;
-  cursor: not-allowed;
 }
 
 .modal {
@@ -604,14 +668,14 @@ export default {
 .modal-description {
   font-size: 16px;
   color: #666;
-  margin-bottom: 32px;
+  margin-bottom: 16px;
   line-height: 1.6;
 }
 
 .question-entry {
   border: 1px solid #e0e0e0;
   padding: 24px;
-  margin: 20px 0;
+  margin-bottom: 20px;
   border-radius: 8px;
   background-color: #fafafa;
   position: relative;
@@ -646,14 +710,13 @@ textarea:focus {
 }
 
 textarea {
-  height: 120px;
-  resize: vertical;
+  height: 150px;
+  resize: none;
 }
 
 .add-button {
   width: 100%;
   padding: 16px;
-  margin: 24px 0 8px 0;
   background-color: #f0f9f0;
   color: #4caf50;
   border: 2px dashed #4caf50;
@@ -697,36 +760,32 @@ textarea {
 }
 
 .submit-button {
-  background-color: #4caf50;
+  background-color: #c24600;
   color: white;
   border: none;
 }
 
 .submit-button:hover {
-  background-color: #45a049;
+  background: #fc640d;
 }
 
 .cancel-button {
-  background-color: #f44336;
-  color: white;
+  background-color: #e2e8f0;
+  color: #334155;
   border: none;
-}
-
-.cancel-button:hover {
-  background-color: #d32f2f;
 }
 
 .remove-button {
   position: absolute;
   top: 16px;
-  right: 16px;
+  right: 25px;
   background-color: #f44336;
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   transition: background-color 0.2s ease;
 }
 
@@ -786,7 +845,13 @@ textarea {
 .round-header {
   display: flex;
   gap: 16px;
-  margin-bottom: 24px;
+}
+
+.round-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #444;
 }
 
 .round-name-input {
@@ -835,5 +900,16 @@ textarea:disabled {
   color: #666;
   cursor: not-allowed;
   border-color: #ddd;
+}
+
+.round-indicator-wrapper {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.round-indicator-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
 }
 </style>

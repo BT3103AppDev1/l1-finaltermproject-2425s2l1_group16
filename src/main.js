@@ -5,7 +5,7 @@ import router from "./router";
 import "./firebase";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
-import { faThumbsUp, faFlag } from "@fortawesome/free-regular-svg-icons";
+import { faThumbsUp, faFlag as faRegularFlag } from "@fortawesome/free-regular-svg-icons";
 import {
     faSearch,
     faTrash,
@@ -13,6 +13,7 @@ import {
     faPlus,
     faGear,
     faPen,
+    faFlag as faSolidFlag
 } from "@fortawesome/free-solid-svg-icons";
 import Toast, { POSITION } from "vue-toastification";
 import "vue-toastification/dist/index.css";
@@ -20,7 +21,8 @@ import "vue-toastification/dist/index.css";
 /* add icons to the library */
 library.add(
     faThumbsUp,
-    faFlag,
+    faRegularFlag,
+    faSolidFlag,
     faSearch,
     faTrash,
     faUserCircle,
