@@ -1,14 +1,20 @@
 <template>
   <div class="interview-questions-container">
-    <h2 class="questions-title">{{ company }}: {{ role }}</h2>
-    
+    <div class="question-header">
+      <h2 class="questions-title">{{ company }}: {{ role }}</h2>
+      <p class="questions-text">Points: {{ contribution_pts }}</p>
+    </div>
     <div class="questions-list">
       <div v-if="!questions.length" class="no-questions">
         No interview questions found for this application.
       </div>
       <div v-else>
-        <div v-for="question in questions" :key="question.id" class="question-item">
-          <div class="question-type">{{ question.type}}</div>
+        <div
+          v-for="question in questions"
+          :key="question.id"
+          class="question-item"
+        >
+          <div class="question-type">{{ question.type }}</div>
           <div class="question-text">{{ question.question }}</div>
           <div class="question-actions">
             <div class="main-buttons">
@@ -22,10 +28,17 @@
             </div>
 
             <!-- Report Popup -->
-            <div v-if="showPopup && currentQuestionId === question.id" class="popup-overlay">
+            <div
+              v-if="showPopup && currentQuestionId === question.id"
+              class="popup-overlay"
+            >
               <div class="popup-content">
                 <p>Report Question</p>
-                <div v-for="(reason, index) in reasons" :key="index" class="radio-option">
+                <div
+                  v-for="(reason, index) in reasons"
+                  :key="index"
+                  class="radio-option"
+                >
                   <input
                     type="radio"
                     :id="'reason-' + index"
@@ -63,48 +76,49 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { db } from '@/firebase'
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  doc, 
+import { ref, onMounted } from "vue";
+import { db } from "@/firebase";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
   getDoc,
   setDoc,
   deleteDoc,
   updateDoc,
-  increment 
-} from 'firebase/firestore'
-import { getAuth } from 'firebase/auth'
-import { useToast } from 'vue-toastification'
+  increment,
+} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { useToast } from "vue-toastification";
 
 const props = defineProps({
   appId: {
     type: String,
-    required: true
+    required: true,
   },
   userId: {
     type: String,
-    required: true
+    required: true,
   },
   selectedCycle: {
     type: String,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
-const toast = useToast()
-const questions = ref([])
-const company = ref('')
-const role = ref('')
-const auth = getAuth()
-const showPopup = ref(false)
-const selectedReason = ref(null)
-const currentQuestionId = ref(null)
-const reasonText = ref(null)
-const report_counter = ref(0)
+const toast = useToast();
+const questions = ref([]);
+const company = ref("");
+const role = ref("");
+const auth = getAuth();
+const showPopup = ref(false);
+const selectedReason = ref(null);
+const currentQuestionId = ref(null);
+const reasonText = ref(null);
+const report_counter = ref(0);
+const contribution_pts = ref(0);
 
 const reasons = [
   "Sexual content",
@@ -112,102 +126,128 @@ const reasons = [
   "Hateful or abusive content",
   "Harassment or bullying",
   "Misinformation",
-  "Spam or misleading"
-]
+  "Spam or misleading",
+];
 
 const loadApplicationDetails = async () => {
   try {
-    const appRef = doc(db, 'Users', props.userId, props.selectedCycle, props.appId)
-    const appDoc = await getDoc(appRef)
+    const appRef = doc(
+      db,
+      "Users",
+      props.userId,
+      props.selectedCycle,
+      props.appId
+    );
+    const appDoc = await getDoc(appRef);
     if (appDoc.exists()) {
-      const data = appDoc.data()
-      company.value = data.company
-      role.value = data.position
-      await fetchQuestions()
+      const data = appDoc.data();
+      company.value = data.company;
+      role.value = data.position;
+      await fetchQuestions();
     }
+    //display contribution points
+    const pointsRef = doc(db, "Users", props.userId);
+    const pointsDoc = await getDoc(pointsRef);
+    contribution_pts.value = pointsDoc.data().contribution_pts;
   } catch (error) {
-    console.error('Error loading application details:', error)
+    console.error("Error loading application details:", error);
   }
-}
+};
 
 const fetchQuestions = async () => {
   try {
-    const questionsRef = collection(db, "InterviewQuestions")
+    const questionsRef = collection(db, "InterviewQuestions");
     const q = query(
       questionsRef,
       where("company", "==", company.value),
       where("role", "==", role.value)
-    )
-    const querySnapshot = await getDocs(q)
+    );
+    const querySnapshot = await getDocs(q);
 
     questions.value = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
       upvoteCount: 0,
-      reportCount: 0
-    }))
+      reportCount: 0,
+    }));
 
     // Get upvote and report counts for each question
     for (const question of questions.value) {
-      const upvoteCollection = collection(db, "InterviewQuestions", question.id, "upvote")
-      const upvoteSnapshot = await getDocs(upvoteCollection)
-      question.upvoteCount = upvoteSnapshot.size
+      const upvoteCollection = collection(
+        db,
+        "InterviewQuestions",
+        question.id,
+        "upvote"
+      );
+      const upvoteSnapshot = await getDocs(upvoteCollection);
+      question.upvoteCount = upvoteSnapshot.size;
 
       // Get report count
-      const reportDoc = await getDoc(doc(db, "InterviewQuestions", question.id, "report", "insights_me"))
-      if (reportDoc.exists()) {
-        const reportData = reportDoc.data()
-        question.reportCount = reportData.username ? reportData.username.length : 0
-      }
+      const reportCollection = collection(
+        db,
+        "InterviewQuestions",
+        question.id,
+        "report"
+      );
+      const reportSnapshot = await getDocs(reportCollection);
+      question.reportCount = reportSnapshot.size;
     }
   } catch (error) {
-    console.error('Error fetching questions:', error)
-    toast.error('Failed to load interview questions')
+    console.error("Error fetching questions:", error);
+    toast.error("Failed to load interview questions");
   }
-}
+};
 
 const increment_upvote = async (questionId) => {
   try {
-    const currentUser = auth.currentUser.uid
-    const upvoteRef = doc(db, "InterviewQuestions", questionId, "upvote", currentUser)
-    const docSnap = await getDoc(upvoteRef)
+    const currentUser = auth.currentUser.uid;
+    const upvoteRef = doc(
+      db,
+      "InterviewQuestions",
+      questionId,
+      "upvote",
+      currentUser
+    );
+    const docSnap = await getDoc(upvoteRef);
 
     if (docSnap.exists()) {
       // Remove upvote
-      await deleteDoc(upvoteRef)
-      const question = questions.value.find(q => q.id === questionId)
+      await deleteDoc(upvoteRef);
+      const question = questions.value.find((q) => q.id === questionId);
       if (question) {
-        question.upvoteCount = Math.max(0, question.upvoteCount - 1)
+        question.upvoteCount = Math.max(0, question.upvoteCount - 1);
       }
     } else {
       // Add upvote
       await setDoc(upvoteRef, {
         timestamp: new Date(),
-        userId: currentUser
-      })
+        userId: currentUser,
+      });
 
       // Update contribution points
-      const pointsRef = doc(db, "Users", currentUser)
-      await updateDoc(pointsRef, {
-        contribution_pts: increment(1)
-      })
-
-      const question = questions.value.find(q => q.id === questionId)
-      if (question) {
-        question.upvoteCount++
+      const quesRef = doc(db, "InterviewQuestions", questionId);
+      const quesSnap = await getDoc(quesRef);
+      const authorOfQues = quesSnap.data().userID;
+      if (authorOfQues != currentUser) {
+        const pointsRef = doc(db, "Users", authorOfQues);
+        await updateDoc(pointsRef, {
+          contribution_pts: increment(1),
+        });
       }
-      
-      toast.success('1 point has been added into your account!')
+
+      const question = questions.value.find((q) => q.id === questionId);
+      if (question) {
+        question.upvoteCount++;
+      }
     }
   } catch (error) {
-    console.error('Error updating upvote:', error)
-    toast.error('Failed to update upvote')
+    console.error("Error updating upvote:", error);
   }
-}
+};
 
 const increment_report = async (questionId) => {
-  let currentUser = auth.currentUser.uid
-  let currentQuestions = questionId
+  let currentUser = auth.currentUser.uid;
+  let currentQuestions = questionId;
 
   try {
     // Reference to the report collection
@@ -216,17 +256,17 @@ const increment_report = async (questionId) => {
       "InterviewQuestions",
       currentQuestions,
       "report"
-    )
+    );
 
     // Get existing document
-    const userReporRef = doc(reportCollectionRef, currentUser)
-    const reportDoc = await getDoc(userReporRef)
+    const userReporRef = doc(reportCollectionRef, currentUser);
+    const reportDoc = await getDoc(userReporRef);
 
     if (reportDoc.exists()) {
-      toast.error("You have already reported this question")
-      showPopup.value = false
-      selectedReason.value = null
-      return
+      toast.error("You have already reported this question");
+      showPopup.value = false;
+      selectedReason.value = null;
+      return;
     }
 
     // Update document
@@ -234,42 +274,44 @@ const increment_report = async (questionId) => {
       reasonCategory: selectedReason.value,
       username: currentUser,
       reasonText: reasonText.value,
-      lastUpdated: new Date()
-    })
+      lastUpdated: new Date(),
+    });
 
     // Check if report count exceeds threshold
     if (reportCollectionRef.count >= 9) {
-      const questionRef = doc(db, "InterviewQuestions", currentQuestions)
+      const questionRef = doc(db, "InterviewQuestions", currentQuestions);
       await updateDoc(questionRef, {
-        status: "Removed"
-      })
+        status: "Removed",
+      });
 
-      const questionIndex = questions.value.findIndex(q => q.id === currentQuestions)
+      const questionIndex = questions.value.findIndex(
+        (q) => q.id === currentQuestions
+      );
       if (questionIndex !== -1) {
-        questions.value.splice(questionIndex, 1)
+        questions.value.splice(questionIndex, 1);
       }
     }
 
-    showPopup.value = false
-    selectedReason.value = null
-    reasonText.value = null
-    toast.success("Report submitted successfully")
+    showPopup.value = false;
+    selectedReason.value = null;
+    reasonText.value = null;
+    toast.success("Report submitted successfully");
   } catch (error) {
-    console.error("Error submitting report:", error)
-    toast.error("Failed to submit report")
+    console.error("Error submitting report:", error);
+    toast.error("Failed to submit report");
   }
-}
+};
 
 const openReportPopup = (questionId) => {
-  currentQuestionId.value = questionId
-  selectedReason.value = null
-  reasonText.value = null
-  showPopup.value = true
-}
+  currentQuestionId.value = questionId;
+  selectedReason.value = null;
+  reasonText.value = null;
+  showPopup.value = true;
+};
 
 onMounted(() => {
-  loadApplicationDetails()
-})
+  loadApplicationDetails();
+});
 </script>
 
 <style scoped>
@@ -308,7 +350,7 @@ onMounted(() => {
 
 .question-type {
   font-size: 0.875rem;
-  color: #4CAF50;
+  color: #4caf50;
   font-weight: 600;
   margin-bottom: 8px;
 }
@@ -430,4 +472,10 @@ onMounted(() => {
   cursor: not-allowed;
   opacity: 0.7;
 }
-</style> 
+
+.question-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+</style>
