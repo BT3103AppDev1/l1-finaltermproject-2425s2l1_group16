@@ -159,6 +159,9 @@ import {
 } from "firebase/firestore";
 import { Filter } from "bad-words";
 import { getAuth } from "firebase/auth";
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
 
 export default {
   name: "CompleteInterview",
@@ -325,7 +328,7 @@ export default {
             // Only validate incomplete rounds
             for (const entry of round.questions) {
               if (!entry.question || !entry.questionType) {
-                alert(
+                toast.error(
                   `Please fill in all required fields marked with * in ${round.roundName}`
                 );
                 return;
@@ -347,12 +350,12 @@ export default {
             // Only check incomplete rounds
             for (const entry of round.questions) {
               if (filter.isProfane(entry.question)) {
-                alert("Please refrain from using any profanities");
+                toast.error("Please refrain from using any profanities");
                 return;
               }
 
               if (this.countWords(entry.question) < 5) {
-                alert("Your question must be at least 5 words long");
+                toast.error("Your question must be at least 5 words long");
                 return;
               }
             }
@@ -430,7 +433,7 @@ export default {
           contribution_pts: increment(5),
         });
 
-        alert("Questions have been submitted successfully!");
+        toast.success("Questions submitted successfully! You have earned 5 points!")
         this.closeModal();
       } catch (error) {
         console.error("Error in handleSubmit:", error);
