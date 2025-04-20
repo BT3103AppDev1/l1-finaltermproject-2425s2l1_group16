@@ -12,8 +12,8 @@
                 </div>
                 <div class="profile-icon">
                     <router-link to="/profile" tag="div" class="profile-icon">
-    					<font-awesome-icon icon="fa-solid fa-user-circle" />
-        			</router-link>
+                        <font-awesome-icon icon="fa-solid fa-user-circle" />
+                    </router-link>
                 </div>
             </div>
             <!-- for testing, please delete later -->
@@ -228,8 +228,15 @@
             <div class="modal-content">
                 <h3>Confirm Status Change</h3>
                 <p>
-                You are moving the application <strong style="font-weight: bold;">"{{ pendingDrop?.app.company }}"</strong>
-                to <strong style="font-weight: bold;">{{ pendingDrop?.to }}</strong>:
+                    You are moving the application
+                    <strong style="font-weight: bold"
+                        >"{{ pendingDrop?.app.company }}"</strong
+                    >
+                    to
+                    <strong style="font-weight: bold">{{
+                        pendingDrop?.to
+                    }}</strong
+                    >:
                 </p>
 
                 <div v-if="pendingDrop?.to === 'Interview'">
@@ -246,7 +253,12 @@
                     </div>
                 </div>
 
-                <div v-if="pendingDrop?.to !== 'Applied' && pendingDrop?.to !== 'Turned Down'">
+                <div
+                    v-if="
+                        pendingDrop?.to !== 'Applied' &&
+                        pendingDrop?.to !== 'Turned Down'
+                    "
+                >
                     <div class="input-group">
                         <label for="responseDate">Select Response Date:</label>
                         <input
@@ -261,8 +273,13 @@
                 </div>
 
                 <div class="modal-actions">
-                    <button @click="confirmDropStatus" class="confirm-button">Confirm</button>
-                    <button @click="showDropConfirmModal = false" class="cancel-button">
+                    <button @click="confirmDropStatus" class="confirm-button">
+                        Confirm
+                    </button>
+                    <button
+                        @click="showDropConfirmModal = false"
+                        class="cancel-button"
+                    >
                         Cancel
                     </button>
                 </div>
@@ -270,25 +287,29 @@
         </div>
     </teleport>
 
-<teleport to="body">
-    <div
-      v-if="showAppDeleteModal"
-      class="modal-overlay"
-      @click.self="showAppDeleteModal = false"
-    >
-      <div class="modal-content">
-        <h3>Are you sure you want to delete this application?</h3>
-        <p>This action cannot be undone.</p>
-        <div class="modal-actions">
-          <button @click="performDelete" class="delete-button">Delete</button>
-          <button @click="showAppDeleteModal = false" class="cancel-button">
-            Cancel
-          </button>
+    <teleport to="body">
+        <div
+            v-if="showAppDeleteModal"
+            class="modal-overlay"
+            @click.self="showAppDeleteModal = false"
+        >
+            <div class="modal-content">
+                <h3>Are you sure you want to delete this application?</h3>
+                <p>This action cannot be undone.</p>
+                <div class="modal-actions">
+                    <button @click="performDelete" class="delete-button">
+                        Delete
+                    </button>
+                    <button
+                        @click="showAppDeleteModal = false"
+                        class="cancel-button"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-</teleport>
-
+    </teleport>
 
     <teleport to="body">
         <div
@@ -304,8 +325,15 @@
                 </h3>
                 <p>This action cannot be undone.</p>
                 <div class="modal-actions">
-                    <button @click="performDeleteCycle">Delete</button>
-                    <button @click="showDeleteModal = false">Cancel</button>
+                    <button
+                        class="cancel-button"
+                        @click="showDeleteModal = false"
+                    >
+                        Cancel
+                    </button>
+                    <button class="delete-button" @click="performDeleteCycle">
+                        Delete
+                    </button>
                 </div>
             </div>
         </div>
@@ -319,7 +347,6 @@
             :userId="userId"
             :cycle="selectedAppCycle"
             @close="closePopup"
-            @reload-applications="loadApplications"
         >
         </ApplicationCard>
         />
@@ -388,16 +415,17 @@ import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { db } from "@/firebase";
 import {
-  collection,
-  getDocs,
-  doc,
-  updateDoc,
-  getDoc,
-  deleteDoc,
-  query,
-  where,
-  setDoc,
-  writeBatch,
+    collection,
+    getDocs,
+    doc,
+    updateDoc,
+    getDoc,
+    deleteDoc,
+    query,
+    where,
+    setDoc,
+    writeBatch,
+    deleteField,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { DateTime } from "luxon";
@@ -481,13 +509,27 @@ export default {
         };
 
         const performDelete = async () => {
-            if (!appToDelete.value || !appStatusToDelete.value || !selectedCycle.value) return;
+            if (
+                !appToDelete.value ||
+                !appStatusToDelete.value ||
+                !selectedCycle.value
+            )
+                return;
 
             const batch = writeBatch(db);
 
             try {
-                const appRef = doc(db, "Users", userId.value, selectedCycle.value, appToDelete.value.id);
-                const allApplicationsRef = doc(collection(db, "AllApplications"), appToDelete.value.id);
+                const appRef = doc(
+                    db,
+                    "Users",
+                    userId.value,
+                    selectedCycle.value,
+                    appToDelete.value.id
+                );
+                const allApplicationsRef = doc(
+                    collection(db, "AllApplications"),
+                    appToDelete.value.id
+                );
                 // delete for future querying
                 batch.delete(appRef);
                 batch.delete(allApplicationsRef);
@@ -500,21 +542,33 @@ export default {
                     appStatusToDelete.value
                 ].findIndex((app) => app.id === appToDelete.value.id);
 
-                jobApplications.value[appStatusToDelete.value] = jobApplications.value[appStatusToDelete.value].filter(
-                    (item) => item.id !== appToDelete.value.id
-                );
+                jobApplications.value[appStatusToDelete.value] =
+                    jobApplications.value[appStatusToDelete.value].filter(
+                        (item) => item.id !== appToDelete.value.id
+                    );
 
                 // for rank update
-                for (let i = deletedAppIndex; i < jobApplications.value[appStatusToDelete.value].length; i++) {
-                    const app = jobApplications.value[appStatusToDelete.value][i];
-                    const appRef = doc(db, "Users", userId.value, selectedCycle.value, app.id);
+                for (
+                    let i = deletedAppIndex;
+                    i < jobApplications.value[appStatusToDelete.value].length;
+                    i++
+                ) {
+                    const app =
+                        jobApplications.value[appStatusToDelete.value][i];
+                    const appRef = doc(
+                        db,
+                        "Users",
+                        userId.value,
+                        selectedCycle.value,
+                        app.id
+                    );
                     await updateDoc(appRef, { rank: i });
                 }
 
                 jobApplications.value[appStatusToDelete.value] =
-                jobApplications.value[appStatusToDelete.value].filter(
-                    (item) => item.id !== appToDelete.value.id
-                );
+                    jobApplications.value[appStatusToDelete.value].filter(
+                        (item) => item.id !== appToDelete.value.id
+                    );
 
                 showAppDeleteModal.value = false;
                 appToDelete.value = null;
@@ -546,112 +600,112 @@ export default {
         });
 
         const fetchApplicationCycles = async () => {
-        if (userId.value) {
-            const userMetadataRef = doc(
-            db,
-            "Users",
-            userId.value,
-            "user_metadata",
-            "cycles_list"
-            );
-            const docSnap = await getDoc(userMetadataRef);
-            if (docSnap.exists() && docSnap.data().cycles) {
-            applicationCycles.value = docSnap.data().cycles;
-            } else {
-            applicationCycles.value = [];
+            if (userId.value) {
+                const userMetadataRef = doc(
+                    db,
+                    "Users",
+                    userId.value,
+                    "user_metadata",
+                    "cycles_list"
+                );
+                const docSnap = await getDoc(userMetadataRef);
+                if (docSnap.exists() && docSnap.data().cycles) {
+                    applicationCycles.value = docSnap.data().cycles;
+                } else {
+                    applicationCycles.value = [];
+                }
             }
-        }
         };
 
         const loadApplications = async (selectedCycle = null) => {
-        console.log();
-        if (!userId.value) {
-            console.log("User ID is not set. Waiting...");
-            return;
-        }
-
-        const applicationsRef = collection(
-            db,
-            "Users",
-            userId.value,
-            selectedCycle // Use the selected cycle as the subcollection name
-        );
-
-        const querySnapshot = await getDocs(applicationsRef);
-
-        jobApplications.value = {
-            Applied: [],
-            Assessment: [],
-            Interview: [],
-            Offered: [],
-            Rejected: [],
-            "Turned Down": [],
-        };
-
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            const status = data.status;
-            const stages = data.stages;
-            console.log(stages);
-
-            let latestStatus = null;
-            let latestDate = null;
-
-            for (let [stage, stageDetails] of Object.entries(stages)) {
-            const stageDate =
-                stageDetails && stageDetails.date
-                ? DateTime.fromISO(stageDetails.date, {
-                    zone: "Asia/Singapore",
-                    })
-                : null;
-
-            if (stageDate && (!latestDate || stageDate > latestDate)) {
-                latestStatus = stage;
-                latestDate = stageDate;
-            }
+            console.log();
+            if (!userId.value) {
+                console.log("User ID is not set. Waiting...");
+                return;
             }
 
-            const formattedLastStatusDate = latestDate
-            ? latestDate.toLocaleString(DateTime.DATE_SHORT)
-            : "N/A";
-
-            jobApplications.value[status].push({
-            id: doc.id,
-            company: data.company,
-            position: data.position,
-            status: data.status,
-            last_status_date: formattedLastStatusDate,
-            dateApplied: data.date_applied,
-            rank: data.rank ?? 0,
-            notes: data.notes,
-            cycle: selectedCycle, // Store the cycle for filtering if needed later
-            });
-        });
-
-        // list cards in each status according to their user-assigned rank
-        Object.keys(jobApplications.value).forEach((status) => {
-            jobApplications.value[status].sort(
-            (a, b) => (a.rank ?? 0) - (b.rank ?? 0)
+            const applicationsRef = collection(
+                db,
+                "Users",
+                userId.value,
+                selectedCycle // Use the selected cycle as the subcollection name
             );
-        });
+
+            const querySnapshot = await getDocs(applicationsRef);
+
+            jobApplications.value = {
+                Applied: [],
+                Assessment: [],
+                Interview: [],
+                Offered: [],
+                Rejected: [],
+                "Turned Down": [],
+            };
+
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const status = data.status;
+                const stages = data.stages;
+                console.log(stages);
+
+                let latestStatus = null;
+                let latestDate = null;
+
+                for (let [stage, stageDetails] of Object.entries(stages)) {
+                    const stageDate =
+                        stageDetails && stageDetails.date
+                            ? DateTime.fromISO(stageDetails.date, {
+                                  zone: "Asia/Singapore",
+                              })
+                            : null;
+
+                    if (stageDate && (!latestDate || stageDate > latestDate)) {
+                        latestStatus = stage;
+                        latestDate = stageDate;
+                    }
+                }
+
+                const formattedLastStatusDate = latestDate
+                    ? latestDate.toLocaleString(DateTime.DATE_SHORT)
+                    : "N/A";
+
+                jobApplications.value[status].push({
+                    id: doc.id,
+                    company: data.company,
+                    position: data.position,
+                    status: data.status,
+                    last_status_date: formattedLastStatusDate,
+                    dateApplied: data.date_applied,
+                    rank: data.rank ?? 0,
+                    notes: data.notes,
+                    cycle: selectedCycle, // Store the cycle for filtering if needed later
+                });
+            });
+
+            // list cards in each status according to their user-assigned rank
+            Object.keys(jobApplications.value).forEach((status) => {
+                jobApplications.value[status].sort(
+                    (a, b) => (a.rank ?? 0) - (b.rank ?? 0)
+                );
+            });
         };
 
         const selectCycle = async (cycle) => {
-        selectedCycle.value = cycle;
-        console.log("Selected Cycle:", cycle);
-        loadApplications(cycle);
-        try {
-            const userMetadataRef = doc(
-            db,
-            "Users",
-            userId.value,
-            "user_metadata",
-            "cycles_list"
-            );
-            await updateDoc(userMetadataRef, { lastSelectedCycle: cycle });
-        } catch (error) {
-            console.error("Error updating last selected cycle:", error);
-        }
+            selectedCycle.value = cycle;
+            console.log("Selected Cycle:", cycle);
+            loadApplications(cycle);
+            try {
+                const userMetadataRef = doc(
+                    db,
+                    "Users",
+                    userId.value,
+                    "user_metadata",
+                    "cycles_list"
+                );
+                await updateDoc(userMetadataRef, { lastSelectedCycle: cycle });
+            } catch (error) {
+                console.error("Error updating last selected cycle:", error);
+            }
         };
 
         // Ref for showing the create new cycle prompt
@@ -660,46 +714,46 @@ export default {
 
         // Function to show the create new cycle prompt
         const showCreateNewCyclePrompt = () => {
-        const newCycleInput = prompt(
-            "Enter a name for the new application cycle:",
-            "Untitled Application Cycle"
-        );
-        if (newCycleInput) {
-            createNewCycle(newCycleInput);
-        }
+            const newCycleInput = prompt(
+                "Enter a name for the new application cycle:",
+                "Untitled Application Cycle"
+            );
+            if (newCycleInput) {
+                createNewCycle(newCycleInput);
+            }
         };
 
         // Function to create a new cycle (moved from the previous response)
         const createNewCycle = async (newCycleInput) => {
-        const newCycleName = newCycleInput
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, "_");
-        if (applicationCycles.value.includes(newCycleName)) {
-            alert("A cycle with this name already exists.");
-            return;
-        }
-        try {
-            const userMetadataRef = doc(
-            db,
-            "Users",
-            userId.value,
-            "user_metadata",
-            "cycles_list"
-            );
-            const docSnap = await getDoc(userMetadataRef);
-            let existingCyclesArray =
-            docSnap.exists() && docSnap.data().cycles
-                ? [...docSnap.data().cycles]
-                : [];
-            existingCyclesArray.push(newCycleName);
-            await setDoc(userMetadataRef, { cycles: existingCyclesArray });
-            await fetchApplicationCycles(); // Refresh the sidebar list
-            selectCycle(newCycleName); // Automatically switch to the new cycle
-        } catch (error) {
-            console.error("Error creating new cycle:", error);
-            alert("Failed to create new cycle.");
-        }
+            const newCycleName = newCycleInput
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, "_");
+            if (applicationCycles.value.includes(newCycleName)) {
+                alert("A cycle with this name already exists.");
+                return;
+            }
+            try {
+                const userMetadataRef = doc(
+                    db,
+                    "Users",
+                    userId.value,
+                    "user_metadata",
+                    "cycles_list"
+                );
+                const docSnap = await getDoc(userMetadataRef);
+                let existingCyclesArray =
+                    docSnap.exists() && docSnap.data().cycles
+                        ? [...docSnap.data().cycles]
+                        : [];
+                existingCyclesArray.push(newCycleName);
+                await setDoc(userMetadataRef, { cycles: existingCyclesArray });
+                await fetchApplicationCycles(); // Refresh the sidebar list
+                selectCycle(newCycleName); // Automatically switch to the new cycle
+            } catch (error) {
+                console.error("Error creating new cycle:", error);
+                alert("Failed to create new cycle.");
+            }
         };
 
         // Refs and methods for renaming
@@ -732,9 +786,9 @@ export default {
                 applicationCycles.value.includes(newCycleName)
             ) {
                 if (newCycleName === oldCycleName) {
-                // Name hasn't changed
+                    // Name hasn't changed
                 } else {
-                alert("A cycle with this name already exists.");
+                    alert("A cycle with this name already exists.");
                 }
                 cycleToRename.value = null;
                 newCycleNameInput.value = "";
@@ -825,697 +879,818 @@ export default {
             }
         };
 
-    const cycleToDelete = ref(null);
+        const cycleToDelete = ref(null);
 
-    const confirmDeleteCycle = (cycle) => {
-      cycleToDelete.value = cycle;
-      showDeleteModal.value = true;
-      closeCycleSettingsModal();
-      console.log(
-        "Confirm Delete Cycle:",
-        cycleToDelete.value,
-        showDeleteModal.value
-      );
-    };
-
-    const performDeleteCycle = async () => {
-      if (!cycleToDelete.value) return;
-
-      try {
-        const userMetadataRef = doc(
-          db,
-          "Users",
-          userId.value,
-          "user_metadata",
-          "cycles_list"
-        );
-        const docSnap = await getDoc(userMetadataRef);
-        if (docSnap.exists() && docSnap.data().cycles) {
-          const updatedCycles = docSnap
-            .data()
-            .cycles.filter((cycle) => cycle !== cycleToDelete.value);
-          const lastSelected =
-            docSnap.data().lastSelectedCycle === cycleToDelete.value &&
-            updatedCycles.length > 0
-              ? updatedCycles[0]
-              : docSnap.data().lastSelectedCycle;
-          await setDoc(userMetadataRef, {
-            cycles: updatedCycles,
-            lastSelectedCycle: lastSelected,
-          });
-          // Delete the entire subcollection for this cycle
-          const applicationsRef = collection(
-            db,
-            "Users",
-            userId.value,
-            cycleToDelete.value
-          );
-          const querySnapshot = await getDocs(applicationsRef);
-          const deletePromises = querySnapshot.docs.map((doc) =>
-            deleteDoc(doc.ref)
-          );
-          await Promise.all(deletePromises);
-
-          await fetchApplicationCycles(); // Refresh the sidebar
-          selectedCycle.value =
-            updatedCycles.length > 0 ? updatedCycles[0] : null;
-          loadApplications(selectedCycle.value);
-        }
-        showDeleteModal.value = false;
-        cycleToDelete.value = null;
-      } catch (error) {
-        console.error("Error deleting cycle:", error);
-        alert("Failed to delete cycle.");
-      }
-    };
-
-    watch(userId, (newUserId) => {
-      if (newUserId) {
-        loadApplications();
-      }
-    });
-
-    const collapsed = ref({
-      Applied: true,
-      Assessment: true,
-      Interview: true,
-      Offered: true,
-      Rejected: true,
-      "Turned Down": true,
-    });
-
-    const toggleCollapse = (status) => {
-      // Toggle the collapse state for the given status
-      collapsed.value[status] = !collapsed.value[status];
-    };
-
-    onMounted(() => {
-      const auth = getAuth();
-
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          userId.value = user.uid;
-          console.log("Logged in!", userId.value);
-          await fetchApplicationCycles();
-          const userMetadataRef = doc(
-            db,
-            "Users",
-            userId.value,
-            "user_metadata",
-            "cycles_list"
-          );
-          const docSnap = await getDoc(userMetadataRef);
-          if (
-            docSnap.exists() &&
-            docSnap.data().lastSelectedCycle &&
-            applicationCycles.value.includes(docSnap.data().lastSelectedCycle)
-          ) {
-            selectedCycle.value = docSnap.data().lastSelectedCycle;
-          } else if (applicationCycles.value.length > 0) {
-            selectedCycle.value = applicationCycles.value[0]; // Optionally select the first cycle if no last selected or if the last selected is no longer valid
-          } else {
-            selectedCycle.value = null; // No cycles exist
-          }
-          loadApplications(selectedCycle.value);
-        } else {
-          router.push("/login");
-          console.log("Not logged in..");
-        }
-      });
-
-      // If user is already logged in on mount
-      if (getAuth().currentUser) {
-        userId.value = getAuth().currentUser.uid;
-        fetchApplicationCycles();
-        loadApplications(selectedCycle.value); // Load based on initial selectedCycle
-      }
-    });
-
-    const handleHorizontalScroll = (event) => {
-      const container = kanban.value;
-      if (!container) return;
-
-      if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
-        container.scrollLeft += event.deltaX;
-      }
-    };
-
-    const summaryStats = computed(() => {
-      if (!selectedCycle.value) {
-        return "";
-      }
-      const statusCounts = Object.keys(jobApplications.value).map((status) => {
-        return `${jobApplications.value[status].length} ${statusLabels[status]}`;
-      });
-      return statusCounts.join(" | ");
-    });
-
-    const dragStart = (app, status, index) => {
-      draggedApplication.value = app;
-      sourceStatus.value = status;
-      sourceIndex.value = index;
-    };
-
-    const pendingDrop = ref(null);
-    const showDropConfirmModal = ref(false);
-
-    const statusChangeTime = ref(null);
-
-    const drop = async (newStatus, dropIndex = null) => {
-      if (!draggedApplication.value || !selectedCycle.value) return;
-
-      // shifting within the same status
-      if (sourceStatus.value === newStatus) {
-        const columnApps = jobApplications.value[newStatus];
-
-        // shifting to the same place, no shift
-        if (dropIndex === null) {
-          draggedApplication.value = null;
-          sourceStatus.value = null;
-          sourceIndex.value = null;
-          return;
-        }
-
-        const movedApp = columnApps.splice(sourceIndex.value, 1)[0];
-        columnApps.splice(dropIndex, 0, movedApp);
-
-        // shifting the ranks around within the same status
-        for (let i = 0; i < columnApps.length; i++) {
-          const appRef = doc(
-            db,
-            "Users",
-            userId.value,
-            selectedCycle.value,
-            columnApps[i].id
-          );
-          await updateDoc(appRef, { rank: i });
-        }
-
-        draggedApplication.value = null;
-        sourceStatus.value = null;
-        sourceIndex.value = null;
-
-        return;
-      }
-
-      // application is shifted to a new status
-      const statusUpdateDate = DateTime.now().setZone("Asia/Singapore").toISO();
-      statusChangeTime.value = statusUpdateDate;
-
-      pendingDrop.value = {
-        app: draggedApplication.value,
-        from: sourceStatus.value,
-        to: newStatus,
-      };
-
-      showDropConfirmModal.value = true;
-
-      // Clear drag state
-      draggedApplication.value = null;
-      sourceStatus.value = null;
-    };
-
-    // for number of working days
-    const calculateWorkingDays = (startDate, endDate) => {
-      const start = DateTime.fromISO(startDate, {
-        zone: "Asia/Singapore",
-      }).startOf("day");
-      const end = DateTime.fromISO(endDate, {
-        zone: "Asia/Singapore",
-      }).startOf("day");
-
-      let currentDate = start;
-      let workingDays = 0;
-
-      while (currentDate <= end) {
-        // check if it's a weekday (not Sunday or Saturday)
-        if (currentDate.weekday !== 6 && currentDate.weekday !== 7) {
-          workingDays++;
-        }
-        currentDate = currentDate.plus({ days: 1 });
-      }
-
-      return workingDays;
-    };
-
-    const responseDate = ref(
-      DateTime.now().setZone("Asia/Singapore").toISODate()
-    ); // default to today's date
-    const stageName = ref("");
-    const maxDate = ref(DateTime.now().setZone("Asia/Singapore").toISODate());
-
-    const confirmDropStatus = async () => {
-      if (!pendingDrop.value || !selectedCycle.value) return;
-
-      const { app, from, to } = pendingDrop.value;
-
-      const sourceDocRef = doc(
-        db,
-        "Users",
-        userId.value,
-        selectedCycle.value,
-        app.id
-      );
-
-      try {
-        const update_date = DateTime.now().setZone("Asia/Singapore").toISO();
-
-        const responseDateAtMidnightString = DateTime.fromISO(
-          responseDate.value,
-          { zone: "Asia/Singapore" }
-        )
-          .startOf("day")
-          .toISO();
-
-        const formattedLastStatusDate = DateTime.fromISO(
-          responseDateAtMidnightString
-        ).toLocaleString(DateTime.DATE_SHORT);
-
-        const updates = {
-          status: to,
-          last_updated: update_date,
-          last_status_date: formattedLastStatusDate,
+        const confirmDeleteCycle = (cycle) => {
+            cycleToDelete.value = cycle;
+            showDeleteModal.value = true;
+            closeCycleSettingsModal();
+            console.log(
+                "Confirm Delete Cycle:",
+                cycleToDelete.value,
+                showDeleteModal.value
+            );
         };
 
-        // for working days calculation + most frequent day a company responds
-        const docSnapshot = await getDoc(sourceDocRef);
+        const performDeleteCycle = async () => {
+            if (!cycleToDelete.value) return;
 
-        if (!docSnapshot.exists()) {
-          console.error("Document not found");
-          return;
-        }
+            try {
+                const userMetadataRef = doc(
+                    db,
+                    "Users",
+                    userId.value,
+                    "user_metadata",
+                    "cycles_list"
+                );
+                const docSnap = await getDoc(userMetadataRef);
+                if (docSnap.exists() && docSnap.data().cycles) {
+                    const updatedCycles = docSnap
+                        .data()
+                        .cycles.filter(
+                            (cycle) => cycle !== cycleToDelete.value
+                        );
+                    const lastSelected =
+                        docSnap.data().lastSelectedCycle ===
+                            cycleToDelete.value && updatedCycles.length > 0
+                            ? updatedCycles[0]
+                            : docSnap.data().lastSelectedCycle;
+                    await setDoc(userMetadataRef, {
+                        cycles: updatedCycles,
+                        lastSelectedCycle: lastSelected,
+                    });
+                    // Delete the entire subcollection for this cycle
+                    const applicationsRef = collection(
+                        db,
+                        "Users",
+                        userId.value,
+                        cycleToDelete.value
+                    );
+                    const querySnapshot = await getDocs(applicationsRef);
+                    const deletePromises = querySnapshot.docs.map((doc) =>
+                        deleteDoc(doc.ref)
+                    );
+                    await Promise.all(deletePromises);
 
-        const appData = docSnapshot.data();
-        const stages = appData.stages;
-
-        let totalWorkingDays = 0;
-        const stagesWithDates = [];
-
-        const responseDaysMap = {};
-
-        for (let [stage, stageDetails] of Object.entries(stages)) {
-          if (stageDetails && stageDetails.date) {
-            const stageDate = DateTime.fromISO(stageDetails.date, {
-              zone: "Asia/Singapore",
-            }).toJSDate();
-            stagesWithDates.push({ stage, date: stageDate });
-
-            // "Applied" and "Turned Down" stages are not stages that the company responds
-            if (stage !== "applied" && stage !== "turned down") {
-              const dayOfWeek = stageDate.getDay();
-              // only care about work days (Mon to Fri, dayOfWeek 1 to 5)
-              if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-                responseDaysMap[dayOfWeek] =
-                  (responseDaysMap[dayOfWeek] || 0) + 1;
-              }
+                    await fetchApplicationCycles(); // Refresh the sidebar
+                    selectedCycle.value =
+                        updatedCycles.length > 0 ? updatedCycles[0] : null;
+                    loadApplications(selectedCycle.value);
+                }
+                showDeleteModal.value = false;
+                cycleToDelete.value = null;
+            } catch (error) {
+                console.error("Error deleting cycle:", error);
+                alert("Failed to delete cycle.");
             }
-          }
-        }
+        };
 
-        stagesWithDates.sort((a, b) => a.date - b.date);
+        watch(userId, (newUserId) => {
+            if (newUserId) {
+                loadApplications();
+            }
+        });
 
-        for (let i = 0; i < stagesWithDates.length - 1; i++) {
-          const currentStage = stagesWithDates[i];
-          const nextStage = stagesWithDates[i + 1];
-          console.log(stagesWithDates);
+        const collapsed = ref({
+            Applied: true,
+            Assessment: true,
+            Interview: true,
+            Offered: true,
+            Rejected: true,
+            "Turned Down": true,
+        });
 
-          totalWorkingDays += calculateWorkingDays(
-            currentStage.date,
-            nextStage.date
-          );
-        }
+        const toggleCollapse = (status) => {
+            // Toggle the collapse state for the given status
+            collapsed.value[status] = !collapsed.value[status];
+        };
 
-        // "Applied" and "Turned Down" stages are not stages that the company responds
-        if (to !== "Applied" && to !== "Turned Down") {
-          // time taken to the new status?
-          const latestDate = stagesWithDates[stagesWithDates.length - 1].date;
-          const isoDate = DateTime.fromJSDate(latestDate)
-            .setZone("Asia/Singapore")
-            .toISO();
-          console.log(isoDate);
-          totalWorkingDays += calculateWorkingDays(
-            isoDate,
-            responseDateAtMidnightString
-          );
+        onMounted(() => {
+            const auth = getAuth();
 
-          const responseDate = DateTime.fromISO(responseDateAtMidnightString, {
-            zone: "Asia/Singapore",
-          });
-          const dayOfWeek = responseDate.weekday;
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId.value = user.uid;
+                    console.log("Logged in!", userId.value);
+                    await fetchApplicationCycles();
+                    const userMetadataRef = doc(
+                        db,
+                        "Users",
+                        userId.value,
+                        "user_metadata",
+                        "cycles_list"
+                    );
+                    const docSnap = await getDoc(userMetadataRef);
+                    if (
+                        docSnap.exists() &&
+                        docSnap.data().lastSelectedCycle &&
+                        applicationCycles.value.includes(
+                            docSnap.data().lastSelectedCycle
+                        )
+                    ) {
+                        selectedCycle.value = docSnap.data().lastSelectedCycle;
+                    } else if (applicationCycles.value.length > 0) {
+                        selectedCycle.value = applicationCycles.value[0]; // Optionally select the first cycle if no last selected or if the last selected is no longer valid
+                    } else {
+                        selectedCycle.value = null; // No cycles exist
+                    }
+                    loadApplications(selectedCycle.value);
+                } else {
+                    router.push("/login");
+                    console.log("Not logged in..");
+                }
+            });
 
-          if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-            responseDaysMap[dayOfWeek] = (responseDaysMap[dayOfWeek] || 0) + 1;
-          }
-        }
+            // If user is already logged in on mount
+            if (getAuth().currentUser) {
+                userId.value = getAuth().currentUser.uid;
+                fetchApplicationCycles();
+                loadApplications(selectedCycle.value); // Load based on initial selectedCycle
+            }
+        });
 
-        // makes updates["average_working_days"] = 0
-        if (totalWorkingDays <= 0) {
-          updates["average_working_days"] = 0;
-          // minus to account for the intervals between each stage transition
-        } else {
-          updates["average_working_days"] = Math.round(
-            (totalWorkingDays - stagesWithDates.length) / stagesWithDates.length
-          );
-        }
-        updates["response_days_map"] = { ...responseDaysMap };
-        //
+        const handleHorizontalScroll = (event) => {
+            const container = kanban.value;
+            if (!container) return;
 
-        if (to === "Interview") {
-          // change to "interview"
-          const type = to.toLowerCase();
+            if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+                container.scrollLeft += event.deltaX;
+            }
+        };
 
-          const existingStages = Object.keys(stages).filter((stage) =>
-            stage.startsWith(type)
-          );
+        const summaryStats = computed(() => {
+            if (!selectedCycle.value) {
+                return "";
+            }
+            const statusCounts = Object.keys(jobApplications.value).map(
+                (status) => {
+                    return `${jobApplications.value[status].length} ${statusLabels[status]}`;
+                }
+            );
+            return statusCounts.join(" | ");
+        });
 
-          // Extract numbers from the stage names, if they exist (e.g., "interview_1" => 1)
-          const stageNumbers = existingStages
-            .map((stage) => {
-              const match = stage.match(new RegExp(`${type}_(\\d+)`)); // Regex to match "interview_1"
-              return match ? parseInt(match[1], 10) : 0;
-            })
-            .filter((num) => num > 0);
+        const statusLevelMap = {
+            Applied: 0,
+            Assessment: 1,
+            Interview: 2,
+            Offered: 3,
+            Rejected: 3, // same level as Offered
+            "turned down": 4,
+        };
 
-          // If no valid stages exist, default to 1 (for "interview_1"), otherwise take the max number + 1
-          const nextNum =
-            stageNumbers.length > 0 ? Math.max(...stageNumbers) + 1 : 1;
+        const dragStart = (app, status, index) => {
+            draggedApplication.value = app;
+            sourceStatus.value = status;
+            sourceIndex.value = index;
+            console.log("drag start:", app.company, "from status:", status);
+        };
 
-          // Create the new stage with the next available number (either "interview_1" or the next number)
-          const newStage = {
-            name: stageName.value,
-            date: responseDateAtMidnightString,
-          };
-          if (to === "Interview") {
-            newStage.isCompleted = false;
-          }
-          updates[`stages.${type}_${nextNum}`] = newStage;
-        } else {
-          // For other statuses like "Applied", there's no applied_1, applied_2
-          // Also, it does not make sense to use response date for Applied and Turned Down when response date is for a company
-          if (to !== "Applied" && to !== "Turned Down") {
-            updates[`stages.${to.toLowerCase()}`] = {
-              date: responseDateAtMidnightString,
+        const pendingDrop = ref(null);
+        const showDropConfirmModal = ref(false);
+
+        const statusChangeTime = ref(null);
+
+        const drop = async (newStatus, dropIndex = null) => {
+            if (!draggedApplication.value || !selectedCycle.value) return;
+
+            // shifting within the same status
+            if (sourceStatus.value === newStatus) {
+                const columnApps = jobApplications.value[newStatus];
+
+                // shifting to the same place, no shift
+                if (dropIndex === null) {
+                    draggedApplication.value = null;
+                    sourceStatus.value = null;
+                    sourceIndex.value = null;
+                    return;
+                }
+
+                const movedApp = columnApps.splice(sourceIndex.value, 1)[0];
+                columnApps.splice(dropIndex, 0, movedApp);
+
+                // shifting the ranks around within the same status
+                for (let i = 0; i < columnApps.length; i++) {
+                    const appRef = doc(
+                        db,
+                        "Users",
+                        userId.value,
+                        selectedCycle.value,
+                        columnApps[i].id
+                    );
+                    await updateDoc(appRef, { rank: i });
+                }
+
+                draggedApplication.value = null;
+                sourceStatus.value = null;
+                sourceIndex.value = null;
+
+                return;
+            }
+
+            console.log("new status: ", newStatus);
+            console.log("source status: ", sourceStatus);
+            const isMovingBackward =
+                statusLevelMap[newStatus] < statusLevelMap[sourceStatus.value];
+
+            console.log("isMovingBackward: ", isMovingBackward);
+
+            // application is shifted to a new status
+            const statusUpdateDate = DateTime.now()
+                .setZone("Asia/Singapore")
+                .toISO();
+            statusChangeTime.value = statusUpdateDate;
+
+            pendingDrop.value = {
+                app: draggedApplication.value,
+                from: sourceStatus.value,
+                to: newStatus,
+                isBackward: isMovingBackward,
             };
-          } else {
-            updates[`stages.${to.toLowerCase()}`] = {
-              date: update_date,
-            };
-          }
-        }
 
-        // Update Firestore
-        await updateDoc(sourceDocRef, updates);
+            showDropConfirmModal.value = true;
 
-        // update the global collection for future querying
-        const allApplicationsRef = doc(collection(db, "AllApplications"), app.id);
-        await updateDoc(allApplicationsRef, updates);
+            // Clear drag state
+            draggedApplication.value = null;
+            sourceStatus.value = null;
+        };
 
-        // edit ranks of new status
-        const targetColumn = jobApplications.value[to];
-        for (let i = 0; i < targetColumn.length; i++) {
-          const app = targetColumn[i];
-          const appRef = doc(
-            db,
-            "Users",
-            userId.value,
-            selectedCycle.value,
-            app.id
-          );
-          await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
-        }
+        // for number of working days
+        const calculateWorkingDays = (startDate, endDate) => {
+            const start = DateTime.fromISO(startDate, {
+                zone: "Asia/Singapore",
+            }).startOf("day");
+            const end = DateTime.fromISO(endDate, {
+                zone: "Asia/Singapore",
+            }).startOf("day");
 
-        // Remove the application from the old column
-        jobApplications.value[from] = jobApplications.value[from].filter(
-          (item) => item.id !== app.id
+            let currentDate = start;
+            let workingDays = 0;
+
+            while (currentDate <= end) {
+                // check if it's a weekday (not Sunday or Saturday)
+                if (currentDate.weekday !== 6 && currentDate.weekday !== 7) {
+                    workingDays++;
+                }
+                currentDate = currentDate.plus({ days: 1 });
+            }
+
+            return workingDays;
+        };
+
+        const responseDate = ref(
+            DateTime.now().setZone("Asia/Singapore").toISODate()
+        ); // default to today's date
+        const stageName = ref("");
+        const maxDate = ref(
+            DateTime.now().setZone("Asia/Singapore").toISODate()
         );
 
-        jobApplications.value[from].forEach(async (item, index) => {
-          const appRef = doc(
-            db,
-            "Users",
-            userId.value,
-            selectedCycle.value,
-            item.id
-          );
-          await updateDoc(appRef, { rank: index });
-        });
+        const confirmDropStatus = async () => {
+            if (!pendingDrop.value || !selectedCycle.value) return;
 
-        // Ensure the new column is an array (fixes empty column issue)
-        if (!jobApplications.value[to]) {
-          jobApplications.value[to] = [];
-        }
+            const { app, from, to, isBackward } = pendingDrop.value;
 
-        // Add the application to the new column (force reactivity)
-        jobApplications.value[to].unshift({
-          ...app,
-          status: to,
-          last_status_date: formattedLastStatusDate,
-          rank: 0,
-        });
+            const sourceDocRef = doc(
+                db,
+                "Users",
+                userId.value,
+                selectedCycle.value,
+                app.id
+            );
+            const docSnapshot = await getDoc(sourceDocRef);
 
-        // clear inputs after confirmation
-        stageName.value = "";
-        responseDate.value = DateTime.now()
-          .setZone("Asia/Singapore")
-          .toISODate();
+            try {
+                const update_date = DateTime.now()
+                    .setZone("Asia/Singapore")
+                    .toISO();
 
-        showDropConfirmModal.value = false;
-        pendingDrop.value = null;
-      } catch (err) {
-        console.error("Error confirming status change:", err);
-      }
-    };
+                const responseDateAtMidnightString = DateTime.fromISO(
+                    responseDate.value,
+                    { zone: "Asia/Singapore" }
+                )
+                    .startOf("day")
+                    .toISO();
 
-    const handleApplicationAdded = (newApp) => {
-      fetchApplicationCycles();
-      if (
-        selectedCycle.value === null ||
-        selectedCycle.value === newApp.cycle
-      ) {
-        loadApplications(selectedCycle.value);
-      }
-      showForm.value = false;
-    };
+                const formattedLastStatusDate = DateTime.fromISO(
+                    responseDateAtMidnightString
+                ).toLocaleString(DateTime.DATE_SHORT);
 
-    const kanban = ref(null);
+                const updates = {
+                    status: to,
+                    last_updated: update_date,
+                    last_status_date: formattedLastStatusDate,
+                };
 
-    const handleAutoScroll = (e) => {
-      const scrollMargin = 100;
-      const scrollSpeed = 10;
-      const container = kanban.value;
+                if (isBackward) {
+                    console.log("in isBackward fucnction");
+                    // Prompt user with a confirmation modal to delete the later stages
+                    const deleteStages = confirm(
+                        "You are moving the application backward. This will delete data from the later stages (e.g., Interview, Assessment). Do you want to continue?"
+                    );
+                    if (!deleteStages) {
+                        showDropConfirmModal.value = false; // Cancel the move
+                        pendingDrop.value = null;
+                        return;
+                    }
 
-      if (!container) return;
+                    const stages = docSnapshot.data().stages || {};
 
-      const { left, right } = container.getBoundingClientRect();
-      const mouseX = e.clientX;
+                    console.log("stages: ", stages);
 
-      if (mouseX > right - scrollMargin) {
-        container.scrollLeft += scrollSpeed;
-      } else if (mouseX < left + scrollMargin) {
-        container.scrollLeft -= scrollSpeed;
-      }
-    };
+                    function normalizeStage(stage) {
+                        const base = stage.split("_")[0]; // e.g., 'interview_1' → 'interview'
+                        return base.charAt(0).toUpperCase() + base.slice(1); // 'interview' -> 'Interview'
+                    }
 
-    // when pop-up is opened, only scroll the pop-ups
-    watch(showPopup, (newVal) => {
-      if (newVal) {
-        document.body.style.overflow = "hidden";
-      } else {
-        document.body.style.overflow = "";
-      }
-    });
+                    const normalizedToStage = normalizeStage(to);
+                    const toLevel = statusLevelMap[normalizedToStage];
 
-    watch(showForm, (newVal) => {
-      if (newVal) {
-        document.body.style.overflow = "hidden";
-      } else {
-        document.body.style.overflow = "";
-      }
-    });
+                    const stagesToDelete = Object.keys(stages).filter(
+                        (stage) => {
+                            const normalizedFromLevel = normalizeStage(stage);
+                            const stageLevel =
+                                statusLevelMap[normalizedFromLevel];
+                            return stageLevel > toLevel;
+                        }
+                    );
 
-    // for searching filter function
-    const searchQuery = ref("");
-    const filteredApplications = computed(() => {
-      if (!searchQuery.value) {
-        return jobApplications.value;
-      } else {
-        const lowerCaseSearchQuery = searchQuery.value.toLowerCase();
-        return Object.keys(jobApplications.value).reduce((acc, status) => {
-          acc[status] = jobApplications.value[status].filter(
-            (app) =>
-              app.company.toLowerCase().includes(lowerCaseSearchQuery) ||
-              app.position.toLowerCase().includes(lowerCaseSearchQuery)
-          );
-          return acc;
-        }, {});
-      }
-    });
+                    console.log("Deleting stages:", stagesToDelete);
 
-    // for adding in stages when in interview
-    const customStageName = ref("");
-    const showAddInterviewModal = ref(false);
-    const newInterviewAppId = ref(null);
-    const newInterviewDate = ref(DateTime.now().toISODate());
+                    stagesToDelete.forEach((stage) => {
+                        updates[`stages.${stage}`] = deleteField(); // Remove stage data
+                    });
 
-    const computedInterviewKey = ref("");
+                    try {
+                        await updateDoc(sourceDocRef, updates);
+                        console.log("Deleted stages and updated Firestore");
 
-    const openAddInterviewModal = async (appId) => {
-      newInterviewAppId.value = appId;
-      newInterviewDate.value = DateTime.now().toISODate();
+                        // Move the application in the Kanban board
+                        jobApplications.value[from] = jobApplications.value[
+                            from
+                        ].filter((item) => item.id !== app.id);
 
-      const appRef = doc(
-        db,
-        "Users",
-        userId.value,
-        selectedCycle.value,
-        appId
-      );
-      const snapshot = await getDoc(appRef);
+                        // Add the application to the new column
+                        if (!jobApplications.value[to]) {
+                            jobApplications.value[to] = [];
+                        }
+                        jobApplications.value[to].unshift({
+                            ...app,
+                            status: to,
+                            rank: 0,
+                            last_status_date: formattedLastStatusDate,
+                        });
 
-      if (!snapshot.exists()) return;
+                        // Clear modal and pending state
+                        showDropConfirmModal.value = false;
+                        pendingDrop.value = null;
+                    } catch (err) {
+                        console.error("Error confirming status change:", err);
+                    }
+                    return;
+                }
 
-      const data = snapshot.data();
-      const stages = data.stages || {};
-      const interviewKeys = Object.keys(stages).filter((key) =>
-        key.startsWith("interview_")
-      );
+                // for working days calculation + most frequent day a company responds
+                if (!docSnapshot.exists()) {
+                    console.error("Document not found");
+                    return;
+                }
 
-      const nextIndex = interviewKeys.length + 1;
-      computedInterviewKey.value = `interview_${nextIndex}`;
+                const appData = docSnapshot.data();
+                const stages = appData.stages;
 
-      showAddInterviewModal.value = true;
-    };
+                let totalWorkingDays = 0;
+                const stagesWithDates = [];
 
-    const addInterviewSubStage = async () => {
-      const appRef = doc(
-        db,
-        "Users",
-        userId.value,
-        selectedCycle.value,
-        newInterviewAppId.value
-      );
-      const snapshot = await getDoc(appRef);
+                const responseDaysMap = {};
 
-      if (!snapshot.exists()) {
-        console.error("Application not found");
-        return;
-      }
+                for (let [stage, stageDetails] of Object.entries(stages)) {
+                    if (stageDetails && stageDetails.date) {
+                        const stageDate = DateTime.fromISO(stageDetails.date, {
+                            zone: "Asia/Singapore",
+                        }).toJSDate();
+                        stagesWithDates.push({ stage, date: stageDate });
 
-      const formattedDate = DateTime.fromISO(newInterviewDate.value)
-        .setZone("Asia/Singapore")
-        .toISO();
+                        // "Applied" and "Turned Down" stages are not stages that the company responds
+                        if (stage !== "applied" && stage !== "turned down") {
+                            const dayOfWeek = stageDate.getDay();
+                            // only care about work days (Mon to Fri, dayOfWeek 1 to 5)
+                            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                                responseDaysMap[dayOfWeek] =
+                                    (responseDaysMap[dayOfWeek] || 0) + 1;
+                            }
+                        }
+                    }
+                }
 
-      const dateInShort = DateTime.fromISO(newInterviewDate.value)
-        .setZone("Asia/Singapore")
-        .toLocaleString(DateTime.DATE_SHORT);
+                stagesWithDates.sort((a, b) => a.date - b.date);
 
-      const newStage = {
-        name: customStageName.value || computedInterviewKey.value, // fallback to key if empty
-        date: formattedDate,
-        isCompleted: false,
-      };
+                for (let i = 0; i < stagesWithDates.length - 1; i++) {
+                    const currentStage = stagesWithDates[i];
+                    const nextStage = stagesWithDates[i + 1];
+                    console.log(stagesWithDates);
 
-      const stages = snapshot.data().stages || {};
+                    totalWorkingDays += calculateWorkingDays(
+                        currentStage.date,
+                        nextStage.date
+                    );
+                }
 
-      let totalWorkingDays = 0;
-      const stagesWithDates = [];
-      const responseDaysMap = {};
+                // "Applied" and "Turned Down" stages are not stages that the company responds
+                if (to !== "Applied" && to !== "Turned Down") {
+                    // time taken to the new status?
+                    const latestDate =
+                        stagesWithDates[stagesWithDates.length - 1].date;
+                    const isoDate = DateTime.fromJSDate(latestDate)
+                        .setZone("Asia/Singapore")
+                        .toISO();
+                    console.log(isoDate);
+                    totalWorkingDays += calculateWorkingDays(
+                        isoDate,
+                        responseDateAtMidnightString
+                    );
 
-      for (let [stage, stageDetails] of Object.entries(stages)) {
-        console.log("Stage:", stage, "Details:", stageDetails);
-        if (stageDetails && stageDetails.date) {
-          const stageDate = DateTime.fromISO(stageDetails.date, {
-            zone: "Asia/Singapore",
-          }).toJSDate();
-          stagesWithDates.push({ stage, date: stageDate });
+                    const responseDate = DateTime.fromISO(
+                        responseDateAtMidnightString,
+                        {
+                            zone: "Asia/Singapore",
+                        }
+                    );
+                    const dayOfWeek = responseDate.weekday;
 
-          if (stage !== "applied" && stage !== "turned down") {
-            const dayOfWeek = stageDate.getDay();
-            // Only consider weekdays (Monday to Friday)
-            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-              responseDaysMap[dayOfWeek] =
-                (responseDaysMap[dayOfWeek] || 0) + 1;
+                    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                        responseDaysMap[dayOfWeek] =
+                            (responseDaysMap[dayOfWeek] || 0) + 1;
+                    }
+                }
+
+                // makes updates["average_working_days"] = 0
+                if (totalWorkingDays <= 0) {
+                    updates["average_working_days"] = 0;
+                    // minus to account for the intervals between each stage transition
+                } else {
+                    updates["average_working_days"] = Math.round(
+                        (totalWorkingDays - stagesWithDates.length) /
+                            stagesWithDates.length
+                    );
+                }
+                updates["response_days_map"] = { ...responseDaysMap };
+                //
+
+                if (to === "Interview") {
+                    // change to "interview"
+                    const type = to.toLowerCase();
+
+                    const existingStages = Object.keys(stages).filter((stage) =>
+                        stage.startsWith(type)
+                    );
+
+                    // Extract numbers from the stage names, if they exist (e.g., "interview_1" => 1)
+                    const stageNumbers = existingStages
+                        .map((stage) => {
+                            const match = stage.match(
+                                new RegExp(`${type}_(\\d+)`)
+                            ); // Regex to match "interview_1"
+                            return match ? parseInt(match[1], 10) : 0;
+                        })
+                        .filter((num) => num > 0);
+
+                    // If no valid stages exist, default to 1 (for "interview_1"), otherwise take the max number + 1
+                    const nextNum =
+                        stageNumbers.length > 0
+                            ? Math.max(...stageNumbers) + 1
+                            : 1;
+
+                    // Create the new stage with the next available number (either "interview_1" or the next number)
+                    const newStage = {
+                        name: stageName.value,
+                        date: responseDateAtMidnightString,
+                    };
+                    if (to === "Interview") {
+                        newStage.isCompleted = false;
+                    }
+                    updates[`stages.${type}_${nextNum}`] = newStage;
+                } else {
+                    // For other statuses like "Applied", there's no applied_1, applied_2
+                    // Also, it does not make sense to use response date for Applied and Turned Down when response date is for a company
+                    if (to !== "Applied" && to !== "Turned Down") {
+                        updates[`stages.${to.toLowerCase()}`] = {
+                            date: responseDateAtMidnightString,
+                        };
+                    } else {
+                        updates[`stages.${to.toLowerCase()}`] = {
+                            date: update_date,
+                        };
+                    }
+                }
+
+                // Update Firestore
+                await updateDoc(sourceDocRef, updates);
+
+                // update the global collection for future querying
+                const allApplicationsRef = doc(
+                    collection(db, "AllApplications"),
+                    app.id
+                );
+                await updateDoc(allApplicationsRef, updates);
+
+                // edit ranks of new status
+                const targetColumn = jobApplications.value[to];
+                for (let i = 0; i < targetColumn.length; i++) {
+                    const app = targetColumn[i];
+                    const appRef = doc(
+                        db,
+                        "Users",
+                        userId.value,
+                        selectedCycle.value,
+                        app.id
+                    );
+                    await updateDoc(appRef, { rank: i + 1 }); // Shift rank by 1
+                }
+
+                // Remove the application from the old column
+                jobApplications.value[from] = jobApplications.value[
+                    from
+                ].filter((item) => item.id !== app.id);
+
+                jobApplications.value[from].forEach(async (item, index) => {
+                    const appRef = doc(
+                        db,
+                        "Users",
+                        userId.value,
+                        selectedCycle.value,
+                        item.id
+                    );
+                    await updateDoc(appRef, { rank: index });
+                });
+
+                // Ensure the new column is an array (fixes empty column issue)
+                if (!jobApplications.value[to]) {
+                    jobApplications.value[to] = [];
+                }
+
+                // Add the application to the new column (force reactivity)
+                jobApplications.value[to].unshift({
+                    ...app,
+                    status: to,
+                    last_status_date: formattedLastStatusDate,
+                    rank: 0,
+                });
+
+                // clear inputs after confirmation
+                stageName.value = "";
+                responseDate.value = DateTime.now()
+                    .setZone("Asia/Singapore")
+                    .toISODate();
+
+                showDropConfirmModal.value = false;
+                pendingDrop.value = null;
+            } catch (err) {
+                console.error("Error confirming status change:", err);
             }
-          }
-        }
-      }
+        };
 
-      // Sort stages by date
-      stagesWithDates.sort((a, b) => a.date - b.date);
+        const handleApplicationAdded = (newApp) => {
+            fetchApplicationCycles();
+            if (
+                selectedCycle.value === null ||
+                selectedCycle.value === newApp.cycle
+            ) {
+                loadApplications(selectedCycle.value);
+            }
+            showForm.value = false;
+        };
 
-      // Calculate working days between interview stages
-      for (let i = 0; i < stagesWithDates.length - 1; i++) {
-        const currentStage = stagesWithDates[i];
-        const nextStage = stagesWithDates[i + 1];
+        const kanban = ref(null);
 
-        let currentStageDateISO = new Date(currentStage.date).toISOString();
-        let nextStageDateISO = new Date(nextStage.date).toISOString();
-        let currentStageDate = DateTime.fromISO(currentStageDateISO, {
-          zone: "Asia/Singapore",
+        const handleAutoScroll = (e) => {
+            const scrollMargin = 100;
+            const scrollSpeed = 10;
+            const container = kanban.value;
+
+            if (!container) return;
+
+            const { left, right } = container.getBoundingClientRect();
+            const mouseX = e.clientX;
+
+            if (mouseX > right - scrollMargin) {
+                container.scrollLeft += scrollSpeed;
+            } else if (mouseX < left + scrollMargin) {
+                container.scrollLeft -= scrollSpeed;
+            }
+        };
+
+        // when pop-up is opened, only scroll the pop-ups
+        watch(showPopup, (newVal) => {
+            if (newVal) {
+                document.body.style.overflow = "hidden";
+            } else {
+                document.body.style.overflow = "";
+            }
         });
-        let nextStageDate = DateTime.fromISO(nextStageDateISO, {
-          zone: "Asia/Singapore",
+
+        watch(showForm, (newVal) => {
+            if (newVal) {
+                document.body.style.overflow = "hidden";
+            } else {
+                document.body.style.overflow = "";
+            }
         });
 
-        totalWorkingDays += calculateWorkingDays(
-          currentStageDate.toISO(),
-          nextStageDate.toISO()
-        );
-      }
+        // for searching filter function
+        const searchQuery = ref("");
+        const filteredApplications = computed(() => {
+            if (!searchQuery.value) {
+                return jobApplications.value;
+            } else {
+                const lowerCaseSearchQuery = searchQuery.value.toLowerCase();
+                return Object.keys(jobApplications.value).reduce(
+                    (acc, status) => {
+                        acc[status] = jobApplications.value[status].filter(
+                            (app) =>
+                                app.company
+                                    .toLowerCase()
+                                    .includes(lowerCaseSearchQuery) ||
+                                app.position
+                                    .toLowerCase()
+                                    .includes(lowerCaseSearchQuery)
+                        );
+                        return acc;
+                    },
+                    {}
+                );
+            }
+        });
 
-      // calculate the working days between the next interview stage here
-      const latestStage = stagesWithDates[stagesWithDates.length - 1];
-      let latestStageDateISO = new Date(latestStage.date).toISOString();
-      let nextInterviewStageDateISO = DateTime.fromISO(newInterviewDate.value)
-        .setZone("Asia/Singapore")
-        .toJSDate()
-        .toISOString();
-      totalWorkingDays += calculateWorkingDays(
-        latestStageDateISO,
-        nextInterviewStageDateISO
-      );
+        // for adding in stages when in interview
+        const customStageName = ref("");
+        const showAddInterviewModal = ref(false);
+        const newInterviewAppId = ref(null);
+        const newInterviewDate = ref(DateTime.now().toISODate());
 
-      // Calculate average working days and store it in the updates object
-      const averageWorkingDays =
-        totalWorkingDays > 0
-          ? Math.round(
-              (totalWorkingDays - stagesWithDates.length) /
-                stagesWithDates.length
+        const computedInterviewKey = ref("");
+
+        const openAddInterviewModal = async (appId) => {
+            newInterviewAppId.value = appId;
+            newInterviewDate.value = DateTime.now().toISODate();
+
+            const appRef = doc(
+                db,
+                "Users",
+                userId.value,
+                selectedCycle.value,
+                appId
+            );
+            const snapshot = await getDoc(appRef);
+
+            if (!snapshot.exists()) return;
+
+            const data = snapshot.data();
+            const stages = data.stages || {};
+            const interviewKeys = Object.keys(stages).filter((key) =>
+                key.startsWith("interview_")
+            );
+
+            const nextIndex = interviewKeys.length + 1;
+            computedInterviewKey.value = `interview_${nextIndex}`;
+
+            showAddInterviewModal.value = true;
+        };
+
+        const addInterviewSubStage = async () => {
+            const appRef = doc(
+                db,
+                "Users",
+                userId.value,
+                selectedCycle.value,
+                newInterviewAppId.value
+            );
+            const snapshot = await getDoc(appRef);
+
+            if (!snapshot.exists()) {
+                console.error("Application not found");
+                return;
+            }
+
+            const formattedDate = DateTime.fromISO(newInterviewDate.value)
+                .setZone("Asia/Singapore")
+                .toISO();
+
+            const dateInShort = DateTime.fromISO(newInterviewDate.value)
+                .setZone("Asia/Singapore")
+                .toLocaleString(DateTime.DATE_SHORT);
+
+            const newStage = {
+                name: customStageName.value || computedInterviewKey.value, // fallback to key if empty
+                date: formattedDate,
+                isCompleted: false,
+            };
+
+            const stages = snapshot.data().stages || {};
+
+            let totalWorkingDays = 0;
+            const stagesWithDates = [];
+            const responseDaysMap = {};
+
+            for (let [stage, stageDetails] of Object.entries(stages)) {
+                console.log("Stage:", stage, "Details:", stageDetails);
+                if (stageDetails && stageDetails.date) {
+                    const stageDate = DateTime.fromISO(stageDetails.date, {
+                        zone: "Asia/Singapore",
+                    }).toJSDate();
+                    stagesWithDates.push({ stage, date: stageDate });
+
+                    if (stage !== "applied" && stage !== "turned down") {
+                        const dayOfWeek = stageDate.getDay();
+                        // Only consider weekdays (Monday to Friday)
+                        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                            responseDaysMap[dayOfWeek] =
+                                (responseDaysMap[dayOfWeek] || 0) + 1;
+                        }
+                    }
+                }
+            }
+
+            // Sort stages by date
+            stagesWithDates.sort((a, b) => a.date - b.date);
+
+            // Calculate working days between interview stages
+            for (let i = 0; i < stagesWithDates.length - 1; i++) {
+                const currentStage = stagesWithDates[i];
+                const nextStage = stagesWithDates[i + 1];
+
+                let currentStageDateISO = new Date(
+                    currentStage.date
+                ).toISOString();
+                let nextStageDateISO = new Date(nextStage.date).toISOString();
+                let currentStageDate = DateTime.fromISO(currentStageDateISO, {
+                    zone: "Asia/Singapore",
+                });
+                let nextStageDate = DateTime.fromISO(nextStageDateISO, {
+                    zone: "Asia/Singapore",
+                });
+
+                totalWorkingDays += calculateWorkingDays(
+                    currentStageDate.toISO(),
+                    nextStageDate.toISO()
+                );
+            }
+
+            // calculate the working days between the next interview stage here
+            const latestStage = stagesWithDates[stagesWithDates.length - 1];
+            let latestStageDateISO = new Date(latestStage.date).toISOString();
+            let nextInterviewStageDateISO = DateTime.fromISO(
+                newInterviewDate.value
             )
-          : 0;
+                .setZone("Asia/Singapore")
+                .toJSDate()
+                .toISOString();
+            totalWorkingDays += calculateWorkingDays(
+                latestStageDateISO,
+                nextInterviewStageDateISO
+            );
 
-      const updates = {
-        [`stages.${computedInterviewKey.value}`]: newStage,
-        last_status_date: dateInShort,
-        average_working_days: averageWorkingDays,
-        response_days_map: { ...responseDaysMap },
-      };
+            // Calculate average working days and store it in the updates object
+            const averageWorkingDays =
+                totalWorkingDays > 0
+                    ? Math.round(
+                          (totalWorkingDays - stagesWithDates.length) /
+                              stagesWithDates.length
+                      )
+                    : 0;
 
-      await updateDoc(appRef, updates);
+            const updates = {
+                [`stages.${computedInterviewKey.value}`]: newStage,
+                last_status_date: dateInShort,
+                average_working_days: averageWorkingDays,
+                response_days_map: { ...responseDaysMap },
+            };
 
-      console.log(`Added ${computedInterviewKey.value}`);
+            await updateDoc(appRef, updates);
 
-      // force reactivity
-      const appIndex = jobApplications.value["Interview"].findIndex(
-        (app) => app.id === newInterviewAppId.value
-      );
-      if (appIndex !== -1) {
-        jobApplications.value["Interview"][appIndex].last_status_date =
-          dateInShort;
-      }
+            console.log(`Added ${computedInterviewKey.value}`);
 
-      showAddInterviewModal.value = false;
-      customStageName.value = ""; // reset field
-    };
+            // force reactivity
+            const appIndex = jobApplications.value["Interview"].findIndex(
+                (app) => app.id === newInterviewAppId.value
+            );
+            if (appIndex !== -1) {
+                jobApplications.value["Interview"][appIndex].last_status_date =
+                    dateInShort;
+            }
 
-    // prevent scroll up and down when modal is open
-    watch(showAddInterviewModal, (newVal) => {
-      if (newVal) {
-        document.body.style.overflow = "hidden";
-      } else {
-        document.body.style.overflow = "";
-      }
-    });
+            showAddInterviewModal.value = false;
+            customStageName.value = ""; // reset field
+        };
+
+        // prevent scroll up and down when modal is open
+        watch(showAddInterviewModal, (newVal) => {
+            if (newVal) {
+                document.body.style.overflow = "hidden";
+            } else {
+                document.body.style.overflow = "";
+            }
+        });
 
         return {
             // testing
@@ -1567,41 +1742,41 @@ export default {
             showCreateNewCyclePrompt,
 
             //rename cycles
-      cycleToRename,
-      newCycleNameInput,
-      startRenameCycle,
-      renameCycle,
+            cycleToRename,
+            newCycleNameInput,
+            startRenameCycle,
+            renameCycle,
 
-      //deleting cycles
-      confirmDeleteCycle,
-      performDeleteCycle,
-      showDeleteModal,
-      cycleToDelete,
+            //deleting cycles
+            confirmDeleteCycle,
+            performDeleteCycle,
+            showDeleteModal,
+            cycleToDelete,
 
-      showCycleSettingsModal,
-      selectedCycleForSettings,
-      openCycleSettingsModal,
-      closeCycleSettingsModal,
-      //for stages
-      showAddInterviewModal,
-      newInterviewAppId,
-      newInterviewDate,
-      computedInterviewKey,
-      openAddInterviewModal,
-      addInterviewSubStage,
-      customStageName,
-      // for collapsed button
-      collapsed,
-      toggleCollapse
-    };
-  },
-  methods: {
-    formatCycleName(cycleName) {
-      return cycleName
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, (char) => char.toUpperCase());
+            showCycleSettingsModal,
+            selectedCycleForSettings,
+            openCycleSettingsModal,
+            closeCycleSettingsModal,
+            //for stages
+            showAddInterviewModal,
+            newInterviewAppId,
+            newInterviewDate,
+            computedInterviewKey,
+            openAddInterviewModal,
+            addInterviewSubStage,
+            customStageName,
+            // for collapsed button
+            collapsed,
+            toggleCollapse,
+        };
     },
-  },
+    methods: {
+        formatCycleName(cycleName) {
+            return cycleName
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (char) => char.toUpperCase());
+        },
+    },
 };
 </script>
 
@@ -1691,7 +1866,7 @@ export default {
 }
 
 .profile-icon:hover {
-	background-color: #e0e0e0;
+    background-color: #e0e0e0;
 }
 
 .sub-header {
