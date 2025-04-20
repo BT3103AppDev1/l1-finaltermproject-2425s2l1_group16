@@ -85,10 +85,7 @@ const handleConfirmedUpdate = (msg) => {
 const handleStatusUpdate = (message) => {
     console.log("Application updated:", message);
     // Emit an event to the Dashboard to reload applications
-    emit("reload-applications");
     emit("close"); // Close the popup, which will trigger a reload in Dashboard
-    // OR you could emit a specific 'reload-applications' event
-    // emit('reload-applications');
     showToastMessage(message);
 };
 </script>
