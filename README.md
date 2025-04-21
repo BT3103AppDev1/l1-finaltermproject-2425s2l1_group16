@@ -1,6 +1,8 @@
-# intern-tracker
+# JobTrack
 
-This template should help get you started developing with Vue 3 in Vite.
+Your all-in-one internship platform to keep track of all your job applications and receive valuable statistics about the company you are applying to.
+
+View our live website [here](https://interntracker-376f9.web.app/)!
 
 ## Recommended IDE Setup
 
