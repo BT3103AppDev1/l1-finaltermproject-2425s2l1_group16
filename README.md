@@ -4,13 +4,8 @@ Your all-in-one internship platform to keep track of all your job applications a
 
 View our live website [here](https://interntracker-376f9.web.app/)!
 
-## Recommended IDE Setup
-
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
+**Dashboard view**:
+![Dashboard](https://github.com/BT3103AppDev1/l1-finaltermproject-2425s2l1_group16/blob/8fe2268555e966a3bcd2c30dc3df80d2c70c1397/public/Landing%20Page.png)
 
 ## Project Setup
 
