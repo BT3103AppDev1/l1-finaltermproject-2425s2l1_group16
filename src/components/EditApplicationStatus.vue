@@ -2,13 +2,13 @@
     <form class="edit-status-form">
         <div
             v-for="(stage, index) in editableStagesArray"
-            :key="stage.name"
+            :key="stage.key"
             class="status-stage"
         >
             <div class="input-group stage-name-display">
                 <label :for="'stage-name-' + index">Stage Name</label>
                 <span :id="'stage-name-' + index" class="stage-name-text">{{
-                    formatStageName(stage.name)
+                    stage.displayName || formatStageKey(stage.key)
                 }}</span>
             </div>
             <div class="input-group">
@@ -46,20 +46,17 @@ import { useToast } from "vue-toastification";
 const emit = defineEmits(["showToast", "status-updated-manual"]);
 const toast = useToast();
 
-const editableStagesArray = ref([]);
-const originalStagesMap = ref({});
-// Removed unused terminalStatuses
+const editableStagesArray = ref([]); // Will store objects like { key, displayName, date }
+const originalStagesMap = ref({}); // Still stores the raw Firestore stage map
 const statusLevelMap = {
     Applied: 0,
     Assessment: 1,
     Interview: 2,
     Offered: 3,
-    Rejected: 3, // same level as Offered
-    "Turned Down": 4,
+    Rejected: 3,
+    "Turned Down": 4, // Key needs to match result of getBaseStageName
 };
-
-// currentDate for the max attribute in date input
-const currentDate = DateTime.now().toISODate(); // Format: YYYY-MM-DD
+const currentDate = DateTime.now().toISODate();
 
 const props = defineProps({
     userId: { type: String, required: true },
@@ -69,24 +66,28 @@ const props = defineProps({
 
 const docPath = doc(db, "Users", props.userId, props.cycle, props.appId);
 
+// Function to create the stage object for the editable array
+const createEditableStageObject = ([key, details]) => ({
+    key: key, // The original Firestore key (e.g., "interview_1")
+    displayName: details.name || null, // The specific name field if it exists (e.g., "Interview")
+    date: details.date
+        ? DateTime.fromISO(details.date).toISODate()
+        : DateTime.now().toISODate(),
+});
+
 onMounted(async () => {
     try {
         const snap = await getDoc(docPath);
         if (snap.exists() && snap.data().stages) {
             const stages = snap.data().stages;
-            // Deep copy for original map to prevent mutation issues
-            originalStagesMap.value = JSON.parse(JSON.stringify(stages));
+            originalStagesMap.value = JSON.parse(JSON.stringify(stages)); // Deep copy
 
+            // Create the array with the new structure
             editableStagesArray.value = Object.entries(stages).map(
-                ([name, details]) => ({
-                    name,
-                    date: details.date
-                        ? DateTime.fromISO(details.date).toISODate()
-                        : DateTime.now().toISODate(), // Default to today if null/undefined
-                })
+                createEditableStageObject
             );
 
-            // Sort for initial visual consistency
+            // Sort by date
             editableStagesArray.value.sort(
                 (a, b) =>
                     new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -105,114 +106,99 @@ onMounted(async () => {
 });
 
 const cancelEdit = () => {
-    // Reset based on the stored original map
+    // Rebuild the array from the original map using the same logic as onMounted
     editableStagesArray.value = Object.entries(originalStagesMap.value).map(
-        ([name, details]) => ({
-            name,
-            date: details.date
-                ? DateTime.fromISO(details.date).toISODate()
-                : DateTime.now().toISODate(),
-        })
+        createEditableStageObject
     );
-    // Re-sort after resetting for visual consistency
+    // Re-sort
     editableStagesArray.value.sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
     toast.info("Date changes reset.");
 };
 
-// Helper to normalize stage names for level lookup
-const getBaseStageName = (stageName) => {
-    if (!stageName) return "";
-    // Handle potential variations like "Interview_Round1", "Assessment HR" -> "Interview", "Assessment"
-    const base = stageName.split(/[_ ]/)[0]; // Split by underscore or space, take first part
-    return base.charAt(0).toUpperCase() + base.slice(1).toLowerCase(); // Capitalize first letter, rest lower
+// Gets base name FROM THE KEY for level mapping (e.g., "interview_1" -> "Interview")
+const getBaseStageNameFromKey = (stageKey) => {
+    if (!stageKey) return "";
+    const base = stageKey.split(/[_ ]/)[0];
+    return base.charAt(0).toUpperCase() + base.slice(1).toLowerCase();
 };
 
-const formatStageName = (stageName) => {
-    if (!stageName) return "";
-    // Split by underscore or space
-    const parts = stageName.split(/[_ ]/);
-    // Capitalize the first part (e.g., "Interview") and leave the second part as is (e.g., "1")
+// Formats the KEY for display only when details.name is not available
+const formatStageKey = (stageKey) => {
+    if (!stageKey) return "";
+    const parts = stageKey.split(/[_ ]/);
     return parts
-        .map(
-            (part, index) =>
-                index === 0
-                    ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() // Capitalize the first part
-                    : part // Keep the second part as is
+        .map((part, index) =>
+            index === 0
+                ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+                : part
         )
-        .join(" "); // Join parts with a space
+        .join(" ");
 };
 
 const saveStatusTimeline = async () => {
-    // Create the map of stages to be saved *before* sorting for validation
+    // Create the map using the stage.key for Firestore keys
     const updatedStagesMap = Object.fromEntries(
         editableStagesArray.value
-            .filter((stage) => stage.name) // Ensure stage has a name
+            .filter((stage) => stage.key) // Ensure stage has a key
             .map((stage) => [
-                stage.name,
-                // Ensure date is stored consistently (e.g., YYYY-MM-DD or null)
+                stage.key, // <--- Use stage.key
+                // Reconstruct the details, preserving other fields if necessary in future
+                // For now, just updating the date based on current logic
                 {
+                    ...(originalStagesMap.value[stage.key] || {}), // Keep original fields
                     date: stage.date
                         ? DateTime.fromISO(stage.date).toISODate()
-                        : null,
+                        : null, // Update the date
                 },
             ])
     );
 
     // Validation
-    // Create a sorted array from the edited data for validation checks
     const sortedStagesForValidation = [...editableStagesArray.value]
-        .filter((stage) => stage.date) // Only consider stages with dates for sorting/validation
+        .filter((stage) => stage.date)
         .sort(
             (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
         );
 
-    // Check for illogical status level progression based on dates
     for (let i = 0; i < sortedStagesForValidation.length - 1; i++) {
         const current = sortedStagesForValidation[i];
         const next = sortedStagesForValidation[i + 1];
 
-        // Use helper to get base name for level lookup
-        const currentBaseName = getBaseStageName(current.name);
-        const nextBaseName = getBaseStageName(next.name);
+        // Use the KEY to get the base name for level lookup
+        const currentBaseName = getBaseStageNameFromKey(current.key); // <--- Use stage.key
+        const nextBaseName = getBaseStageNameFromKey(next.key); // <--- Use stage.key
 
-        // Lookup level, provide high number for unknown stages
         const currentLevel = statusLevelMap[currentBaseName] ?? 99;
         const nextLevel = statusLevelMap[nextBaseName] ?? 99;
-
-        // Compare dates (YYYY-MM-DD strings are safe for direct comparison here)
         const datesAreSame = current.date === next.date;
 
-        // Throw an error if
-        // The current stage (earlier/same date) has a higher level than the next stage and Their dates are different (meaning 'current' is strictly earlier)
         if (currentLevel > nextLevel && !datesAreSame) {
+            // Use formatStageKey in the error message for consistency if displayName isn't available
+            const currentDisplayName =
+                current.displayName || formatStageKey(current.key);
+            const nextDisplayName =
+                next.displayName || formatStageKey(next.key);
             toast.error(
-                // Updated error message for clarity
-                `Invalid Date Order: "${formatStageName(current.name)}" on ${
-                    current.date
-                } cannot be dated before "${formatStageName(next.name)}" on ${
-                    next.date
-                }.`
+                `Invalid Date Order: "${currentDisplayName}" on ${current.date} cannot be dated before "${nextDisplayName}" on ${next.date}.`
             );
-            return; // Stop the save process
+            return;
         }
-        // If dates are the same (datesAreSame is true), this check is skipped.
-        // If level progression is correct (currentLevel <= nextLevel), it's also skipped.
     }
 
     // --- Check for Actual Changes ---
-    // Convert original map values to comparable format (YYYY-MM-DD or null)
     const originalComparableMap = Object.fromEntries(
-        Object.entries(originalStagesMap.value).map(([name, details]) => [
-            name,
+        Object.entries(originalStagesMap.value).map(([key, details]) => [
+            key,
             details.date ? DateTime.fromISO(details.date).toISODate() : null,
         ])
     );
     const updatedComparableMap = Object.fromEntries(
-        Object.entries(updatedStagesMap).map(([name, details]) => [
-            name,
-            details.date, // Already in YYYY-MM-DD or null from creation
+        // Use editableStagesArray directly as updatedStagesMap contains more than just date now
+        editableStagesArray.value.map((stage) => [
+            stage.key,
+            stage.date ? DateTime.fromISO(stage.date).toISODate() : null,
         ])
     );
 
@@ -226,24 +212,22 @@ const saveStatusTimeline = async () => {
 
     // Save to Firebase
     try {
-        // 1. Update the stages map
+        // 1. Update the stages map (updatedStagesMap now contains full stage data with updated date)
         await updateDoc(docPath, { stages: updatedStagesMap });
 
-        // 2. Update the overall status field based on the *new* latest stage/date
-        let newOverallStatus = "Applied"; // Default
-        // Re-sort the updated map entries to find the latest for status update
-        const sortedSavedStages = Object.entries(updatedStagesMap)
-            .filter(([, details]) => details.date) // Only consider stages with dates
+        // 2. Update overall status (logic remains similar, uses keys)
+        let newOverallStatus = "Applied";
+        const sortedSavedStages = Object.entries(updatedStagesMap) // Use the map we are saving
+            .filter(([, details]) => details.date)
             .sort(
                 ([, a], [, b]) =>
                     new Date(a.date).getTime() - new Date(b.date).getTime()
             );
 
         if (sortedSavedStages.length > 0) {
-            const latestStageName = sortedSavedStages.at(-1)[0]; // Get the name of the latest stage
-            const latestStageBaseName = getBaseStageName(latestStageName); // Use base name for status mapping
+            const latestStageKey = sortedSavedStages.at(-1)[0]; // Get the key
+            const latestStageBaseName = getBaseStageNameFromKey(latestStageKey); // Use key
 
-            // Determine overall status based on the latest stage name/level
             if (latestStageBaseName === "Assessment")
                 newOverallStatus = "Assessment";
             else if (latestStageBaseName === "Interview")
@@ -253,23 +237,21 @@ const saveStatusTimeline = async () => {
             else if (latestStageBaseName === "Rejected")
                 newOverallStatus = "Rejected";
             else if (latestStageBaseName === "Turned down")
-                newOverallStatus = "Turned Down";
-            // Match case or handle in helper
+                newOverallStatus = "Turned Down"; // Check case
             else if (latestStageBaseName !== "Applied")
-                newOverallStatus = latestStageBaseName; // Use base name if not standard but not Applied
-            // else it remains "Applied"
+                newOverallStatus = latestStageBaseName;
         }
 
-        // Update the overall status field in Firebase
         await updateDoc(docPath, { status: newOverallStatus });
 
-        // 3. Update local original map to reflect the saved state
-        originalStagesMap.value = JSON.parse(JSON.stringify(updatedStagesMap)); // Deep copy
+        // 3. Update local original map
+        // Important: Since updatedStagesMap now contains potentially more than just date,
+        // ensure it reflects the actual saved structure accurately.
+        originalStagesMap.value = JSON.parse(JSON.stringify(updatedStagesMap));
 
-        // 4. Notify success and emit update event
+        // 4. Notify success and emit
         toast.success("Application timeline and status updated!");
         emit("status-updated-manual", {
-            // Use the defined emit
             appId: props.appId,
             newStatus: newOverallStatus,
         });
@@ -281,6 +263,7 @@ const saveStatusTimeline = async () => {
 </script>
 
 <style scoped>
+/* Styles remain the same */
 .edit-status-form {
     padding: 12px;
     position: relative;
@@ -329,6 +312,9 @@ const saveStatusTimeline = async () => {
     align-items: center;
     color: #555;
     box-sizing: border-box;
+    white-space: nowrap; /* Prevent wrapping */
+    overflow: hidden; /* Hide overflow */
+    text-overflow: ellipsis; /* Add ellipsis if text overflows */
 }
 
 .input-group input[type="date"] {
