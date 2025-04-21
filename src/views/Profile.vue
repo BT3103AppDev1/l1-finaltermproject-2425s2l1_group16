@@ -443,7 +443,7 @@ export default {
 <style scoped>
 /* --- Base Container --- */
 .profile-container {
-	max-width: 650px;
+	width: 600px;
 	margin: 2rem auto;
 	padding: 30px 35px;
 	background-color: #fff;

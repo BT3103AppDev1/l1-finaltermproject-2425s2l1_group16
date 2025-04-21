@@ -346,7 +346,6 @@
             @close="closePopup"
         >
         </ApplicationCard>
-        />
     </teleport>
 
     <teleport to="body">
